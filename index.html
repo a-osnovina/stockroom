@@ -72,8 +72,6 @@
   .card { background: var(--card); border-radius: 16px; padding: 18px; margin-bottom: 12px; }
   .card .label { font-size: 13px; color: var(--muted); }
   .card .big { font-size: 40px; font-weight: 700; margin-top: 4px; }
-  .bar { height: 14px; background: var(--bg); border-radius: 7px; overflow: hidden; margin: 12px 0 6px; }
-  .bar > div { height: 100%; background: var(--sold-fg); width: 0; transition: width .3s; }
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .two .card .big { font-size: 28px; }
   .small { font-size: 13px; color: var(--muted); }
@@ -146,11 +144,6 @@
       <button class="primary" id="btn-withdraw">Withdraw</button>
     </div>
     <div class="card">
-      <div class="label">Printer goal</div>
-      <div class="bar"><div id="m-bar"></div></div>
-      <div class="small" id="m-goal-text"></div>
-    </div>
-    <div class="card">
       <div class="label">Total profit so far</div>
       <div class="big" style="font-size:28px" id="m-profit">$0.00</div>
       <div class="small" id="m-sold-count"></div>
@@ -171,7 +164,6 @@
 <script>
 (function () {
   var PLATFORMS = ['Depop', 'Vinted'];   // add more names here later
-  var PRINTER_GOAL = 89;
   var KEY = 'stockroom.items.v1';
 
   var WKEY = 'stockroom.withdrawals.v1';
@@ -266,11 +258,6 @@
             esc(from.join(' + ')) + ' · ' + new Date(w.date).toLocaleDateString() + '</div></div></button>';
         }).join('')
       : '';
-    var pct = Math.max(0, Math.min(100, total / PRINTER_GOAL * 100));
-    $('m-bar').style.width = pct + '%';
-    $('m-goal-text').textContent = total >= PRINTER_GOAL
-      ? 'Printer ($' + PRINTER_GOAL + ') is covered!'
-      : money(total) + ' of $' + PRINTER_GOAL + ' (' + Math.round(pct) + '%)';
   }
 
   function render() { renderTabs(); renderList(); renderMoney(); }
@@ -386,19 +373,6 @@
     if (src === ALL) return Math.max(0, totalOf(b));
     return Math.max(0, b[src] || 0);
   }
-  // "All platforms": take the amount from each platform in proportion to what it holds
-  function splitWithdrawal(amt, src) {
-    var parts = {};
-    if (src !== ALL) { parts[src] = amt; return parts; }
-    var b = balances(), names = Object.keys(b).filter(function (p) { return b[p] > 0; });
-    var tot = names.reduce(function (a, p) { return a + b[p]; }, 0), used = 0, biggest = names[0];
-    names.forEach(function (p) {
-      parts[p] = r2(amt * b[p] / tot); used += parts[p];
-      if (b[p] > b[biggest]) biggest = p;
-    });
-    parts[biggest] = r2(parts[biggest] + (amt - used));   // put any leftover cent on the biggest one
-    return parts;
-  }
   function withdrawStep1() {
     var tot = availableFor(ALL);
     if (tot <= 0) {
@@ -414,14 +388,14 @@
     var names = platformNames().filter(function (p) { return availableFor(p) > 0; });
     openSheet('<div class="sheet-head"><h2>Withdraw</h2><button class="link" data-act="close">Cancel</button></div>' +
       '<label for="w-amt">Amount $</label><input type="number" inputmode="decimal" id="w-amt" min="0" step="0.01">' +
-      '<label class="label-t">From</label>' + platformChips([ALL], true, [ALL].concat(names)) +
+      '<label class="label-t">From</label>' + platformChips([names[0]], true, names) +
       '<div class="small" id="w-from" style="margin-top:10px"></div>' +
       '<button class="primary" data-act="wd-confirm">Withdraw</button>');
     updateWithdrawHint();
     $('w-amt').focus();
   }
   function updateWithdrawHint() {
-    var src = readPlatforms()[0] || ALL;
+    var src = readPlatforms()[0];
     $('w-from').textContent = 'Available: ' + money(availableFor(src));
   }
   $('btn-withdraw').onclick = withdrawStep1;
@@ -506,11 +480,11 @@
     }
     else if (act === 'wd-amount') withdrawStep2();
     else if (act === 'wd-confirm') {
-      var amt = numOrNull($('w-amt').value), src = readPlatforms()[0] || ALL;
+      var amt = numOrNull($('w-amt').value), src = readPlatforms()[0];
       var avail = availableFor(src);
       if (amt == null || amt <= 0) { $('w-amt').focus(); $('w-amt').style.borderColor = 'var(--danger)'; return; }
       if (amt > avail) { alert('You only have ' + money(avail) + ' to withdraw from there.'); return; }
-      withdrawals.push({ id: uid(), date: Date.now(), parts: splitWithdrawal(amt, src) });
+      withdrawals.push({ id: uid(), date: Date.now(), parts: (function () { var o = {}; o[src] = amt; return o; })() });
       save(); closeSheet(); render();
     }
     else if (act === 'unsell') { it.sold = null; save(); closeSheet(); render(); }

@@ -11,11 +11,10 @@ and your items are saved on your own device. No accounts, no server. The whole a
   - Listed = a platform is picked
   - Sold = marked as sold
 - **Mark as sold**: enter the sale price and the platform it sold on, and the profit shows right away.
-- **Money**: your balance (with a line per platform), a Withdraw button, a progress bar toward the printer goal ($89, fixed in the code), and total profit.
-- **Withdraw**: take out everything, or a different amount from all platforms or just one. Tap a past withdrawal to undo it.
+- **Money**: your balance (with a line per platform), a Withdraw button, and total profit.
+- **Withdraw**: take out everything, or a different amount from one platform. Tap a past withdrawal to undo it.
 
 Fees are not counted yet. Profit = what each item sold for. Balance = profit minus withdrawals.
-The printer goal bar follows total profit, so withdrawing does not shrink it.
 
 ## Put it online (GitHub Pages)
 
