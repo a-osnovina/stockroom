@@ -1,28 +1,26 @@
 # Stockroom
 
-A small phone app (iPhone and Android) to track resale inventory and profit.
-Everything is stored on the device. No accounts, no server.
+A simple web page to track your resale inventory. It works on iPhone and Android,
+and your items are saved on your own device. No accounts, no server.
 
-## Status
+## What it does so far
 
-v1 in progress. Built so far:
+- Add an item: name, what you paid, date bought, and which apps it is listed on
+- See all your items, search them, and filter by app
 
-- Add an item: name, cost, date bought, platforms it is listed on
-- Inventory list with search and platform filter
+Coming next, one at a time: mark as sold (profit calculated for you), then a summary screen.
 
-Next, one at a time and only after review: mark as sold (profit), summary screen.
+## Put it online (GitHub Pages)
 
-## Run it
+1. On GitHub, open this repo, then Settings, then Pages.
+2. Under "Build and deployment", choose "Deploy from a branch", pick `main` and `/ (root)`, then Save.
+3. After a minute or two the page is at https://a-osnovina.github.io/stockroom/
 
-This repo holds the app source (`App.tsx` and `src/`). Expo generates the rest.
+To use it like an app, open that link on your phone, then use "Add to Home Screen"
+(iPhone: Share button in Safari. Android: the browser menu).
 
-1. Create the Expo shell: `npx create-expo-app@latest stockroom-app --template blank-typescript`
-2. Copy this repo's `App.tsx` over the shell's `App.tsx`, and copy the `src/` folder in next to it.
-3. Inside the shell folder, install the two libraries the app uses (this picks versions that match your Expo version):
-   `npx expo install @react-native-async-storage/async-storage react-native-safe-area-context`
-4. `npx expo start`, then scan the QR code with the Expo Go app (iPhone: use the Camera app; Android: scan inside Expo Go).
+## Good to know
 
-## Not included on purpose
-
-Settings, themes, accounts, charts, photos, barcode scanning, notifications, automatic syncing with resale sites.
-Backup/export comes later.
+Items are stored in your browser on that phone. Clearing browser data or website
+history for the site will erase them, and a different phone starts empty.
+A backup option is planned.

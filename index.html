@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Stockroom">
+<title>Stockroom</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #111;
+    background: #fff;
+    padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+  }
+  main { max-width: 600px; margin: 0 auto; padding-bottom: 32px; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+  h1 { font-size: 28px; margin: 0; }
+  button { font: inherit; cursor: pointer; }
+  .link { background: none; border: 0; color: #0a6cff; font-size: 17px; font-weight: 600; padding: 4px; }
+  input[type=text], input[type=search], input[type=number], input[type=date] {
+    width: 100%; font-size: 16px; padding: 10px 12px;
+    border: 1px solid #ccc; border-radius: 8px; background: #fff; color: #111;
+  }
+  label, .label { display: block; font-size: 13px; color: #555; margin: 16px 0 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .filters { margin: 12px 0; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+  .chip {
+    border: 1px solid #ccc; border-radius: 16px; background: #fff; color: #333;
+    padding: 6px 12px; font-size: 14px; white-space: nowrap;
+  }
+  .chip.on { background: #0a6cff; border-color: #0a6cff; color: #fff; }
+  .row { padding: 12px 0; border-top: 1px solid #ddd; }
+  .row-top { display: flex; justify-content: space-between; gap: 12px; }
+  .name { font-size: 17px; font-weight: 600; }
+  .meta { font-size: 13px; color: #666; margin-top: 2px; }
+  .empty { text-align: center; color: #666; padding: 48px 16px; font-size: 15px; }
+  .error { color: #c00; font-size: 14px; margin-top: 12px; min-height: 1em; }
+  .actions { display: flex; gap: 12px; margin-top: 20px; }
+  .primary { background: #0a6cff; color: #fff; border: 0; border-radius: 8px; padding: 12px 20px; font-size: 17px; font-weight: 600; flex: 1; }
+  .secondary { background: #eee; color: #111; border: 0; border-radius: 8px; padding: 12px 20px; font-size: 17px; }
+</style>
+</head>
+<body>
+
+<main id="list-view">
+  <header>
+    <h1>Inventory</h1>
+    <button class="link" id="add-btn" type="button">+ Add</button>
+  </header>
+  <input type="search" id="search" placeholder="Search items" autocomplete="off">
+  <div class="chips filters" id="filters"></div>
+  <div id="list"></div>
+</main>
+
+<main id="add-view" hidden>
+  <header>
+    <h1>Add item</h1>
+  </header>
+  <form id="add-form" novalidate>
+    <label for="name">Name</label>
+    <input type="text" id="name" placeholder="e.g. Levi's 501 jeans" autocomplete="off">
+
+    <label for="cost">Cost (what you paid)</label>
+    <input type="number" id="cost" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
+
+    <label for="date">Date bought</label>
+    <input type="date" id="date">
+
+    <div class="label">Listed on (optional)</div>
+    <div class="chips" id="platform-chips"></div>
+
+    <div class="error" id="error" role="alert"></div>
+    <div class="actions">
+      <button type="button" class="secondary" id="cancel-btn">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</main>
+
+<script>
+(function () {
+  var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Facebook Marketplace', 'Etsy', 'Other'];
+  var KEY = 'stockroom.items.v1';
+
+  var items = load();
+  var query = '';
+  var filter = null;
+  var selected = [];
+
+  function $(id) { return document.getElementById(id); }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(items));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function todayLocal() {
+    var d = new Date();
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+
+  function money(n) { return '$' + Number(n).toFixed(2); }
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function chip(label, on, onClick) {
+    var b = el('button', 'chip' + (on ? ' on' : ''), label);
+    b.type = 'button';
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  function renderFilters() {
+    var box = $('filters');
+    box.replaceChildren();
+    [null].concat(PLATFORMS).forEach(function (p) {
+      box.appendChild(chip(p === null ? 'All' : p, filter === p, function () {
+        filter = p;
+        renderFilters();
+        renderList();
+      }));
+    });
+  }
+
+  function renderList() {
+    var q = query.trim().toLowerCase();
+    var visible = items.filter(function (i) {
+      return (!q || i.name.toLowerCase().indexOf(q) !== -1) &&
+        (!filter || i.platforms.indexOf(filter) !== -1);
+    });
+    var box = $('list');
+    box.replaceChildren();
+    if (visible.length === 0) {
+      box.appendChild(el('div', 'empty',
+        items.length === 0
+          ? 'No items yet. Tap + Add to log your first one.'
+          : 'No items match your search or filter.'));
+      return;
+    }
+    visible.forEach(function (i) {
+      var row = el('div', 'row');
+      var top = el('div', 'row-top');
+      top.appendChild(el('div', 'name', i.name));
+      top.appendChild(el('div', '', money(i.cost)));
+      row.appendChild(top);
+      row.appendChild(el('div', 'meta',
+        (i.status === 'sold' ? 'Sold' : 'In stock') + ' · bought ' + i.dateBought));
+      row.appendChild(el('div', 'meta',
+        i.platforms.length ? i.platforms.join(', ') : 'Not listed yet'));
+      box.appendChild(row);
+    });
+  }
+
+  function renderPlatformChips() {
+    var box = $('platform-chips');
+    box.replaceChildren();
+    PLATFORMS.forEach(function (p) {
+      var on = selected.indexOf(p) !== -1;
+      box.appendChild(chip(p, on, function () {
+        selected = on ? selected.filter(function (x) { return x !== p; }) : selected.concat(p);
+        renderPlatformChips();
+      }));
+    });
+  }
+
+  function showList() {
+    $('add-view').hidden = true;
+    $('list-view').hidden = false;
+    renderList();
+  }
+
+  function showAdd() {
+    $('name').value = '';
+    $('cost').value = '';
+    $('date').value = todayLocal();
+    $('error').textContent = '';
+    selected = [];
+    renderPlatformChips();
+    $('list-view').hidden = true;
+    $('add-view').hidden = false;
+    $('name').focus();
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    var name = $('name').value.trim();
+    var costText = $('cost').value.trim();
+    var cost = Number(costText);
+    var date = $('date').value;
+    var err = $('error');
+
+    if (!name) { err.textContent = 'Enter what the item is.'; return; }
+    if (costText === '' || !isFinite(cost) || cost < 0) {
+      err.textContent = 'Enter what you paid, e.g. 12.50 (0 if it was free).';
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { err.textContent = 'Pick the date you bought it.'; return; }
+
+    items.unshift({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      name: name,
+      cost: cost,
+      dateBought: date,
+      platforms: selected.slice(),
+      status: 'in_stock',
+      createdAt: Date.now()
+    });
+    if (!save()) {
+      items.shift();
+      err.textContent = 'Could not save on this device. Is private browsing on?';
+      return;
+    }
+    showList();
+  }
+
+  $('add-btn').addEventListener('click', showAdd);
+  $('cancel-btn').addEventListener('click', showList);
+  $('add-form').addEventListener('submit', submit);
+  $('search').addEventListener('input', function (e) {
+    query = e.target.value;
+    renderList();
+  });
+
+  renderFilters();
+  renderList();
+})();
+</script>
+</body>
+</html>
