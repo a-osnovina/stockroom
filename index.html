@@ -119,6 +119,14 @@
   .primary.green { background: var(--sold-fg); }
   .primary.ghost { background: var(--bg); color: var(--text); font-weight: 600; }
   .profit-line { text-align: center; font-size: 18px; font-weight: 700; margin-top: 14px; }
+  .plat-line { display: flex; justify-content: space-between; font-size: 15px; padding: 8px 0 0; color: var(--muted); }
+  .plat-line b { color: var(--text); font-weight: 600; }
+  .wd-title { font-size: 13px; color: var(--muted); margin: 18px 4px 8px; }
+  .wd-row { display: flex; justify-content: space-between; align-items: center; width: 100%; background: var(--card); border: 0; border-radius: 12px; padding: 12px 14px; margin-bottom: 6px; min-height: 52px; text-align: left; }
+  .wd-row .small { margin-top: 2px; }
+  .choice { display: block; width: 100%; text-align: left; background: var(--bg); border: 0; border-radius: 14px; padding: 16px; margin-top: 12px; min-height: 64px; }
+  .choice b { display: block; font-size: 17px; }
+  .choice span { font-size: 13px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -132,20 +140,23 @@
   <section id="page-money" class="hidden">
     <h1>Money</h1>
     <div class="card">
-      <div class="label">Total profit</div>
-      <div class="big" id="m-profit">$0.00</div>
-      <div class="small" id="m-sold-count"></div>
+      <div class="label">Balance</div>
+      <div class="big" id="m-balance">$0.00</div>
+      <div id="m-plat"></div>
+      <button class="primary" id="btn-withdraw">Withdraw</button>
     </div>
     <div class="card">
       <div class="label">Printer goal</div>
       <div class="bar"><div id="m-bar"></div></div>
       <div class="small" id="m-goal-text"></div>
     </div>
-    <div class="two">
-      <div class="card"><div class="label">Sold</div><div class="big" id="m-sold-total">$0</div></div>
-      <div class="card"><div class="label">Cost</div><div class="big" id="m-cost-total">$0</div></div>
+    <div class="card">
+      <div class="label">Total profit so far</div>
+      <div class="big" style="font-size:28px" id="m-profit">$0.00</div>
+      <div class="small" id="m-sold-count"></div>
     </div>
-    <p class="small">Fees aren't counted yet. Profit = sale price minus what you paid (items from storage cost $0).</p>
+    <div id="m-withdrawals"></div>
+    <p class="small">Fees aren't counted yet. Profit = what each item sold for. Balance = profit minus what you've withdrawn.</p>
   </section>
 </main>
 
@@ -163,30 +174,53 @@
   var PRINTER_GOAL = 89;
   var KEY = 'stockroom.items.v1';
 
-  var items = load();
+  var WKEY = 'stockroom.withdrawals.v1';
+
+  var items = load(KEY);
+  var withdrawals = load(WKEY);   // each: { id, date, parts: { Depop: 10, Vinted: 5 } }
   var filter = null;      // null = all active, or 'progress' | 'listed' | 'sold'
   var page = 'stock';
 
-  function load() {
-    try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; }
+  function load(key) {
+    try { return JSON.parse(localStorage.getItem(key)) || []; } catch (e) { return []; }
   }
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(items)); }
-    catch (e) { alert('Could not save. The phone storage may be full (photos use a lot).'); }
+    try {
+      localStorage.setItem(KEY, JSON.stringify(items));
+      localStorage.setItem(WKEY, JSON.stringify(withdrawals));
+    } catch (e) { alert('Could not save. The phone storage may be full (photos use a lot).'); }
   }
+  function r2(n) { return Math.round(n * 100) / 100; }
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function money(n) { return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2); }
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function $(id) { return document.getElementById(id); }
 
-  // status comes from the data: sold > listed (price + platform) > in progress
+  // status comes from the data: sold > listed (a platform is picked) > in progress
   function status(it) {
     if (it.sold) return 'sold';
-    if (it.price != null && it.platforms.length) return 'listed';
+    if (it.platforms.length) return 'listed';
     return 'progress';
   }
   var STATUS_LABEL = { progress: 'In progress', listed: 'Listed', sold: 'Sold' };
-  function profit(it) { return it.sold ? it.sold.price - (it.cost || 0) : 0; }
+  function profit(it) { return it.sold ? it.sold.price : 0; }
+
+  // money per platform: profit from sold items minus what was withdrawn
+  function platformNames() {
+    var names = PLATFORMS.slice();
+    items.forEach(function (i) { if (i.sold) { var p = i.sold.platform || 'Other'; if (names.indexOf(p) < 0) names.push(p); } });
+    return names;
+  }
+  function balances() {
+    var b = {};
+    platformNames().forEach(function (p) { b[p] = 0; });
+    items.forEach(function (i) { if (i.sold) b[i.sold.platform || 'Other'] += i.sold.price; });
+    withdrawals.forEach(function (w) { Object.keys(w.parts).forEach(function (p) { b[p] = (b[p] || 0) - w.parts[p]; }); });
+    Object.keys(b).forEach(function (p) { b[p] = r2(b[p]); });
+    return b;
+  }
+  function totalOf(b) { return r2(Object.keys(b).reduce(function (a, p) { return a + b[p]; }, 0)); }
+  function wdTotal(w) { return r2(Object.keys(w.parts).reduce(function (a, p) { return a + w.parts[p]; }, 0)); }
 
   /* ---------- Stock page ---------- */
   function renderTabs() {
@@ -217,13 +251,21 @@
   /* ---------- Money page ---------- */
   function renderMoney() {
     var sold = items.filter(function (i) { return i.sold; });
-    var total = sold.reduce(function (a, i) { return a + profit(i); }, 0);
-    var revenue = sold.reduce(function (a, i) { return a + i.sold.price; }, 0);
-    var cost = sold.reduce(function (a, i) { return a + (i.cost || 0); }, 0);
+    var total = r2(sold.reduce(function (a, i) { return a + profit(i); }, 0));
+    var bal = balances();
+    $('m-balance').textContent = money(totalOf(bal));
+    $('m-plat').innerHTML = Object.keys(bal).filter(function (p) { return bal[p] !== 0 || PLATFORMS.indexOf(p) > -1; }).map(function (p) {
+      return '<div class="plat-line"><span>' + esc(p) + '</span><b>' + money(bal[p]) + '</b></div>';
+    }).join('');
     $('m-profit').textContent = money(total);
     $('m-sold-count').textContent = sold.length + (sold.length === 1 ? ' item sold' : ' items sold');
-    $('m-sold-total').textContent = money(revenue);
-    $('m-cost-total').textContent = money(cost);
+    $('m-withdrawals').innerHTML = withdrawals.length
+      ? '<div class="wd-title">Withdrawals (tap one to undo it)</div>' + withdrawals.slice().reverse().map(function (w) {
+          var from = Object.keys(w.parts).filter(function (p) { return w.parts[p] > 0; });
+          return '<button class="wd-row" data-wid="' + w.id + '"><div><b>' + money(wdTotal(w)) + '</b><div class="small">' +
+            esc(from.join(' + ')) + ' · ' + new Date(w.date).toLocaleDateString() + '</div></div></button>';
+        }).join('')
+      : '';
     var pct = Math.max(0, Math.min(100, total / PRINTER_GOAL * 100));
     $('m-bar').style.width = pct + '%';
     $('m-goal-text').textContent = total >= PRINTER_GOAL
@@ -246,9 +288,10 @@
   function openSheet(html) { $('sheet').innerHTML = html; $('overlay').classList.remove('hidden'); }
   function closeSheet() { $('overlay').classList.add('hidden'); $('sheet').innerHTML = ''; }
 
-  function platformChips(selected) {
-    return '<div class="chips" id="plat">' + PLATFORMS.map(function (p) {
-      return '<button type="button" class="chip' + (selected.indexOf(p) > -1 ? ' on' : '') + '" data-p="' + p + '">' + p + '</button>';
+  // single = only one chip can be on at a time (used for "Sold on" and "From")
+  function platformChips(selected, single, names) {
+    return '<div class="chips" id="plat"' + (single ? ' data-single="1"' : '') + '>' + (names || PLATFORMS).map(function (p) {
+      return '<button type="button" class="chip' + (selected.indexOf(p) > -1 ? ' on' : '') + '" data-p="' + esc(p) + '">' + esc(p) + '</button>';
     }).join('') + '</div>';
   }
   function readPlatforms() {
@@ -283,14 +326,13 @@
 
   function itemForm(it) {
     var isNew = !it;
-    it = it || { name: '', price: null, cost: null, platforms: [], photo: null };
+    it = it || { name: '', price: null, platforms: [], photo: null };
     openSheet(
       '<div class="sheet-head"><h2>' + (isNew ? 'Add item' : 'Edit item') + '</h2><button class="link" data-act="close">Cancel</button></div>' +
       '<label for="f-name">Name (required)</label><input type="text" id="f-name" value="' + esc(it.name) + '" autocomplete="off" placeholder="e.g. Blue denim jacket">' +
       photoField(it.photo) +
       '<label class="label-t">Listed on</label>' + platformChips(it.platforms) +
-      '<label for="f-price">Listing price $ (optional)</label><input type="number" inputmode="decimal" id="f-price" min="0" step="0.01" value="' + (it.price == null ? '' : it.price) + '">' +
-      '<label for="f-cost">What you paid $ (leave empty if from storage)</label><input type="number" inputmode="decimal" id="f-cost" min="0" step="0.01" value="' + (it.cost ? it.cost : '') + '">' +
+      '<label for="f-price">Listing price $ (required)</label><input type="number" inputmode="decimal" id="f-price" min="0" step="0.01" value="' + (it.price == null ? '' : it.price) + '">' +
       '<button class="primary" data-act="save-item" data-id="' + (isNew ? '' : it.id) + '">' + (isNew ? 'Add item' : 'Save') + '</button>'
     );
     if (isNew) setTimeout(function () { $('f-name').focus(); }, 50);
@@ -306,8 +348,7 @@
       (it.photo ? '<img class="photo-preview" src="' + it.photo + '" alt="">' : '') +
       '<div class="small" style="margin-top:10px">' +
         (it.platforms.length ? 'On ' + esc(it.platforms.join(' + ')) + '<br>' : '') +
-        (it.price != null ? 'Listing price ' + money(it.price) + '<br>' : '') +
-        'You paid ' + money(it.cost || 0) + (it.cost ? '' : ' (storage)') +
+        (it.price != null ? 'Listing price ' + money(it.price) : '') +
         (it.sold ? '<br>Sold for ' + money(it.sold.price) + (it.sold.platform ? ' on ' + esc(it.sold.platform) : '') : '') +
       '</div>' +
       (it.sold ? '<div class="profit-line">Profit ' + money(profit(it)) + '</div>' : '') +
@@ -326,18 +367,72 @@
       '<div class="sheet-head"><h2>Mark as sold</h2><button class="link" data-act="close">Cancel</button></div>' +
       '<div class="small">' + esc(it.name) + '</div>' +
       '<label for="s-price">Sold for $</label><input type="number" inputmode="decimal" id="s-price" min="0" step="0.01" value="' + (it.price == null ? '' : it.price) + '">' +
-      '<label class="label-t">Sold on</label>' + platformChips(plats) +
+      '<label class="label-t">Sold on (required)</label>' + platformChips(plats, true) +
       '<div class="profit-line" id="s-profit"></div>' +
       '<button class="primary green" data-act="confirm-sell" data-id="' + id + '">Confirm sale</button>'
     );
-    var cost = it.cost || 0;
     function upd() {
       var p = numOrNull($('s-price').value);
-      $('s-profit').textContent = p == null ? '' : 'Profit ' + money(p - cost);
+      $('s-profit').textContent = p == null ? '' : 'Profit ' + money(p);
     }
     $('s-price').addEventListener('input', upd); upd();
     $('s-price').focus();
   }
+
+  /* ---------- Withdraw ---------- */
+  var ALL = 'All platforms';
+  function availableFor(src) {
+    var b = balances();
+    if (src === ALL) return Math.max(0, totalOf(b));
+    return Math.max(0, b[src] || 0);
+  }
+  // "All platforms": take the amount from each platform in proportion to what it holds
+  function splitWithdrawal(amt, src) {
+    var parts = {};
+    if (src !== ALL) { parts[src] = amt; return parts; }
+    var b = balances(), names = Object.keys(b).filter(function (p) { return b[p] > 0; });
+    var tot = names.reduce(function (a, p) { return a + b[p]; }, 0), used = 0, biggest = names[0];
+    names.forEach(function (p) {
+      parts[p] = r2(amt * b[p] / tot); used += parts[p];
+      if (b[p] > b[biggest]) biggest = p;
+    });
+    parts[biggest] = r2(parts[biggest] + (amt - used));   // put any leftover cent on the biggest one
+    return parts;
+  }
+  function withdrawStep1() {
+    var tot = availableFor(ALL);
+    if (tot <= 0) {
+      openSheet('<div class="sheet-head"><h2>Withdraw</h2><button class="link" data-act="close">Close</button></div>' +
+        '<div class="empty">Nothing to withdraw yet.<br>Your balance grows when you mark items as sold.</div>');
+      return;
+    }
+    openSheet('<div class="sheet-head"><h2>Withdraw</h2><button class="link" data-act="close">Cancel</button></div>' +
+      '<button class="choice" data-act="wd-everything"><b>Everything</b><span>' + money(tot) + ' from all platforms</span></button>' +
+      '<button class="choice" data-act="wd-amount"><b>A different amount</b><span>Choose how much, and from where</span></button>');
+  }
+  function withdrawStep2() {
+    var names = platformNames().filter(function (p) { return availableFor(p) > 0; });
+    openSheet('<div class="sheet-head"><h2>Withdraw</h2><button class="link" data-act="close">Cancel</button></div>' +
+      '<label for="w-amt">Amount $</label><input type="number" inputmode="decimal" id="w-amt" min="0" step="0.01">' +
+      '<label class="label-t">From</label>' + platformChips([ALL], true, [ALL].concat(names)) +
+      '<div class="small" id="w-from" style="margin-top:10px"></div>' +
+      '<button class="primary" data-act="wd-confirm">Withdraw</button>');
+    updateWithdrawHint();
+    $('w-amt').focus();
+  }
+  function updateWithdrawHint() {
+    var src = readPlatforms()[0] || ALL;
+    $('w-from').textContent = 'Available: ' + money(availableFor(src));
+  }
+  $('btn-withdraw').onclick = withdrawStep1;
+  $('m-withdrawals').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-wid]'); if (!b) return;
+    var w = withdrawals.filter(function (x) { return x.id === b.dataset.wid; })[0];
+    if (w && confirm('Undo this ' + money(wdTotal(w)) + ' withdrawal? It goes back into your balance.')) {
+      withdrawals = withdrawals.filter(function (x) { return x.id !== w.id; });
+      save(); render();
+    }
+  });
 
   /* ---------- Events ---------- */
   $('tabs').addEventListener('click', function (e) {
@@ -366,10 +461,13 @@
     var chip = e.target.closest('#plat .chip');
     if (chip) {
       var wasOn = chip.classList.contains('on');
-      if ($('s-price')) {   // in the "sold" sheet only one platform can be picked
+      if (chip.parentNode.dataset.single) {
         Array.prototype.forEach.call(document.querySelectorAll('#plat .chip'), function (c) { c.classList.remove('on'); });
+        chip.classList.add('on');   // single choice: stays on once picked
+      } else {
+        chip.classList.toggle('on', !wasOn);
       }
-      chip.classList.toggle('on', !wasOn);
+      if ($('w-from')) updateWithdrawHint();
       return;
     }
     var b = e.target.closest('[data-act]'); if (!b) return;
@@ -382,10 +480,9 @@
     else if (act === 'save-item') {
       var name = $('f-name').value.trim();
       if (!name) { $('f-name').focus(); $('f-name').style.borderColor = 'var(--danger)'; return; }
-      var data = {
-        name: name, photo: pendingPhoto, platforms: readPlatforms(),
-        price: numOrNull($('f-price').value), cost: numOrNull($('f-cost').value) || 0
-      };
+      var price = numOrNull($('f-price').value);
+      if (price == null) { $('f-price').focus(); $('f-price').style.borderColor = 'var(--danger)'; return; }
+      var data = { name: name, photo: pendingPhoto, platforms: readPlatforms(), price: price };
       if (id) { Object.assign(it, data); }
       else { items.push(Object.assign({ id: uid(), created: Date.now(), sold: null }, data)); }
       save(); closeSheet(); render();
@@ -394,7 +491,26 @@
       var p = numOrNull($('s-price').value);
       if (p == null) { $('s-price').focus(); $('s-price').style.borderColor = 'var(--danger)'; return; }
       var sp = readPlatforms();
-      it.sold = { price: p, platform: sp[0] || '', date: Date.now() };
+      if (!sp.length) { alert('Pick which platform it sold on.'); return; }
+      it.sold = { price: p, platform: sp[0], date: Date.now() };
+      save(); closeSheet(); render();
+    }
+    else if (act === 'wd-everything') {
+      var all = balances(), tot = totalOf(all);
+      if (confirm('Withdraw everything (' + money(tot) + ')?')) {
+        var parts = {};
+        Object.keys(all).forEach(function (p) { if (all[p] > 0) parts[p] = all[p]; });
+        withdrawals.push({ id: uid(), date: Date.now(), parts: parts });
+        save(); closeSheet(); render();
+      }
+    }
+    else if (act === 'wd-amount') withdrawStep2();
+    else if (act === 'wd-confirm') {
+      var amt = numOrNull($('w-amt').value), src = readPlatforms()[0] || ALL;
+      var avail = availableFor(src);
+      if (amt == null || amt <= 0) { $('w-amt').focus(); $('w-amt').style.borderColor = 'var(--danger)'; return; }
+      if (amt > avail) { alert('You only have ' + money(avail) + ' to withdraw from there.'); return; }
+      withdrawals.push({ id: uid(), date: Date.now(), parts: splitWithdrawal(amt, src) });
       save(); closeSheet(); render();
     }
     else if (act === 'unsell') { it.sold = null; save(); closeSheet(); render(); }

@@ -3,17 +3,19 @@
 A simple web page to track your resale inventory and profit. It works on iPhone and Android,
 and your items are saved on your own device. No accounts, no server. The whole app is one file: `index.html`.
 
-## What it does (version 1)
+## What it does
 
-- **Add item**: only the name is required. Photo, platforms (Depop / Vinted), listing price and what you paid are optional.
+- **Add item**: name and listing price are required. Photo and platforms (Depop / Vinted) are optional.
 - **Stock**: all your items with a status. Tap a status tab to filter, tap it again to clear.
-  - In progress = just a name so far
-  - Listed = has a price and a platform
+  - In progress = no platform picked yet
+  - Listed = a platform is picked
   - Sold = marked as sold
-- **Mark as sold**: enter the sale price and platform, and the profit shows right away.
-- **Money**: total profit and a progress bar toward the printer goal ($89).
+- **Mark as sold**: enter the sale price and the platform it sold on, and the profit shows right away.
+- **Money**: your balance (with a line per platform), a Withdraw button, a progress bar toward the printer goal ($89, fixed in the code), and total profit.
+- **Withdraw**: take out everything, or a different amount from all platforms or just one. Tap a past withdrawal to undo it.
 
-Fees are not counted yet. Profit = sale price minus what you paid (items from storage cost $0).
+Fees are not counted yet. Profit = what each item sold for. Balance = profit minus withdrawals.
+The printer goal bar follows total profit, so withdrawing does not shrink it.
 
 ## Put it online (GitHub Pages)
 
@@ -32,4 +34,4 @@ A backup option is planned.
 
 ## Later, one at a time
 
-Fees per platform, withdraw, bin/slot storage spots, planning, alerts, bundles.
+Fees per platform, bin/slot storage spots, planning, alerts, bundles.
