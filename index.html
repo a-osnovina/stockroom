@@ -8,6 +8,7 @@
 <title>Stockroom</title>
 <style>
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -18,8 +19,11 @@
   main { max-width: 600px; margin: 0 auto; padding-bottom: 32px; }
   header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
   h1 { font-size: 28px; margin: 0; }
+  h2 { font-size: 22px; margin: 0; }
   button { font: inherit; cursor: pointer; }
-  .link { background: none; border: 0; color: #0a6cff; font-size: 17px; font-weight: 600; padding: 4px; }
+  .head-btns { display: flex; gap: 4px; }
+  .link { background: none; border: 0; color: #0a6cff; font-size: 17px; font-weight: 600; min-height: 44px; padding: 4px 8px; }
+  .back { background: none; border: 0; color: #0a6cff; font-size: 17px; font-weight: 600; min-height: 44px; padding: 4px 8px 4px 0; }
   input[type=text], input[type=search], input[type=number], input[type=date] {
     width: 100%; font-size: 16px; padding: 10px 12px;
     border: 1px solid #ccc; border-radius: 8px; background: #fff; color: #111;
@@ -57,15 +61,41 @@
   .row-top { display: flex; justify-content: space-between; gap: 12px; }
   .name { font-size: 17px; font-weight: 600; }
   .meta { font-size: 13px; color: #666; margin-top: 2px; }
+  .loc {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    margin-top: 6px; font-size: 14px; color: #444;
+  }
+  .loc.grab { background: #fff6e0; border-radius: 8px; padding: 2px 2px 2px 10px; color: #111; }
+  .loc button { background: none; border: 0; color: #0757c9; font-size: 14px; font-weight: 600; padding: 10px 8px; }
   .move {
-    margin-top: 8px; background: #eef4ff; color: #0a6cff; border: 0;
-    border-radius: 8px; padding: 6px 12px; font-size: 14px; font-weight: 600;
+    margin-top: 8px; background: #eef4ff; color: #0757c9; border: 0; min-height: 44px;
+    border-radius: 8px; padding: 6px 14px; font-size: 14px; font-weight: 600;
   }
   .empty { text-align: center; color: #666; padding: 48px 16px; font-size: 15px; }
   .error { color: #c00; font-size: 14px; margin-top: 12px; min-height: 1em; }
   .actions { display: flex; gap: 12px; margin-top: 20px; }
-  .primary { background: #0a6cff; color: #fff; border: 0; border-radius: 8px; padding: 12px 20px; font-size: 17px; font-weight: 600; flex: 1; }
-  .secondary { background: #eee; color: #111; border: 0; border-radius: 8px; padding: 12px 20px; font-size: 17px; }
+  .primary { background: #0a6cff; color: #fff; border: 0; border-radius: 8px; padding: 12px 20px; font-size: 17px; font-weight: 600; flex: 1; min-height: 48px; }
+  .secondary { background: #eee; color: #111; border: 0; border-radius: 8px; padding: 12px 20px; font-size: 17px; min-height: 48px; }
+
+  /* Places */
+  .place-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+    text-align: left; background: none; border: 0; border-top: 1px solid #ddd; color: #111;
+    min-height: 60px; padding: 10px 0;
+  }
+  .place-name { font-size: 17px; font-weight: 600; }
+  .chev { color: #0a6cff; font-size: 24px; line-height: 1; }
+  #places-view .meta, #place-view .meta { margin-bottom: 12px; }
+
+  /* Bottom sheet for setting a location */
+  .sheet-wrap {
+    position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 10;
+    display: flex; align-items: flex-end; background: rgba(17, 17, 17, 0.45);
+  }
+  .sheet {
+    width: 100%; max-width: 600px; margin: 0 auto; background: #fff;
+    border-radius: 16px 16px 0 0; padding: 24px 16px calc(24px + env(safe-area-inset-bottom));
+  }
 </style>
 </head>
 <body>
@@ -73,7 +103,10 @@
 <main id="list-view">
   <header>
     <h1>Stockroom</h1>
-    <button class="link" id="add-btn" type="button">+ Add</button>
+    <div class="head-btns">
+      <button class="link" id="places-btn" type="button">Places</button>
+      <button class="link" id="add-btn" type="button">+ Add</button>
+    </div>
   </header>
   <nav class="steps" id="steps" aria-label="Stages"></nav>
   <input type="search" id="search" placeholder="Search this stage" autocomplete="off">
@@ -95,6 +128,9 @@
     <label for="date">Date bought</label>
     <input type="date" id="date">
 
+    <label for="loc">Location (optional)</label>
+    <input type="text" id="loc" list="locations" placeholder="e.g. Closet, Tub 3" autocomplete="off">
+
     <div class="label">Listed on (optional)</div>
     <div class="chips" id="platform-chips"></div>
 
@@ -106,6 +142,39 @@
   </form>
 </main>
 
+<main id="places-view" hidden>
+  <header>
+    <button class="back" id="places-back" type="button">&lsaquo; Back</button>
+  </header>
+  <h1>Places</h1>
+  <div class="meta">Items that have shipped are not counted.</div>
+  <div id="places-list"></div>
+</main>
+
+<main id="place-view" hidden>
+  <header>
+    <button class="back" id="place-back" type="button">&lsaquo; Places</button>
+  </header>
+  <h1 id="place-title"></h1>
+  <div class="meta" id="place-sub"></div>
+  <div id="place-items"></div>
+</main>
+
+<datalist id="locations"></datalist>
+
+<div class="sheet-wrap" id="loc-sheet" hidden>
+  <form class="sheet" id="sheet-form" role="dialog" aria-modal="true" aria-labelledby="sheet-title" novalidate>
+    <h2 id="sheet-title">Where is it?</h2>
+    <div class="meta" id="sheet-item"></div>
+    <label for="sheet-loc">Location (leave empty for none)</label>
+    <input type="text" id="sheet-loc" list="locations" placeholder="e.g. Closet, Tub 3" autocomplete="off">
+    <div class="actions">
+      <button type="button" class="secondary" id="sheet-cancel">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</div>
+
 <script>
 (function () {
   var STAGES = [
@@ -115,7 +184,8 @@
     { id: 'packed', label: 'Packed' },
     { id: 'shipped', label: 'Shipped' }
   ];
-  var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Facebook Marketplace', 'Etsy', 'Other'];
+  var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Vinted', 'Facebook Marketplace', 'Etsy', 'Other'];
+  var VIEWS = ['list-view', 'add-view', 'places-view', 'place-view'];
   var KEY = 'stockroom.items.v1';
 
   var items = load();
@@ -123,6 +193,7 @@
   var query = '';
   var filter = null;
   var selected = [];
+  var editing = null;   // item whose location is being changed
 
   function $(id) { return document.getElementById(id); }
 
@@ -139,10 +210,21 @@
     } catch (e) {
       return [];
     }
-    // Older saves used status "in_stock" / "sold"; map them onto stages.
+    if (!Array.isArray(list)) return [];
+    // Accept every older save format and fill in anything missing.
     return list.map(function (i) {
-      if (stageIndex(i.stage) === -1) i.stage = i.status === 'sold' ? 'sold' : 'import';
-      delete i.status;
+      if (stageIndex(i.stage) === -1) {
+        if (i.shipped || i.status === 'shipped') i.stage = 'shipped';
+        else if (i.sold || i.status === 'sold') i.stage = 'sold';
+        else if (i.price != null || i.status === 'listed') i.stage = 'list';
+        else i.stage = 'import';
+      }
+      var c = Number(i.cost);
+      i.cost = (i.cost === null || i.cost === undefined || i.cost === '' || !isFinite(c)) ? null : c;
+      if (typeof i.name !== 'string' || !i.name) i.name = 'Untitled item';
+      if (!Array.isArray(i.platforms)) i.platforms = [];
+      if (typeof i.location !== 'string') i.location = '';
+      if (typeof i.dateBought !== 'string') i.dateBought = '';
       return i;
     });
   }
@@ -164,6 +246,8 @@
   }
 
   function money(n) { return '$' + Number(n).toFixed(2); }
+  function costText(i) { return i.cost === null ? 'No cost yet' : money(i.cost); }
+  function countText(n) { return n + (n === 1 ? ' item' : ' items'); }
 
   function el(tag, className, text) {
     var node = document.createElement(tag);
@@ -172,12 +256,84 @@
     return node;
   }
 
-  function chip(label, on, onClick) {
-    var b = el('button', 'chip' + (on ? ' on' : ''), label);
+  function button(className, text, onClick) {
+    var b = el('button', className, text);
     b.type = 'button';
     b.addEventListener('click', onClick);
     return b;
   }
+
+  function chip(label, on, onClick) {
+    return button('chip' + (on ? ' on' : ''), label, onClick);
+  }
+
+  function byName(a, b) {
+    var x = a.toLowerCase(), y = b.toLowerCase();
+    return x < y ? -1 : x > y ? 1 : 0;
+  }
+
+  function showView(id) {
+    VIEWS.forEach(function (v) { $(v).hidden = (v !== id); });
+  }
+
+  // ---------- locations ----------
+
+  // Every place name used so far, one spelling per name.
+  function allLocations() {
+    var m = new Map();
+    items.forEach(function (i) {
+      if (i.location && !m.has(i.location.toLowerCase())) m.set(i.location.toLowerCase(), i.location);
+    });
+    return Array.from(m.values()).sort(byName);
+  }
+
+  // "closet " and "Closet" are the same place; keep the spelling already in use.
+  function canonLocation(text) {
+    var t = String(text).trim().replace(/\s+/g, ' ');
+    if (!t) return '';
+    var found = allLocations().filter(function (l) { return l.toLowerCase() === t.toLowerCase(); });
+    return found.length ? found[0] : t;
+  }
+
+  function fillLocationOptions() {
+    var dl = $('locations');
+    dl.replaceChildren();
+    allLocations().forEach(function (l) {
+      var o = document.createElement('option');
+      o.value = l;
+      dl.appendChild(o);
+    });
+  }
+
+  function openSheet(item) {
+    editing = item;
+    $('sheet-item').textContent = item.name;
+    $('sheet-loc').value = item.location || '';
+    fillLocationOptions();
+    $('loc-sheet').hidden = false;
+    $('sheet-loc').focus();
+  }
+
+  function closeSheet() {
+    editing = null;
+    $('loc-sheet').hidden = true;
+  }
+
+  function saveSheet(e) {
+    e.preventDefault();
+    if (!editing) return;
+    var before = editing.location;
+    editing.location = canonLocation($('sheet-loc').value);
+    if (!save()) {
+      editing.location = before;
+      alert('Could not save on this device. Is private browsing on?');
+      return;
+    }
+    closeSheet();
+    render();
+  }
+
+  // ---------- stage list ----------
 
   function renderSteps() {
     var box = $('steps');
@@ -224,6 +380,22 @@
     render();
   }
 
+  // The location line on a card. In the Sold step it reads "Grab from: ...".
+  function locationRow(i) {
+    var grab = stage === 'sold';
+    var row = el('div', 'loc' + (grab ? ' grab' : ''));
+    var text = el('span');
+    if (grab) {
+      text.appendChild(document.createTextNode('Grab from: '));
+      text.appendChild(el('strong', '', i.location || 'not set'));
+    } else {
+      text.textContent = i.location ? 'Location: ' + i.location : 'No location yet';
+    }
+    row.appendChild(text);
+    row.appendChild(button('', i.location ? 'Change' : 'Set location', function () { openSheet(i); }));
+    return row;
+  }
+
   function renderList() {
     var q = query.trim().toLowerCase();
     var inStage = items.filter(function (i) { return i.stage === stage; });
@@ -246,17 +418,13 @@
       var row = el('div', 'row');
       var top = el('div', 'row-top');
       top.appendChild(el('div', 'name', i.name));
-      top.appendChild(el('div', '', money(i.cost)));
+      top.appendChild(el('div', '', costText(i)));
       row.appendChild(top);
-      row.appendChild(el('div', 'meta', 'Bought ' + i.dateBought));
+      if (i.dateBought) row.appendChild(el('div', 'meta', 'Bought ' + i.dateBought));
       row.appendChild(el('div', 'meta',
         i.platforms.length ? i.platforms.join(', ') : 'Not listed on an app yet'));
-      if (next) {
-        var mv = el('button', 'move', 'Move to ' + next.label + ' →');
-        mv.type = 'button';
-        mv.addEventListener('click', function () { moveForward(i); });
-        row.appendChild(mv);
-      }
+      row.appendChild(locationRow(i));
+      if (next) row.appendChild(button('move', 'Move to ' + next.label + ' →', function () { moveForward(i); }));
       box.appendChild(row);
     });
   }
@@ -265,6 +433,84 @@
     renderSteps();
     renderList();
   }
+
+  function showList() {
+    showView('list-view');
+    render();
+  }
+
+  // ---------- places ----------
+
+  // Items still physically here (everything except Shipped), grouped by place.
+  function groupByPlace() {
+    var map = new Map();
+    var none = [];
+    items.forEach(function (i) {
+      if (i.stage === 'shipped') return;
+      if (!i.location) { none.push(i); return; }
+      if (!map.has(i.location)) map.set(i.location, []);
+      map.get(i.location).push(i);
+    });
+    return { names: Array.from(map.keys()).sort(byName), map: map, none: none };
+  }
+
+  function placeRow(name, count, onClick) {
+    var b = el('button', 'place-row');
+    b.type = 'button';
+    var left = el('span');
+    left.appendChild(el('div', 'place-name', name));
+    left.appendChild(el('div', 'meta', countText(count)));
+    b.appendChild(left);
+    b.appendChild(el('span', 'chev', '›'));
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  function renderPlaces() {
+    var g = groupByPlace();
+    var box = $('places-list');
+    box.replaceChildren();
+    if (g.names.length === 0 && g.none.length === 0) {
+      box.appendChild(el('div', 'empty', 'Nothing is stored anywhere yet. Add a location when you add an item.'));
+      return;
+    }
+    g.names.forEach(function (n) {
+      box.appendChild(placeRow(n, g.map.get(n).length, function () { showPlace(n); }));
+    });
+    if (g.none.length) {
+      box.appendChild(placeRow('No location', g.none.length, function () { showPlace(''); }));
+    }
+  }
+
+  function showPlaces() {
+    renderPlaces();
+    showView('places-view');
+  }
+
+  function showPlace(name) {
+    var g = groupByPlace();
+    var here = name === '' ? g.none : (g.map.get(name) || []);
+    $('place-title').textContent = name === '' ? 'No location' : name;
+    $('place-sub').textContent = countText(here.length);
+    var box = $('place-items');
+    box.replaceChildren();
+    if (here.length === 0) {
+      box.appendChild(el('div', 'empty', 'Nothing here right now.'));
+    }
+    here.forEach(function (i) {
+      var row = el('div', 'row');
+      var top = el('div', 'row-top');
+      top.appendChild(el('div', 'name', i.name));
+      top.appendChild(el('div', '', costText(i)));
+      row.appendChild(top);
+      row.appendChild(el('div', 'meta',
+        STAGES[stageIndex(i.stage)].label + (i.platforms.length ? ' · ' + i.platforms.join(', ') : '')));
+      box.appendChild(row);
+    });
+    showView('place-view');
+  }
+
+  // ---------- add item ----------
 
   function renderPlatformChips() {
     var box = $('platform-chips');
@@ -278,22 +524,17 @@
     });
   }
 
-  function showList() {
-    $('add-view').hidden = true;
-    $('list-view').hidden = false;
-    render();
-  }
-
   function showAdd() {
     $('add-title').textContent = 'Add to ' + STAGES[stageIndex(stage)].label;
     $('name').value = '';
     $('cost').value = '';
     $('date').value = todayLocal();
+    $('loc').value = '';
     $('error').textContent = '';
     selected = [];
+    fillLocationOptions();
     renderPlatformChips();
-    $('list-view').hidden = true;
-    $('add-view').hidden = false;
+    showView('add-view');
     $('name').focus();
   }
 
@@ -318,6 +559,7 @@
       cost: cost,
       dateBought: date,
       platforms: selected.slice(),
+      location: canonLocation($('loc').value),
       stage: stage,
       createdAt: Date.now()
     });
@@ -330,8 +572,13 @@
   }
 
   $('add-btn').addEventListener('click', showAdd);
+  $('places-btn').addEventListener('click', showPlaces);
+  $('places-back').addEventListener('click', showList);
+  $('place-back').addEventListener('click', showPlaces);
   $('cancel-btn').addEventListener('click', showList);
   $('add-form').addEventListener('submit', submit);
+  $('sheet-form').addEventListener('submit', saveSheet);
+  $('sheet-cancel').addEventListener('click', closeSheet);
   $('search').addEventListener('input', function (e) {
     query = e.target.value;
     renderList();

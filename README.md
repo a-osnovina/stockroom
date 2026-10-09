@@ -6,11 +6,13 @@ and your items are saved on your own device. No accounts, no server.
 ## What it does so far
 
 - A step bar at the top: Import > List > Sold > Packed > Shipped. Tap a step to see the items in it; each step shows how many items it holds.
-- "+ Add" puts a new item in the step you are looking at (name, what you paid, date bought, which apps it is listed on)
+- "+ Add" puts a new item in the step you are looking at (name, what you paid, date bought, optional location, which apps it is listed on)
 - Each item has a button to move it to the next step
+- Locations: an optional place for each item, like Closet or Tub 3. In the Sold step each item shows "Grab from: ..." so you know where to find it. Tap Change (or Set location) on any item to edit it.
+- Places button at the top: every place with how many items are in it. Tap a place to see its items. Items that have shipped are not counted.
 - Search and filter by app inside a step
 
-Coming next: sale price, fees and shipping when an item is sold, with profit calculated for you, then a summary screen.
+Coming next: sale price when an item is sold, with profit calculated for you, then a summary screen.
 
 ## Put it online (GitHub Pages)
 
