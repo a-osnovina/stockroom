@@ -2,250 +2,411 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Stockroom">
+<meta name="theme-color" content="#ffffff">
 <title>Stockroom</title>
 <style>
-  * { box-sizing: border-box; }
+  :root {
+    --bg: #f4f4f6; --card: #ffffff; --text: #111; --muted: #666; --line: #dcdce0;
+    --accent: #0a6cff; --danger: #d92d20;
+    --progress-bg: #fff3c4; --progress-fg: #8a6500;
+    --listed-bg: #dbeafe; --listed-fg: #1d4ed8;
+    --sold-bg: #d6f5e0; --sold-fg: #15803d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000; --card: #1c1c1e; --text: #f2f2f7; --muted: #9a9aa0; --line: #38383a;
+      --accent: #4c9dff; --danger: #ff6b60;
+      --progress-bg: #4a3b00; --progress-fg: #ffd966;
+      --listed-bg: #11284d; --listed-fg: #8ebdff;
+      --sold-bg: #0f3a20; --sold-fg: #7fe3a3;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
   body {
-    margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #111;
-    background: #fff;
-    padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+    background: var(--bg); color: var(--text);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
   }
-  main { max-width: 600px; margin: 0 auto; padding-bottom: 32px; }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
-  h1 { font-size: 28px; margin: 0; }
-  button { font: inherit; cursor: pointer; }
-  .link { background: none; border: 0; color: #0a6cff; font-size: 17px; font-weight: 600; padding: 4px; }
-  input[type=text], input[type=search], input[type=number], input[type=date] {
-    width: 100%; font-size: 16px; padding: 10px 12px;
-    border: 1px solid #ccc; border-radius: 8px; background: #fff; color: #111;
-  }
-  label, .label { display: block; font-size: 13px; color: #555; margin: 16px 0 6px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .filters { margin: 12px 0; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+  main { max-width: 600px; margin: 0 auto; padding: 0 16px; }
+  h1 { font-size: 30px; margin: 16px 0 12px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  input, select { font: inherit; }
+  .hidden { display: none !important; }
+
+  /* Tabs row */
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
   .chip {
-    border: 1px solid #ccc; border-radius: 16px; background: #fff; color: #333;
-    padding: 6px 12px; font-size: 14px; white-space: nowrap;
+    min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid var(--line);
+    background: var(--card); font-size: 15px;
   }
-  .chip.on { background: #0a6cff; border-color: #0a6cff; color: #fff; }
-  .row { padding: 12px 0; border-top: 1px solid #ddd; }
-  .row-top { display: flex; justify-content: space-between; gap: 12px; }
-  .name { font-size: 17px; font-weight: 600; }
-  .meta { font-size: 13px; color: #666; margin-top: 2px; }
-  .empty { text-align: center; color: #666; padding: 48px 16px; font-size: 15px; }
-  .error { color: #c00; font-size: 14px; margin-top: 12px; min-height: 1em; }
-  .actions { display: flex; gap: 12px; margin-top: 20px; }
-  .primary { background: #0a6cff; color: #fff; border: 0; border-radius: 8px; padding: 12px 20px; font-size: 17px; font-weight: 600; flex: 1; }
-  .secondary { background: #eee; color: #111; border: 0; border-radius: 8px; padding: 12px 20px; font-size: 17px; }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chip.s-progress.on { background: var(--progress-bg); border-color: var(--progress-fg); color: var(--progress-fg); }
+  .chip.s-listed.on { background: var(--listed-bg); border-color: var(--listed-fg); color: var(--listed-fg); }
+  .chip.s-sold.on { background: var(--sold-bg); border-color: var(--sold-fg); color: var(--sold-fg); }
+  .tabs { margin-bottom: 12px; }
+
+  /* Item rows */
+  .row {
+    display: flex; gap: 12px; align-items: center; width: 100%; text-align: left;
+    background: var(--card); border: 0; border-radius: 14px; padding: 10px; margin-bottom: 8px; min-height: 68px;
+  }
+  .thumb {
+    width: 48px; height: 48px; border-radius: 10px; background: var(--bg) center/cover no-repeat;
+    flex: none; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 20px;
+  }
+  .row .info { flex: 1; min-width: 0; }
+  .row .name { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .meta { font-size: 13px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 12px; flex: none; }
+  .b-progress { background: var(--progress-bg); color: var(--progress-fg); }
+  .b-listed { background: var(--listed-bg); color: var(--listed-fg); }
+  .b-sold { background: var(--sold-bg); color: var(--sold-fg); }
+  .empty { text-align: center; color: var(--muted); padding: 48px 16px; line-height: 1.5; }
+
+  /* Money */
+  .card { background: var(--card); border-radius: 16px; padding: 18px; margin-bottom: 12px; }
+  .card .label { font-size: 13px; color: var(--muted); }
+  .card .big { font-size: 40px; font-weight: 700; margin-top: 4px; }
+  .bar { height: 14px; background: var(--bg); border-radius: 7px; overflow: hidden; margin: 12px 0 6px; }
+  .bar > div { height: 100%; background: var(--sold-fg); width: 0; transition: width .3s; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .two .card .big { font-size: 28px; }
+  .small { font-size: 13px; color: var(--muted); }
+
+  /* Bottom bar */
+  nav {
+    position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line);
+    padding: 6px 16px calc(6px + env(safe-area-inset-bottom));
+    display: flex; justify-content: space-around; align-items: center;
+  }
+  nav .tab { background: none; border: 0; min-width: 88px; min-height: 52px; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  nav .tab .ico { font-size: 22px; }
+  nav .tab.on { color: var(--accent); font-weight: 700; }
+  nav .add {
+    width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--accent); color: #fff;
+    font-size: 32px; line-height: 1; margin-top: -22px; box-shadow: 0 4px 12px rgba(0,0,0,.25);
+  }
+
+  /* Sheet */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; z-index: 10; }
+  .sheet {
+    background: var(--card); width: 100%; max-width: 600px; margin: 0 auto; border-radius: 20px 20px 0 0;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); max-height: 92vh; overflow-y: auto;
+  }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .sheet-head h2 { margin: 0; font-size: 22px; }
+  .link { background: none; border: 0; color: var(--accent); font-size: 17px; font-weight: 600; min-height: 44px; padding: 0 4px; }
+  .link.danger { color: var(--danger); }
+  label, .label-t { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+  input[type=text], input[type=number] {
+    width: 100%; font-size: 16px; /* 16px stops iPhone zooming */ min-height: 48px; padding: 0 12px;
+    border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text);
+  }
+  .photo-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; width: 100%;
+    border: 1px dashed var(--line); border-radius: 10px; background: var(--bg); color: var(--muted);
+  }
+  .photo-preview { width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; margin-top: 8px; }
+  .primary {
+    width: 100%; min-height: 52px; border: 0; border-radius: 12px; background: var(--accent); color: #fff;
+    font-size: 17px; font-weight: 700; margin-top: 18px;
+  }
+  .primary.green { background: var(--sold-fg); }
+  .primary.ghost { background: var(--bg); color: var(--text); font-weight: 600; }
+  .profit-line { text-align: center; font-size: 18px; font-weight: 700; margin-top: 14px; }
 </style>
 </head>
 <body>
+<main>
+  <section id="page-stock">
+    <h1>Stock</h1>
+    <div class="chips tabs" id="tabs"></div>
+    <div id="list"></div>
+  </section>
 
-<main id="list-view">
-  <header>
-    <h1>Inventory</h1>
-    <button class="link" id="add-btn" type="button">+ Add</button>
-  </header>
-  <input type="search" id="search" placeholder="Search items" autocomplete="off">
-  <div class="chips filters" id="filters"></div>
-  <div id="list"></div>
-</main>
-
-<main id="add-view" hidden>
-  <header>
-    <h1>Add item</h1>
-  </header>
-  <form id="add-form" novalidate>
-    <label for="name">Name</label>
-    <input type="text" id="name" placeholder="e.g. Levi's 501 jeans" autocomplete="off">
-
-    <label for="cost">Cost (what you paid)</label>
-    <input type="number" id="cost" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
-
-    <label for="date">Date bought</label>
-    <input type="date" id="date">
-
-    <div class="label">Listed on (optional)</div>
-    <div class="chips" id="platform-chips"></div>
-
-    <div class="error" id="error" role="alert"></div>
-    <div class="actions">
-      <button type="button" class="secondary" id="cancel-btn">Cancel</button>
-      <button type="submit" class="primary">Save</button>
+  <section id="page-money" class="hidden">
+    <h1>Money</h1>
+    <div class="card">
+      <div class="label">Total profit</div>
+      <div class="big" id="m-profit">$0.00</div>
+      <div class="small" id="m-sold-count"></div>
     </div>
-  </form>
+    <div class="card">
+      <div class="label">Printer goal</div>
+      <div class="bar"><div id="m-bar"></div></div>
+      <div class="small" id="m-goal-text"></div>
+    </div>
+    <div class="two">
+      <div class="card"><div class="label">Sold</div><div class="big" id="m-sold-total">$0</div></div>
+      <div class="card"><div class="label">Cost</div><div class="big" id="m-cost-total">$0</div></div>
+    </div>
+    <p class="small">Fees aren't counted yet. Profit = sale price minus what you paid (items from storage cost $0).</p>
+  </section>
 </main>
+
+<nav>
+  <button class="tab on" id="nav-stock"><span class="ico">&#9776;</span>Stock</button>
+  <button class="add" id="nav-add" aria-label="Add item">+</button>
+  <button class="tab" id="nav-money"><span class="ico">$</span>Money</button>
+</nav>
+
+<div id="overlay" class="overlay hidden"><div class="sheet" id="sheet"></div></div>
 
 <script>
 (function () {
-  var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Facebook Marketplace', 'Etsy', 'Other'];
+  var PLATFORMS = ['Depop', 'Vinted'];   // add more names here later
+  var PRINTER_GOAL = 89;
   var KEY = 'stockroom.items.v1';
 
   var items = load();
-  var query = '';
-  var filter = null;
-  var selected = [];
-
-  function $(id) { return document.getElementById(id); }
+  var filter = null;      // null = all active, or 'progress' | 'listed' | 'sold'
+  var page = 'stock';
 
   function load() {
-    try {
-      var raw = localStorage.getItem(KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      return [];
-    }
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; }
   }
-
   function save() {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(items));
-      return true;
-    } catch (e) {
-      return false;
-    }
+    try { localStorage.setItem(KEY, JSON.stringify(items)); }
+    catch (e) { alert('Could not save. The phone storage may be full (photos use a lot).'); }
   }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function money(n) { return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function $(id) { return document.getElementById(id); }
 
-  function todayLocal() {
-    var d = new Date();
-    return d.getFullYear() + '-' +
-      String(d.getMonth() + 1).padStart(2, '0') + '-' +
-      String(d.getDate()).padStart(2, '0');
+  // status comes from the data: sold > listed (price + platform) > in progress
+  function status(it) {
+    if (it.sold) return 'sold';
+    if (it.price != null && it.platforms.length) return 'listed';
+    return 'progress';
   }
+  var STATUS_LABEL = { progress: 'In progress', listed: 'Listed', sold: 'Sold' };
+  function profit(it) { return it.sold ? it.sold.price - (it.cost || 0) : 0; }
 
-  function money(n) { return '$' + Number(n).toFixed(2); }
-
-  function el(tag, className, text) {
-    var node = document.createElement(tag);
-    if (className) node.className = className;
-    if (text !== undefined) node.textContent = text;
-    return node;
+  /* ---------- Stock page ---------- */
+  function renderTabs() {
+    $('tabs').innerHTML = ['progress', 'listed', 'sold'].map(function (s) {
+      var n = items.filter(function (i) { return status(i) === s; }).length;
+      return '<button class="chip s-' + s + (filter === s ? ' on' : '') + '" data-f="' + s + '">' + STATUS_LABEL[s] + ' ' + n + '</button>';
+    }).join('');
   }
-
-  function chip(label, on, onClick) {
-    var b = el('button', 'chip' + (on ? ' on' : ''), label);
-    b.type = 'button';
-    b.addEventListener('click', onClick);
-    return b;
-  }
-
-  function renderFilters() {
-    var box = $('filters');
-    box.replaceChildren();
-    [null].concat(PLATFORMS).forEach(function (p) {
-      box.appendChild(chip(p === null ? 'All' : p, filter === p, function () {
-        filter = p;
-        renderFilters();
-        renderList();
-      }));
-    });
-  }
-
   function renderList() {
-    var q = query.trim().toLowerCase();
-    var visible = items.filter(function (i) {
-      return (!q || i.name.toLowerCase().indexOf(q) !== -1) &&
-        (!filter || i.platforms.indexOf(filter) !== -1);
-    });
-    var box = $('list');
-    box.replaceChildren();
-    if (visible.length === 0) {
-      box.appendChild(el('div', 'empty',
-        items.length === 0
-          ? 'No items yet. Tap + Add to log your first one.'
-          : 'No items match your search or filter.'));
+    var shown = items.filter(function (i) { return !filter || status(i) === filter; });
+    shown.sort(function (a, b) { return b.created - a.created; });
+    if (!shown.length) {
+      $('list').innerHTML = '<div class="empty">' + (items.length ? 'Nothing here.' : 'No items yet.<br>Tap the + button to add your first one.') + '</div>';
       return;
     }
-    visible.forEach(function (i) {
-      var row = el('div', 'row');
-      var top = el('div', 'row-top');
-      top.appendChild(el('div', 'name', i.name));
-      top.appendChild(el('div', '', money(i.cost)));
-      row.appendChild(top);
-      row.appendChild(el('div', 'meta',
-        (i.status === 'sold' ? 'Sold' : 'In stock') + ' · bought ' + i.dateBought));
-      row.appendChild(el('div', 'meta',
-        i.platforms.length ? i.platforms.join(', ') : 'Not listed yet'));
-      box.appendChild(row);
-    });
+    $('list').innerHTML = shown.map(function (it) {
+      var s = status(it), meta = [];
+      if (it.platforms.length) meta.push(it.platforms.join(' + '));
+      if (s === 'sold') meta.push('profit ' + money(profit(it)));
+      else if (it.price != null) meta.push(money(it.price));
+      var thumb = it.photo ? 'style="background-image:url(' + it.photo + ')"' : '';
+      return '<button class="row" data-id="' + it.id + '"><div class="thumb" ' + thumb + '>' + (it.photo ? '' : '&#128247;') + '</div>' +
+        '<div class="info"><div class="name">' + esc(it.name) + '</div><div class="meta">' + esc(meta.join(' · ') || 'Just a name so far') + '</div></div>' +
+        '<span class="badge b-' + s + '">' + STATUS_LABEL[s] + '</span></button>';
+    }).join('');
   }
 
-  function renderPlatformChips() {
-    var box = $('platform-chips');
-    box.replaceChildren();
-    PLATFORMS.forEach(function (p) {
-      var on = selected.indexOf(p) !== -1;
-      box.appendChild(chip(p, on, function () {
-        selected = on ? selected.filter(function (x) { return x !== p; }) : selected.concat(p);
-        renderPlatformChips();
-      }));
-    });
+  /* ---------- Money page ---------- */
+  function renderMoney() {
+    var sold = items.filter(function (i) { return i.sold; });
+    var total = sold.reduce(function (a, i) { return a + profit(i); }, 0);
+    var revenue = sold.reduce(function (a, i) { return a + i.sold.price; }, 0);
+    var cost = sold.reduce(function (a, i) { return a + (i.cost || 0); }, 0);
+    $('m-profit').textContent = money(total);
+    $('m-sold-count').textContent = sold.length + (sold.length === 1 ? ' item sold' : ' items sold');
+    $('m-sold-total').textContent = money(revenue);
+    $('m-cost-total').textContent = money(cost);
+    var pct = Math.max(0, Math.min(100, total / PRINTER_GOAL * 100));
+    $('m-bar').style.width = pct + '%';
+    $('m-goal-text').textContent = total >= PRINTER_GOAL
+      ? 'Printer ($' + PRINTER_GOAL + ') is covered!'
+      : money(total) + ' of $' + PRINTER_GOAL + ' (' + Math.round(pct) + '%)';
   }
 
-  function showList() {
-    $('add-view').hidden = true;
-    $('list-view').hidden = false;
-    renderList();
+  function render() { renderTabs(); renderList(); renderMoney(); }
+
+  function showPage(p) {
+    page = p;
+    $('page-stock').classList.toggle('hidden', p !== 'stock');
+    $('page-money').classList.toggle('hidden', p !== 'money');
+    $('nav-stock').classList.toggle('on', p === 'stock');
+    $('nav-money').classList.toggle('on', p === 'money');
+    window.scrollTo(0, 0);
   }
 
-  function showAdd() {
-    $('name').value = '';
-    $('cost').value = '';
-    $('date').value = todayLocal();
-    $('error').textContent = '';
-    selected = [];
-    renderPlatformChips();
-    $('list-view').hidden = true;
-    $('add-view').hidden = false;
-    $('name').focus();
+  /* ---------- Sheets ---------- */
+  function openSheet(html) { $('sheet').innerHTML = html; $('overlay').classList.remove('hidden'); }
+  function closeSheet() { $('overlay').classList.add('hidden'); $('sheet').innerHTML = ''; }
+
+  function platformChips(selected) {
+    return '<div class="chips" id="plat">' + PLATFORMS.map(function (p) {
+      return '<button type="button" class="chip' + (selected.indexOf(p) > -1 ? ' on' : '') + '" data-p="' + p + '">' + p + '</button>';
+    }).join('') + '</div>';
+  }
+  function readPlatforms() {
+    return Array.prototype.map.call(document.querySelectorAll('#plat .chip.on'), function (b) { return b.dataset.p; });
+  }
+  function numOrNull(v) { v = String(v).trim(); if (v === '') return null; var n = parseFloat(v); return isNaN(n) || n < 0 ? null : n; }
+
+  var pendingPhoto = null;
+  function photoField(current) {
+    pendingPhoto = current || null;
+    return '<label class="label-t">Photo (optional)</label>' +
+      '<label class="photo-btn" for="photo-input" style="margin:0">&#128247; <span id="photo-text">' + (current ? 'Change photo' : 'Add photo') + '</span></label>' +
+      '<input type="file" id="photo-input" accept="image/*" class="hidden">' +
+      '<img id="photo-prev" class="photo-preview' + (current ? '' : ' hidden') + '" ' + (current ? 'src="' + current + '"' : '') + ' alt="">';
+  }
+  // shrink photos so they fit in phone storage
+  function shrink(file, cb) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var max = 600, r = Math.min(1, max / Math.max(img.width, img.height));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        cb(c.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
   }
 
-  function submit(e) {
-    e.preventDefault();
-    var name = $('name').value.trim();
-    var costText = $('cost').value.trim();
-    var cost = Number(costText);
-    var date = $('date').value;
-    var err = $('error');
+  function itemForm(it) {
+    var isNew = !it;
+    it = it || { name: '', price: null, cost: null, platforms: [], photo: null };
+    openSheet(
+      '<div class="sheet-head"><h2>' + (isNew ? 'Add item' : 'Edit item') + '</h2><button class="link" data-act="close">Cancel</button></div>' +
+      '<label for="f-name">Name (required)</label><input type="text" id="f-name" value="' + esc(it.name) + '" autocomplete="off" placeholder="e.g. Blue denim jacket">' +
+      photoField(it.photo) +
+      '<label class="label-t">Listed on</label>' + platformChips(it.platforms) +
+      '<label for="f-price">Listing price $ (optional)</label><input type="number" inputmode="decimal" id="f-price" min="0" step="0.01" value="' + (it.price == null ? '' : it.price) + '">' +
+      '<label for="f-cost">What you paid $ (leave empty if from storage)</label><input type="number" inputmode="decimal" id="f-cost" min="0" step="0.01" value="' + (it.cost ? it.cost : '') + '">' +
+      '<button class="primary" data-act="save-item" data-id="' + (isNew ? '' : it.id) + '">' + (isNew ? 'Add item' : 'Save') + '</button>'
+    );
+    if (isNew) setTimeout(function () { $('f-name').focus(); }, 50);
+  }
 
-    if (!name) { err.textContent = 'Enter what the item is.'; return; }
-    if (costText === '' || !isFinite(cost) || cost < 0) {
-      err.textContent = 'Enter what you paid, e.g. 12.50 (0 if it was free).';
-      return;
+  function itemDetail(id) {
+    var it = items.filter(function (i) { return i.id === id; })[0];
+    if (!it) return;
+    var s = status(it);
+    var body =
+      '<div class="sheet-head"><h2>' + esc(it.name) + '</h2><button class="link" data-act="close">Close</button></div>' +
+      '<div style="margin:6px 0 10px"><span class="badge b-' + s + '">' + STATUS_LABEL[s] + '</span></div>' +
+      (it.photo ? '<img class="photo-preview" src="' + it.photo + '" alt="">' : '') +
+      '<div class="small" style="margin-top:10px">' +
+        (it.platforms.length ? 'On ' + esc(it.platforms.join(' + ')) + '<br>' : '') +
+        (it.price != null ? 'Listing price ' + money(it.price) + '<br>' : '') +
+        'You paid ' + money(it.cost || 0) + (it.cost ? '' : ' (storage)') +
+        (it.sold ? '<br>Sold for ' + money(it.sold.price) + (it.sold.platform ? ' on ' + esc(it.sold.platform) : '') : '') +
+      '</div>' +
+      (it.sold ? '<div class="profit-line">Profit ' + money(profit(it)) + '</div>' : '') +
+      (it.sold
+        ? '<button class="primary ghost" data-act="unsell" data-id="' + it.id + '">Undo sold</button>'
+        : '<button class="primary green" data-act="sell-form" data-id="' + it.id + '">Mark as sold</button>') +
+      '<button class="primary ghost" data-act="edit" data-id="' + it.id + '">Edit</button>' +
+      '<div style="text-align:center;margin-top:8px"><button class="link danger" data-act="delete" data-id="' + it.id + '">Delete item</button></div>';
+    openSheet(body);
+  }
+
+  function sellForm(id) {
+    var it = items.filter(function (i) { return i.id === id; })[0];
+    var plats = it.platforms.length === 1 ? it.platforms : [];
+    openSheet(
+      '<div class="sheet-head"><h2>Mark as sold</h2><button class="link" data-act="close">Cancel</button></div>' +
+      '<div class="small">' + esc(it.name) + '</div>' +
+      '<label for="s-price">Sold for $</label><input type="number" inputmode="decimal" id="s-price" min="0" step="0.01" value="' + (it.price == null ? '' : it.price) + '">' +
+      '<label class="label-t">Sold on</label>' + platformChips(plats) +
+      '<div class="profit-line" id="s-profit"></div>' +
+      '<button class="primary green" data-act="confirm-sell" data-id="' + id + '">Confirm sale</button>'
+    );
+    var cost = it.cost || 0;
+    function upd() {
+      var p = numOrNull($('s-price').value);
+      $('s-profit').textContent = p == null ? '' : 'Profit ' + money(p - cost);
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { err.textContent = 'Pick the date you bought it.'; return; }
-
-    items.unshift({
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
-      name: name,
-      cost: cost,
-      dateBought: date,
-      platforms: selected.slice(),
-      status: 'in_stock',
-      createdAt: Date.now()
-    });
-    if (!save()) {
-      items.shift();
-      err.textContent = 'Could not save on this device. Is private browsing on?';
-      return;
-    }
-    showList();
+    $('s-price').addEventListener('input', upd); upd();
+    $('s-price').focus();
   }
 
-  $('add-btn').addEventListener('click', showAdd);
-  $('cancel-btn').addEventListener('click', showList);
-  $('add-form').addEventListener('submit', submit);
-  $('search').addEventListener('input', function (e) {
-    query = e.target.value;
-    renderList();
+  /* ---------- Events ---------- */
+  $('tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-f]'); if (!b) return;
+    filter = filter === b.dataset.f ? null : b.dataset.f;   // tap again to clear
+    render();
+  });
+  $('list').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-id]'); if (b) itemDetail(b.dataset.id);
+  });
+  $('nav-stock').onclick = function () { showPage('stock'); };
+  $('nav-money').onclick = function () { showPage('money'); };
+  $('nav-add').onclick = function () { itemForm(null); };
+  $('overlay').addEventListener('click', function (e) { if (e.target === $('overlay')) closeSheet(); });
+
+  $('sheet').addEventListener('change', function (e) {
+    if (e.target.id !== 'photo-input' || !e.target.files[0]) return;
+    shrink(e.target.files[0], function (data) {
+      pendingPhoto = data;
+      $('photo-prev').src = data; $('photo-prev').classList.remove('hidden');
+      $('photo-text').textContent = 'Change photo';
+    });
   });
 
-  renderFilters();
-  renderList();
+  $('sheet').addEventListener('click', function (e) {
+    var chip = e.target.closest('#plat .chip');
+    if (chip) {
+      var wasOn = chip.classList.contains('on');
+      if ($('s-price')) {   // in the "sold" sheet only one platform can be picked
+        Array.prototype.forEach.call(document.querySelectorAll('#plat .chip'), function (c) { c.classList.remove('on'); });
+      }
+      chip.classList.toggle('on', !wasOn);
+      return;
+    }
+    var b = e.target.closest('[data-act]'); if (!b) return;
+    var act = b.dataset.act, id = b.dataset.id;
+    var it = items.filter(function (i) { return i.id === id; })[0];
+
+    if (act === 'close') closeSheet();
+    else if (act === 'edit') itemForm(it);
+    else if (act === 'sell-form') sellForm(id);
+    else if (act === 'save-item') {
+      var name = $('f-name').value.trim();
+      if (!name) { $('f-name').focus(); $('f-name').style.borderColor = 'var(--danger)'; return; }
+      var data = {
+        name: name, photo: pendingPhoto, platforms: readPlatforms(),
+        price: numOrNull($('f-price').value), cost: numOrNull($('f-cost').value) || 0
+      };
+      if (id) { Object.assign(it, data); }
+      else { items.push(Object.assign({ id: uid(), created: Date.now(), sold: null }, data)); }
+      save(); closeSheet(); render();
+    }
+    else if (act === 'confirm-sell') {
+      var p = numOrNull($('s-price').value);
+      if (p == null) { $('s-price').focus(); $('s-price').style.borderColor = 'var(--danger)'; return; }
+      var sp = readPlatforms();
+      it.sold = { price: p, platform: sp[0] || '', date: Date.now() };
+      save(); closeSheet(); render();
+    }
+    else if (act === 'unsell') { it.sold = null; save(); closeSheet(); render(); }
+    else if (act === 'delete') {
+      if (confirm('Delete "' + it.name + '"? This cannot be undone.')) {
+        items = items.filter(function (i) { return i.id !== id; });
+        save(); closeSheet(); render();
+      }
+    }
+  });
+
+  render();
 })();
 </script>
 </body>
