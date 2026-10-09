@@ -35,7 +35,7 @@
   main { max-width: 600px; margin: 0 auto; padding: 0 16px; }
   h1 { font-size: 30px; margin: 16px 0 12px; }
   button { font: inherit; color: inherit; cursor: pointer; }
-  input, select { font: inherit; }
+  input { font: inherit; }
   .hidden { display: none !important; }
 
   /* Tabs row */
@@ -72,8 +72,6 @@
   .card { background: var(--card); border-radius: 16px; padding: 18px; margin-bottom: 12px; }
   .card .label { font-size: 13px; color: var(--muted); }
   .card .big { font-size: 40px; font-weight: 700; margin-top: 4px; }
-  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .two .card .big { font-size: 28px; }
   .small { font-size: 13px; color: var(--muted); }
 
   /* Bottom bar */
@@ -116,7 +114,6 @@
   }
   .primary.green { background: var(--sold-fg); }
   .primary.ghost { background: var(--bg); color: var(--text); font-weight: 600; }
-  .profit-line { text-align: center; font-size: 18px; font-weight: 700; margin-top: 14px; }
   .plat-line { display: flex; justify-content: space-between; font-size: 15px; padding: 8px 0 0; color: var(--muted); }
   .plat-line b { color: var(--text); font-weight: 600; }
   .wd-title { font-size: 13px; color: var(--muted); margin: 18px 4px 8px; }
@@ -165,13 +162,11 @@
 (function () {
   var PLATFORMS = ['Depop', 'Vinted'];   // add more names here later
   var KEY = 'stockroom.items.v1';
-
   var WKEY = 'stockroom.withdrawals.v1';
 
   var items = load(KEY);
   var withdrawals = load(WKEY);   // each: { id, date, parts: { Depop: 10, Vinted: 5 } }
   var filter = null;      // null = all active, or 'progress' | 'listed' | 'sold'
-  var page = 'stock';
 
   function load(key) {
     try { return JSON.parse(localStorage.getItem(key)) || []; } catch (e) { return []; }
@@ -195,19 +190,13 @@
     return 'progress';
   }
   var STATUS_LABEL = { progress: 'In progress', listed: 'Listed', sold: 'Sold' };
-  function profit(it) { return it.sold ? it.sold.price : 0; }
 
   // money per platform: profit from sold items minus what was withdrawn
-  function platformNames() {
-    var names = PLATFORMS.slice();
-    items.forEach(function (i) { if (i.sold) { var p = i.sold.platform || 'Other'; if (names.indexOf(p) < 0) names.push(p); } });
-    return names;
-  }
   function balances() {
     var b = {};
-    platformNames().forEach(function (p) { b[p] = 0; });
-    items.forEach(function (i) { if (i.sold) b[i.sold.platform || 'Other'] += i.sold.price; });
-    withdrawals.forEach(function (w) { Object.keys(w.parts).forEach(function (p) { b[p] = (b[p] || 0) - w.parts[p]; }); });
+    PLATFORMS.forEach(function (p) { b[p] = 0; });
+    items.forEach(function (i) { if (i.sold) b[i.sold.platform] += i.sold.price; });
+    withdrawals.forEach(function (w) { Object.keys(w.parts).forEach(function (p) { b[p] -= w.parts[p]; }); });
     Object.keys(b).forEach(function (p) { b[p] = r2(b[p]); });
     return b;
   }
@@ -231,11 +220,10 @@
     $('list').innerHTML = shown.map(function (it) {
       var s = status(it), meta = [];
       if (it.platforms.length) meta.push(it.platforms.join(' + '));
-      if (s === 'sold') meta.push('profit ' + money(profit(it)));
-      else if (it.price != null) meta.push(money(it.price));
+      meta.push(s === 'sold' ? 'sold ' + money(it.sold.price) : money(it.price));
       var thumb = it.photo ? 'style="background-image:url(' + it.photo + ')"' : '';
       return '<button class="row" data-id="' + it.id + '"><div class="thumb" ' + thumb + '>' + (it.photo ? '' : '&#128247;') + '</div>' +
-        '<div class="info"><div class="name">' + esc(it.name) + '</div><div class="meta">' + esc(meta.join(' · ') || 'Just a name so far') + '</div></div>' +
+        '<div class="info"><div class="name">' + esc(it.name) + '</div><div class="meta">' + esc(meta.join(' · ')) + '</div></div>' +
         '<span class="badge b-' + s + '">' + STATUS_LABEL[s] + '</span></button>';
     }).join('');
   }
@@ -243,10 +231,10 @@
   /* ---------- Money page ---------- */
   function renderMoney() {
     var sold = items.filter(function (i) { return i.sold; });
-    var total = r2(sold.reduce(function (a, i) { return a + profit(i); }, 0));
+    var total = r2(sold.reduce(function (a, i) { return a + i.sold.price; }, 0));
     var bal = balances();
     $('m-balance').textContent = money(totalOf(bal));
-    $('m-plat').innerHTML = Object.keys(bal).filter(function (p) { return bal[p] !== 0 || PLATFORMS.indexOf(p) > -1; }).map(function (p) {
+    $('m-plat').innerHTML = Object.keys(bal).map(function (p) {
       return '<div class="plat-line"><span>' + esc(p) + '</span><b>' + money(bal[p]) + '</b></div>';
     }).join('');
     $('m-profit').textContent = money(total);
@@ -263,7 +251,6 @@
   function render() { renderTabs(); renderList(); renderMoney(); }
 
   function showPage(p) {
-    page = p;
     $('page-stock').classList.toggle('hidden', p !== 'stock');
     $('page-money').classList.toggle('hidden', p !== 'money');
     $('nav-stock').classList.toggle('on', p === 'stock');
@@ -335,11 +322,10 @@
       (it.photo ? '<img class="photo-preview" src="' + it.photo + '" alt="">' : '') +
       '<div class="small" style="margin-top:10px">' +
         (it.platforms.length ? 'On ' + esc(it.platforms.join(' + ')) + '<br>' : '') +
-        (it.price != null ? 'Listing price ' + money(it.price) : '') +
-        (it.sold ? '<br>Sold for ' + money(it.sold.price) + (it.sold.platform ? ' on ' + esc(it.sold.platform) : '') : '') +
+        'Listing price ' + money(it.price) +
+        (it.sold ? '<br>Sold for ' + money(it.sold.price) + ' on ' + esc(it.sold.platform) : '') +
       '</div>' +
-      (it.sold ? '<div class="profit-line">Profit ' + money(profit(it)) + '</div>' : '') +
-      (it.sold
+            (it.sold
         ? '<button class="primary ghost" data-act="unsell" data-id="' + it.id + '">Undo sold</button>'
         : '<button class="primary green" data-act="sell-form" data-id="' + it.id + '">Mark as sold</button>') +
       '<button class="primary ghost" data-act="edit" data-id="' + it.id + '">Edit</button>' +
@@ -353,28 +339,17 @@
     openSheet(
       '<div class="sheet-head"><h2>Mark as sold</h2><button class="link" data-act="close">Cancel</button></div>' +
       '<div class="small">' + esc(it.name) + '</div>' +
-      '<label for="s-price">Sold for $</label><input type="number" inputmode="decimal" id="s-price" min="0" step="0.01" value="' + (it.price == null ? '' : it.price) + '">' +
+      '<label for="s-price">Sold for $</label><input type="number" inputmode="decimal" id="s-price" min="0" step="0.01" value="' + it.price + '">' +
       '<label class="label-t">Sold on (required)</label>' + platformChips(plats, true) +
-      '<div class="profit-line" id="s-profit"></div>' +
       '<button class="primary green" data-act="confirm-sell" data-id="' + id + '">Confirm sale</button>'
     );
-    function upd() {
-      var p = numOrNull($('s-price').value);
-      $('s-profit').textContent = p == null ? '' : 'Profit ' + money(p);
-    }
-    $('s-price').addEventListener('input', upd); upd();
     $('s-price').focus();
   }
 
   /* ---------- Withdraw ---------- */
-  var ALL = 'All platforms';
-  function availableFor(src) {
-    var b = balances();
-    if (src === ALL) return Math.max(0, totalOf(b));
-    return Math.max(0, b[src] || 0);
-  }
+  function availableFor(src) { return Math.max(0, balances()[src]); }
   function withdrawStep1() {
-    var tot = availableFor(ALL);
+    var tot = Math.max(0, totalOf(balances()));
     if (tot <= 0) {
       openSheet('<div class="sheet-head"><h2>Withdraw</h2><button class="link" data-act="close">Close</button></div>' +
         '<div class="empty">Nothing to withdraw yet.<br>Your balance grows when you mark items as sold.</div>');
@@ -385,7 +360,7 @@
       '<button class="choice" data-act="wd-amount"><b>A different amount</b><span>Choose how much, and from where</span></button>');
   }
   function withdrawStep2() {
-    var names = platformNames().filter(function (p) { return availableFor(p) > 0; });
+    var names = PLATFORMS.filter(function (p) { return availableFor(p) > 0; });
     openSheet('<div class="sheet-head"><h2>Withdraw</h2><button class="link" data-act="close">Cancel</button></div>' +
       '<label for="w-amt">Amount $</label><input type="number" inputmode="decimal" id="w-amt" min="0" step="0.01">' +
       '<label class="label-t">From</label>' + platformChips([names[0]], true, names) +
@@ -434,12 +409,11 @@
   $('sheet').addEventListener('click', function (e) {
     var chip = e.target.closest('#plat .chip');
     if (chip) {
-      var wasOn = chip.classList.contains('on');
       if (chip.parentNode.dataset.single) {
         Array.prototype.forEach.call(document.querySelectorAll('#plat .chip'), function (c) { c.classList.remove('on'); });
         chip.classList.add('on');   // single choice: stays on once picked
       } else {
-        chip.classList.toggle('on', !wasOn);
+        chip.classList.toggle('on');
       }
       if ($('w-from')) updateWithdrawHint();
       return;
