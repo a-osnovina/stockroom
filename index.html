@@ -25,6 +25,27 @@
     border: 1px solid #ccc; border-radius: 8px; background: #fff; color: #111;
   }
   label, .label { display: block; font-size: 13px; color: #555; margin: 16px 0 6px; }
+
+  /* Stage bar: Import > List > Sold > Packed > Shipped */
+  .steps { display: flex; margin: 0 0 16px; }
+  .step {
+    flex: 1; min-width: 0; border: 0; margin-left: -10px; padding: 9px 0 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: #e6e9ee; color: #555; font-size: 12px; font-weight: 600;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
+  }
+  .step:first-child {
+    margin-left: 0; border-radius: 8px 0 0 8px;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+  }
+  .step:last-child {
+    border-radius: 0 8px 8px 0;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%);
+  }
+  .step.done { background: #bcd6ff; color: #0a3d8f; }
+  .step.on { background: #0a6cff; color: #fff; }
+  .step .count { font-size: 17px; font-weight: 700; line-height: 1; }
+
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .filters { margin: 12px 0; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
   .chip {
@@ -36,6 +57,10 @@
   .row-top { display: flex; justify-content: space-between; gap: 12px; }
   .name { font-size: 17px; font-weight: 600; }
   .meta { font-size: 13px; color: #666; margin-top: 2px; }
+  .move {
+    margin-top: 8px; background: #eef4ff; color: #0a6cff; border: 0;
+    border-radius: 8px; padding: 6px 12px; font-size: 14px; font-weight: 600;
+  }
   .empty { text-align: center; color: #666; padding: 48px 16px; font-size: 15px; }
   .error { color: #c00; font-size: 14px; margin-top: 12px; min-height: 1em; }
   .actions { display: flex; gap: 12px; margin-top: 20px; }
@@ -47,17 +72,18 @@
 
 <main id="list-view">
   <header>
-    <h1>Inventory</h1>
+    <h1>Stockroom</h1>
     <button class="link" id="add-btn" type="button">+ Add</button>
   </header>
-  <input type="search" id="search" placeholder="Search items" autocomplete="off">
+  <nav class="steps" id="steps" aria-label="Stages"></nav>
+  <input type="search" id="search" placeholder="Search this stage" autocomplete="off">
   <div class="chips filters" id="filters"></div>
   <div id="list"></div>
 </main>
 
 <main id="add-view" hidden>
   <header>
-    <h1>Add item</h1>
+    <h1 id="add-title">Add item</h1>
   </header>
   <form id="add-form" novalidate>
     <label for="name">Name</label>
@@ -82,23 +108,43 @@
 
 <script>
 (function () {
+  var STAGES = [
+    { id: 'import', label: 'Import' },
+    { id: 'list', label: 'List' },
+    { id: 'sold', label: 'Sold' },
+    { id: 'packed', label: 'Packed' },
+    { id: 'shipped', label: 'Shipped' }
+  ];
   var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Facebook Marketplace', 'Etsy', 'Other'];
   var KEY = 'stockroom.items.v1';
 
   var items = load();
+  var stage = 'import';
   var query = '';
   var filter = null;
   var selected = [];
 
   function $(id) { return document.getElementById(id); }
 
+  function stageIndex(id) {
+    for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id === id) return i;
+    return -1;
+  }
+
   function load() {
+    var list;
     try {
       var raw = localStorage.getItem(KEY);
-      return raw ? JSON.parse(raw) : [];
+      list = raw ? JSON.parse(raw) : [];
     } catch (e) {
       return [];
     }
+    // Older saves used status "in_stock" / "sold"; map them onto stages.
+    return list.map(function (i) {
+      if (stageIndex(i.stage) === -1) i.stage = i.status === 'sold' ? 'sold' : 'import';
+      delete i.status;
+      return i;
+    });
   }
 
   function save() {
@@ -133,11 +179,31 @@
     return b;
   }
 
+  function renderSteps() {
+    var box = $('steps');
+    box.replaceChildren();
+    var current = stageIndex(stage);
+    STAGES.forEach(function (s, idx) {
+      var count = items.filter(function (i) { return i.stage === s.id; }).length;
+      var cls = 'step' + (idx === current ? ' on' : idx < current ? ' done' : '');
+      var b = el('button', cls);
+      b.type = 'button';
+      b.appendChild(el('span', 'count', String(count)));
+      b.appendChild(el('span', '', s.label));
+      if (idx === current) b.setAttribute('aria-current', 'step');
+      b.addEventListener('click', function () {
+        stage = s.id;
+        render();
+      });
+      box.appendChild(b);
+    });
+  }
+
   function renderFilters() {
     var box = $('filters');
     box.replaceChildren();
     [null].concat(PLATFORMS).forEach(function (p) {
-      box.appendChild(chip(p === null ? 'All' : p, filter === p, function () {
+      box.appendChild(chip(p === null ? 'All apps' : p, filter === p, function () {
         filter = p;
         renderFilters();
         renderList();
@@ -145,18 +211,34 @@
     });
   }
 
+  function moveForward(item) {
+    var next = STAGES[stageIndex(item.stage) + 1];
+    if (!next) return;
+    var before = item.stage;
+    item.stage = next.id;
+    if (!save()) {
+      item.stage = before;
+      alert('Could not save on this device. Is private browsing on?');
+      return;
+    }
+    render();
+  }
+
   function renderList() {
     var q = query.trim().toLowerCase();
-    var visible = items.filter(function (i) {
+    var inStage = items.filter(function (i) { return i.stage === stage; });
+    var visible = inStage.filter(function (i) {
       return (!q || i.name.toLowerCase().indexOf(q) !== -1) &&
         (!filter || i.platforms.indexOf(filter) !== -1);
     });
+    var label = STAGES[stageIndex(stage)].label;
+    var next = STAGES[stageIndex(stage) + 1];
     var box = $('list');
     box.replaceChildren();
     if (visible.length === 0) {
       box.appendChild(el('div', 'empty',
-        items.length === 0
-          ? 'No items yet. Tap + Add to log your first one.'
+        inStage.length === 0
+          ? 'Nothing in ' + label + ' yet. Tap + Add to put an item here.'
           : 'No items match your search or filter.'));
       return;
     }
@@ -166,12 +248,22 @@
       top.appendChild(el('div', 'name', i.name));
       top.appendChild(el('div', '', money(i.cost)));
       row.appendChild(top);
+      row.appendChild(el('div', 'meta', 'Bought ' + i.dateBought));
       row.appendChild(el('div', 'meta',
-        (i.status === 'sold' ? 'Sold' : 'In stock') + ' · bought ' + i.dateBought));
-      row.appendChild(el('div', 'meta',
-        i.platforms.length ? i.platforms.join(', ') : 'Not listed yet'));
+        i.platforms.length ? i.platforms.join(', ') : 'Not listed on an app yet'));
+      if (next) {
+        var mv = el('button', 'move', 'Move to ' + next.label + ' →');
+        mv.type = 'button';
+        mv.addEventListener('click', function () { moveForward(i); });
+        row.appendChild(mv);
+      }
       box.appendChild(row);
     });
+  }
+
+  function render() {
+    renderSteps();
+    renderList();
   }
 
   function renderPlatformChips() {
@@ -189,10 +281,11 @@
   function showList() {
     $('add-view').hidden = true;
     $('list-view').hidden = false;
-    renderList();
+    render();
   }
 
   function showAdd() {
+    $('add-title').textContent = 'Add to ' + STAGES[stageIndex(stage)].label;
     $('name').value = '';
     $('cost').value = '';
     $('date').value = todayLocal();
@@ -225,7 +318,7 @@
       cost: cost,
       dateBought: date,
       platforms: selected.slice(),
-      status: 'in_stock',
+      stage: stage,
       createdAt: Date.now()
     });
     if (!save()) {
@@ -245,7 +338,7 @@
   });
 
   renderFilters();
-  renderList();
+  render();
 })();
 </script>
 </body>

@@ -5,10 +5,12 @@ and your items are saved on your own device. No accounts, no server.
 
 ## What it does so far
 
-- Add an item: name, what you paid, date bought, and which apps it is listed on
-- See all your items, search them, and filter by app
+- A step bar at the top: Import > List > Sold > Packed > Shipped. Tap a step to see the items in it; each step shows how many items it holds.
+- "+ Add" puts a new item in the step you are looking at (name, what you paid, date bought, which apps it is listed on)
+- Each item has a button to move it to the next step
+- Search and filter by app inside a step
 
-Coming next, one at a time: mark as sold (profit calculated for you), then a summary screen.
+Coming next: sale price, fees and shipping when an item is sold, with profit calculated for you, then a summary screen.
 
 ## Put it online (GitHub Pages)
 
