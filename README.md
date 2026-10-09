@@ -6,12 +6,14 @@ and your items are saved on your own device. No accounts, no server. The whole a
 ## What it does
 
 - **Add item**: name, listing price, and at least one platform (Depop / Vinted) are required. A photo is optional.
-- **Stock**: shows what is listed by default. Tap Sold to see sold items, tap Listed to come back.
-- **Mark as sold**: enter the sale price and the platform it sold on, and the profit shows right away.
-- **Money**: your balance (with a line per platform), a Withdraw button, and total profit.
+- **Stock**: three tabs. Listed (the default), Sold (waiting to ship), and Shipped.
+- **Mark as sold**: enter the sale price and the platform it sold on.
+- **Mark as shipped**: open a sold item and tap it once the parcel is on its way.
+- **Money**: Balance (a line per platform) with a Withdraw button, Coming in (sold items not shipped yet), and total profit.
 - **Withdraw**: take out everything, or a different amount from one platform. Tap a past withdrawal to undo it.
 
-Fees are not counted yet. Profit = what each item sold for. Balance = profit minus withdrawals.
+Money only counts once an item is shipped. Sold items that haven't shipped show up under Coming in.
+Fees are not counted yet.
 
 ## Put it online (GitHub Pages)
 

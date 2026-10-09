@@ -12,14 +12,16 @@
     --bg: #f4f4f6; --card: #ffffff; --text: #111; --muted: #666; --line: #dcdce0;
     --accent: #0a6cff; --danger: #d92d20;
     --listed-bg: #dbeafe; --listed-fg: #1d4ed8;
-    --sold-bg: #d6f5e0; --sold-fg: #15803d;
+    --sold-bg: #fff3c4; --sold-fg: #8a6500;
+    --ship-bg: #d6f5e0; --ship-fg: #15803d;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #000; --card: #1c1c1e; --text: #f2f2f7; --muted: #9a9aa0; --line: #38383a;
       --accent: #4c9dff; --danger: #ff6b60;
       --listed-bg: #11284d; --listed-fg: #8ebdff;
-      --sold-bg: #0f3a20; --sold-fg: #7fe3a3;
+      --sold-bg: #4a3b00; --sold-fg: #ffd966;
+      --ship-bg: #0f3a20; --ship-fg: #7fe3a3;
     }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -45,6 +47,7 @@
   .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
   .chip.s-listed.on { background: var(--listed-bg); border-color: var(--listed-fg); color: var(--listed-fg); }
   .chip.s-sold.on { background: var(--sold-bg); border-color: var(--sold-fg); color: var(--sold-fg); }
+  .chip.s-shipped.on { background: var(--ship-bg); border-color: var(--ship-fg); color: var(--ship-fg); }
   .tabs { margin-bottom: 12px; }
 
   /* Item rows */
@@ -62,6 +65,7 @@
   .badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 12px; flex: none; }
   .b-listed { background: var(--listed-bg); color: var(--listed-fg); }
   .b-sold { background: var(--sold-bg); color: var(--sold-fg); }
+  .b-shipped { background: var(--ship-bg); color: var(--ship-fg); }
   .empty { text-align: center; color: var(--muted); padding: 48px 16px; line-height: 1.5; }
 
   /* Money */
@@ -108,7 +112,7 @@
     width: 100%; min-height: 52px; border: 0; border-radius: 12px; background: var(--accent); color: #fff;
     font-size: 17px; font-weight: 700; margin-top: 18px;
   }
-  .primary.green { background: var(--sold-fg); }
+  .primary.green { background: var(--ship-fg); }
   .primary.ghost { background: var(--bg); color: var(--text); font-weight: 600; }
   .plat-line { display: flex; justify-content: space-between; font-size: 15px; padding: 8px 0 0; color: var(--muted); }
   .plat-line b { color: var(--text); font-weight: 600; }
@@ -137,12 +141,17 @@
       <button class="primary" id="btn-withdraw">Withdraw</button>
     </div>
     <div class="card">
+      <div class="label">Coming in</div>
+      <div class="big" style="font-size:28px" id="m-incoming">$0.00</div>
+      <div class="small" id="m-incoming-count"></div>
+    </div>
+    <div class="card">
       <div class="label">Total profit so far</div>
       <div class="big" style="font-size:28px" id="m-profit">$0.00</div>
       <div class="small" id="m-sold-count"></div>
     </div>
     <div id="m-withdrawals"></div>
-    <p class="small">Fees aren't counted yet. Profit = what each item sold for. Balance = profit minus what you've withdrawn.</p>
+    <p class="small">Fees aren't counted yet. Money counts once an item is marked shipped. Coming in = sold items still waiting to ship. Balance = shipped money minus what you've withdrawn.</p>
   </section>
 </main>
 
@@ -179,24 +188,28 @@
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function $(id) { return document.getElementById(id); }
 
-  function status(it) { return it.sold ? 'sold' : 'listed'; }
-  var STATUS_LABEL = { listed: 'Listed', sold: 'Sold' };
+  // listed -> sold (waiting to ship) -> shipped (money counts as yours)
+  function status(it) { return it.shipped ? 'shipped' : it.sold ? 'sold' : 'listed'; }
+  var STATUS_LABEL = { listed: 'Listed', sold: 'Sold', shipped: 'Shipped' };
 
   // money per platform: profit from sold items minus what was withdrawn
   function balances() {
     var b = {};
     PLATFORMS.forEach(function (p) { b[p] = 0; });
-    items.forEach(function (i) { if (i.sold) b[i.sold.platform] += i.sold.price; });
+    items.forEach(function (i) { if (i.shipped) b[i.sold.platform] += i.sold.price; });
     withdrawals.forEach(function (w) { Object.keys(w.parts).forEach(function (p) { b[p] -= w.parts[p]; }); });
     Object.keys(b).forEach(function (p) { b[p] = r2(b[p]); });
     return b;
+  }
+  function comingIn() {   // sold, but not shipped yet
+    return r2(items.reduce(function (a, i) { return a + (i.sold && !i.shipped ? i.sold.price : 0); }, 0));
   }
   function totalOf(b) { return r2(Object.keys(b).reduce(function (a, p) { return a + b[p]; }, 0)); }
   function wdTotal(w) { return r2(Object.keys(w.parts).reduce(function (a, p) { return a + w.parts[p]; }, 0)); }
 
   /* ---------- Stock page ---------- */
   function renderTabs() {
-    $('tabs').innerHTML = ['listed', 'sold'].map(function (s) {
+    $('tabs').innerHTML = ['listed', 'sold', 'shipped'].map(function (s) {
       var n = items.filter(function (i) { return status(i) === s; }).length;
       return '<button class="chip s-' + s + (filter === s ? ' on' : '') + '" data-f="' + s + '">' + STATUS_LABEL[s] + ' ' + n + '</button>';
     }).join('');
@@ -205,13 +218,13 @@
     var shown = items.filter(function (i) { return status(i) === filter; });
     shown.sort(function (a, b) { return b.created - a.created; });
     if (!shown.length) {
-      $('list').innerHTML = '<div class="empty">' + (items.length ? (filter === 'sold' ? 'Nothing sold yet.' : 'Nothing listed right now.') : 'No items yet.<br>Tap the + button to add your first one.') + '</div>';
+      $('list').innerHTML = '<div class="empty">' + (items.length ? ({ listed: 'Nothing listed right now.', sold: 'Nothing waiting to ship.', shipped: 'Nothing shipped yet.' })[filter] : 'No items yet.<br>Tap the + button to add your first one.') + '</div>';
       return;
     }
     $('list').innerHTML = shown.map(function (it) {
       var s = status(it), meta = [];
       if (it.platforms.length) meta.push(it.platforms.join(' + '));
-      meta.push(s === 'sold' ? 'sold ' + money(it.sold.price) : money(it.price));
+      meta.push(s === 'listed' ? money(it.price) : s + ' ' + money(it.sold.price));
       var thumb = it.photo ? 'style="background-image:url(' + it.photo + ')"' : '';
       return '<button class="row" data-id="' + it.id + '"><div class="thumb" ' + thumb + '>' + (it.photo ? '' : '&#128247;') + '</div>' +
         '<div class="info"><div class="name">' + esc(it.name) + '</div><div class="meta">' + esc(meta.join(' · ')) + '</div></div>' +
@@ -221,15 +234,18 @@
 
   /* ---------- Money page ---------- */
   function renderMoney() {
-    var sold = items.filter(function (i) { return i.sold; });
-    var total = r2(sold.reduce(function (a, i) { return a + i.sold.price; }, 0));
+    var shipped = items.filter(function (i) { return i.shipped; });
+    var waiting = items.filter(function (i) { return i.sold && !i.shipped; });
+    var total = r2(shipped.reduce(function (a, i) { return a + i.sold.price; }, 0));
     var bal = balances();
     $('m-balance').textContent = money(totalOf(bal));
     $('m-plat').innerHTML = Object.keys(bal).map(function (p) {
       return '<div class="plat-line"><span>' + esc(p) + '</span><b>' + money(bal[p]) + '</b></div>';
     }).join('');
     $('m-profit').textContent = money(total);
-    $('m-sold-count').textContent = sold.length + (sold.length === 1 ? ' item sold' : ' items sold');
+    $('m-sold-count').textContent = shipped.length + (shipped.length === 1 ? ' item shipped' : ' items shipped');
+    $('m-incoming').textContent = money(comingIn());
+    $('m-incoming-count').textContent = waiting.length + (waiting.length === 1 ? ' sold item waiting to ship' : ' sold items waiting to ship');
     $('m-withdrawals').innerHTML = withdrawals.length
       ? '<div class="wd-title">Withdrawals (tap one to undo it)</div>' + withdrawals.slice().reverse().map(function (w) {
           var from = Object.keys(w.parts).filter(function (p) { return w.parts[p] > 0; });
@@ -315,10 +331,12 @@
         (it.platforms.length ? 'On ' + esc(it.platforms.join(' + ')) + '<br>' : '') +
         'Listing price ' + money(it.price) +
         (it.sold ? '<br>Sold for ' + money(it.sold.price) + ' on ' + esc(it.sold.platform) : '') +
+        (it.shipped ? '<br>Shipped ' + new Date(it.shipped).toLocaleDateString() : '') +
       '</div>' +
-            (it.sold
-        ? '<button class="primary ghost" data-act="unsell" data-id="' + it.id + '">Undo sold</button>'
-        : '<button class="primary green" data-act="sell-form" data-id="' + it.id + '">Mark as sold</button>') +
+            (s === 'listed' ? '<button class="primary green" data-act="sell-form" data-id="' + it.id + '">Mark as sold</button>' : '') +
+      (s === 'sold' ? '<button class="primary green" data-act="ship" data-id="' + it.id + '">Mark as shipped</button>' +
+        '<button class="primary ghost" data-act="unsell" data-id="' + it.id + '">Undo sold</button>' : '') +
+      (s === 'shipped' ? '<button class="primary ghost" data-act="unship" data-id="' + it.id + '">Undo shipped</button>' : '') +
       '<button class="primary ghost" data-act="edit" data-id="' + it.id + '">Edit</button>' +
       '<div style="text-align:center;margin-top:8px"><button class="link danger" data-act="delete" data-id="' + it.id + '">Delete item</button></div>';
     openSheet(body);
@@ -454,6 +472,8 @@
       withdrawals.push({ id: uid(), date: Date.now(), parts: (function () { var o = {}; o[src] = amt; return o; })() });
       save(); closeSheet(); render();
     }
+    else if (act === 'ship') { it.shipped = Date.now(); save(); closeSheet(); render(); }
+    else if (act === 'unship') { it.shipped = null; save(); closeSheet(); render(); }
     else if (act === 'unsell') { it.sold = null; save(); closeSheet(); render(); }
     else if (act === 'delete') {
       if (confirm('Delete "' + it.name + '"? This cannot be undone.')) {
