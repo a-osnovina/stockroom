@@ -1,20 +1,16 @@
 # Stockroom
 
-A simple web page to track your resale inventory and profit. It works on iPhone and Android,
-and your items are saved on your own device. No accounts, no server. The whole app is one file: `index.html`.
+A simple web page to track your resale inventory. It works on iPhone and Android,
+and your items are saved on your own device. No accounts, no server.
 
-## What it does
+## What it does so far
 
-- **Add item**: name, listing price, and at least one platform (Depop / Vinted) are required. Photo and location are optional.
-- **Places**: a location is just a name (Bin 1, Closet, Attic) with no limit on how many items it holds. Switch to Places at the top of Stock to see each place and what is in it. Items leave a place when they ship.
-- **Stock**: three tabs. Listed (the default), Sold (waiting to ship), and Shipped.
-- **Mark as sold**: enter the sale price and the platform it sold on.
-- **Sold tab**: a "Grab from" list shows where to find each item. Tick items as you pack them, combine several items bought by one person into a single parcel, then tap Mark parcel shipped.
-- **Money**: Balance (a line per platform) with a Withdraw button, Coming in (sold items not shipped yet), and total profit (switch between All time, Week, and Month).
-- **Withdraw**: take out everything, or a different amount from one platform. Tap a past withdrawal to undo it.
+- A step bar at the top: Import > List > Sold > Packed > Shipped. Tap a step to see the items in it; each step shows how many items it holds.
+- "+ Add" puts a new item in the step you are looking at (name, what you paid, date bought, which apps it is listed on)
+- Each item has a button to move it to the next step
+- Search and filter by app inside a step
 
-Money only counts once an item is shipped. Sold items that haven't shipped show up under Coming in.
-Fees are not counted yet.
+Coming next: sale price, fees and shipping when an item is sold, with profit calculated for you, then a summary screen.
 
 ## Put it online (GitHub Pages)
 
@@ -23,14 +19,10 @@ Fees are not counted yet.
 3. After a minute or two the page is at https://a-osnovina.github.io/stockroom/
 
 To use it like an app, open that link on your phone, then use "Add to Home Screen"
-(iPhone: Share button in Safari).
+(iPhone: Share button in Safari. Android: the browser menu).
 
 ## Good to know
 
 Items are stored in your browser on that phone. Clearing browser data or website
 history for the site will erase them, and a different phone starts empty.
 A backup option is planned.
-
-## Later, one at a time
-
-Fees per platform, bin/slot storage spots, planning, alerts, bundles.

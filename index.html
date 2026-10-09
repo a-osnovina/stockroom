@@ -2,682 +2,342 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Stockroom">
-<meta name="theme-color" content="#ffffff">
 <title>Stockroom</title>
 <style>
-  :root {
-    --bg: #f4f4f6; --card: #ffffff; --text: #111; --muted: #666; --line: #dcdce0;
-    --accent: #0a6cff; --danger: #d92d20;
-    --listed-bg: #dbeafe; --listed-fg: #1d4ed8;
-    --sold-bg: #fff3c4; --sold-fg: #8a6500;
-    --ship-bg: #d6f5e0; --ship-fg: #15803d;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #000; --card: #1c1c1e; --text: #f2f2f7; --muted: #9a9aa0; --line: #38383a;
-      --accent: #4c9dff; --danger: #ff6b60;
-      --listed-bg: #11284d; --listed-fg: #8ebdff;
-      --sold-bg: #4a3b00; --sold-fg: #ffd966;
-      --ship-bg: #0f3a20; --ship-fg: #7fe3a3;
-    }
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; }
+  * { box-sizing: border-box; }
   body {
+    margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg); color: var(--text);
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+    color: #111;
+    background: #fff;
+    padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
   }
-  main { max-width: 600px; margin: 0 auto; padding: 0 16px; }
-  h1 { font-size: 30px; margin: 16px 0 12px; }
-  button { font: inherit; color: inherit; cursor: pointer; }
-  input { font: inherit; }
-  .hidden { display: none !important; }
+  main { max-width: 600px; margin: 0 auto; padding-bottom: 32px; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+  h1 { font-size: 28px; margin: 0; }
+  button { font: inherit; cursor: pointer; }
+  .link { background: none; border: 0; color: #0a6cff; font-size: 17px; font-weight: 600; padding: 4px; }
+  input[type=text], input[type=search], input[type=number], input[type=date] {
+    width: 100%; font-size: 16px; padding: 10px 12px;
+    border: 1px solid #ccc; border-radius: 8px; background: #fff; color: #111;
+  }
+  label, .label { display: block; font-size: 13px; color: #555; margin: 16px 0 6px; }
 
-  /* Tabs row */
-  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  /* Stage bar: Import > List > Sold > Packed > Shipped */
+  .steps { display: flex; margin: 0 0 16px; }
+  .step {
+    flex: 1; min-width: 0; border: 0; margin-left: -10px; padding: 9px 0 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: #e6e9ee; color: #555; font-size: 12px; font-weight: 600;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
+  }
+  .step:first-child {
+    margin-left: 0; border-radius: 8px 0 0 8px;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+  }
+  .step:last-child {
+    border-radius: 0 8px 8px 0;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%);
+  }
+  .step.done { background: #bcd6ff; color: #0a3d8f; }
+  .step.on { background: #0a6cff; color: #fff; }
+  .step .count { font-size: 17px; font-weight: 700; line-height: 1; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .filters { margin: 12px 0; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
   .chip {
-    min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid var(--line);
-    background: var(--card); font-size: 15px;
+    border: 1px solid #ccc; border-radius: 16px; background: #fff; color: #333;
+    padding: 6px 12px; font-size: 14px; white-space: nowrap;
   }
-  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .chip.s-listed.on { background: var(--listed-bg); border-color: var(--listed-fg); color: var(--listed-fg); }
-  .chip.s-sold.on { background: var(--sold-bg); border-color: var(--sold-fg); color: var(--sold-fg); }
-  .chip.s-shipped.on { background: var(--ship-bg); border-color: var(--ship-fg); color: var(--ship-fg); }
-  .tabs { margin-bottom: 12px; }
-  .chip.sm { min-height: 36px; padding: 0 14px; font-size: 14px; }
-  #p-tabs { margin: 10px 0 8px; }
-
-  /* Item rows */
-  .row {
-    display: flex; gap: 12px; align-items: center; width: 100%; text-align: left;
-    background: var(--card); border: 0; border-radius: 14px; padding: 10px; margin-bottom: 8px; min-height: 68px;
+  .chip.on { background: #0a6cff; border-color: #0a6cff; color: #fff; }
+  .row { padding: 12px 0; border-top: 1px solid #ddd; }
+  .row-top { display: flex; justify-content: space-between; gap: 12px; }
+  .name { font-size: 17px; font-weight: 600; }
+  .meta { font-size: 13px; color: #666; margin-top: 2px; }
+  .move {
+    margin-top: 8px; background: #eef4ff; color: #0a6cff; border: 0;
+    border-radius: 8px; padding: 6px 12px; font-size: 14px; font-weight: 600;
   }
-  .thumb {
-    width: 48px; height: 48px; border-radius: 10px; background: var(--bg) center/cover no-repeat;
-    flex: none; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 20px;
-  }
-  .row .info { flex: 1; min-width: 0; }
-  .row .name { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .row .meta { font-size: 13px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 12px; flex: none; }
-  .b-listed { background: var(--listed-bg); color: var(--listed-fg); }
-  .b-sold { background: var(--sold-bg); color: var(--sold-fg); }
-  .b-shipped { background: var(--ship-bg); color: var(--ship-fg); }
-  .empty { text-align: center; color: var(--muted); padding: 48px 16px; line-height: 1.5; }
-
-  /* Money */
-  .card { background: var(--card); border-radius: 16px; padding: 18px; margin-bottom: 12px; }
-  .card .label { font-size: 13px; color: var(--muted); }
-  .card .big { font-size: 40px; font-weight: 700; margin-top: 4px; }
-  .small { font-size: 13px; color: var(--muted); }
-
-  /* Bottom bar */
-  nav {
-    position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line);
-    padding: 6px 16px calc(6px + env(safe-area-inset-bottom));
-    display: flex; justify-content: space-around; align-items: center;
-  }
-  nav .tab { background: none; border: 0; min-width: 88px; min-height: 52px; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-  nav .tab .ico { font-size: 22px; }
-  nav .tab.on { color: var(--accent); font-weight: 700; }
-  nav .add {
-    width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--accent); color: #fff;
-    font-size: 32px; line-height: 1; margin-top: -22px; box-shadow: 0 4px 12px rgba(0,0,0,.25);
-  }
-
-  /* Sheet */
-  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; z-index: 10; }
-  .sheet {
-    background: var(--card); width: 100%; max-width: 600px; margin: 0 auto; border-radius: 20px 20px 0 0;
-    padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); max-height: 92vh; overflow-y: auto;
-  }
-  .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-  .sheet-head h2 { margin: 0; font-size: 22px; }
-  .link { background: none; border: 0; color: var(--accent); font-size: 17px; font-weight: 600; min-height: 44px; padding: 0 4px; }
-  .link.danger { color: var(--danger); }
-  label, .label-t { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
-  input[type=text], input[type=number] {
-    width: 100%; font-size: 16px; /* 16px stops iPhone zooming */ min-height: 48px; padding: 0 12px;
-    border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text);
-  }
-  .photo-btn {
-    display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; width: 100%;
-    border: 1px dashed var(--line); border-radius: 10px; background: var(--bg); color: var(--muted);
-  }
-  .photo-preview { width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; margin-top: 8px; }
-  .primary {
-    width: 100%; min-height: 52px; border: 0; border-radius: 12px; background: var(--accent); color: #fff;
-    font-size: 17px; font-weight: 700; margin-top: 18px;
-  }
-  .primary.green { background: var(--ship-fg); }
-  .primary.ghost { background: var(--bg); color: var(--text); font-weight: 600; }
-  .plat-line { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; padding: 8px 0 0; color: var(--muted); }
-  .plat-line b { color: var(--text); font-weight: 600; text-align: right; }
-  .parcel { background: var(--card); border-radius: 14px; padding: 4px 12px 12px; margin-bottom: 10px; }
-  .parcel.sel { outline: 3px solid var(--accent); }
-  .parcel-head { display: flex; align-items: center; justify-content: space-between; min-height: 44px; font-weight: 700; }
-  .pitem { display: flex; align-items: center; }
-  .pk { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; flex: none; margin: 0; }
-  .pk input { width: 24px; height: 24px; }
-  .pname { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 8px 0; min-height: 48px; }
-  .pname b { display: block; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .pname span { font-size: 13px; color: var(--muted); }
-  .pitem.done .pname b { text-decoration: line-through; color: var(--muted); }
-  .pitem.static { padding: 6px 0 6px 8px; }
-  .primary.sm { min-height: 46px; margin-top: 8px; font-size: 16px; }
-  .wd-title { font-size: 13px; color: var(--muted); margin: 18px 4px 8px; }
-  .wd-row { display: flex; justify-content: space-between; align-items: center; width: 100%; background: var(--card); border: 0; border-radius: 12px; padding: 12px 14px; margin-bottom: 6px; min-height: 52px; text-align: left; }
-  .wd-row .small { margin-top: 2px; }
-  .choice { display: block; width: 100%; text-align: left; background: var(--bg); border: 0; border-radius: 14px; padding: 16px; margin-top: 12px; min-height: 64px; }
-  .choice b { display: block; font-size: 17px; }
-  .choice span { font-size: 13px; color: var(--muted); }
+  .empty { text-align: center; color: #666; padding: 48px 16px; font-size: 15px; }
+  .error { color: #c00; font-size: 14px; margin-top: 12px; min-height: 1em; }
+  .actions { display: flex; gap: 12px; margin-top: 20px; }
+  .primary { background: #0a6cff; color: #fff; border: 0; border-radius: 8px; padding: 12px 20px; font-size: 17px; font-weight: 600; flex: 1; }
+  .secondary { background: #eee; color: #111; border: 0; border-radius: 8px; padding: 12px 20px; font-size: 17px; }
 </style>
 </head>
 <body>
-<main>
-  <section id="page-stock">
-    <h1>Stock</h1>
-    <div class="chips tabs" id="view-tabs"></div>
-    <div class="chips tabs" id="tabs"></div>
-    <div id="list"></div>
-    <div id="places" class="hidden"></div>
-  </section>
 
-  <section id="page-money" class="hidden">
-    <h1>Money</h1>
-    <div class="card">
-      <div class="label">Balance</div>
-      <div class="big" id="m-balance">$0.00</div>
-      <div id="m-plat"></div>
-      <button class="primary" id="btn-withdraw">Withdraw</button>
-    </div>
-    <div class="card">
-      <div class="label">Coming in</div>
-      <div class="big" style="font-size:28px" id="m-incoming">$0.00</div>
-      <div class="small" id="m-incoming-count"></div>
-    </div>
-    <div class="card">
-      <div class="label">Total profit</div>
-      <div class="chips" id="p-tabs"></div>
-      <div class="big" style="font-size:28px" id="m-profit">$0.00</div>
-      <div class="small" id="m-sold-count"></div>
-    </div>
-    <div id="m-withdrawals"></div>
-  </section>
+<main id="list-view">
+  <header>
+    <h1>Stockroom</h1>
+    <button class="link" id="add-btn" type="button">+ Add</button>
+  </header>
+  <nav class="steps" id="steps" aria-label="Stages"></nav>
+  <input type="search" id="search" placeholder="Search this stage" autocomplete="off">
+  <div class="chips filters" id="filters"></div>
+  <div id="list"></div>
 </main>
 
-<nav>
-  <button class="tab on" id="nav-stock"><span class="ico">&#9776;</span>Stock</button>
-  <button class="add" id="nav-add" aria-label="Add item">+</button>
-  <button class="tab" id="nav-money"><span class="ico">$</span>Money</button>
-</nav>
+<main id="add-view" hidden>
+  <header>
+    <h1 id="add-title">Add item</h1>
+  </header>
+  <form id="add-form" novalidate>
+    <label for="name">Name</label>
+    <input type="text" id="name" placeholder="e.g. Levi's 501 jeans" autocomplete="off">
 
-<div id="overlay" class="overlay hidden"><div class="sheet" id="sheet"></div></div>
+    <label for="cost">Cost (what you paid)</label>
+    <input type="number" id="cost" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
+
+    <label for="date">Date bought</label>
+    <input type="date" id="date">
+
+    <div class="label">Listed on (optional)</div>
+    <div class="chips" id="platform-chips"></div>
+
+    <div class="error" id="error" role="alert"></div>
+    <div class="actions">
+      <button type="button" class="secondary" id="cancel-btn">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</main>
 
 <script>
 (function () {
-  var PLATFORMS = ['Depop', 'Vinted'];   // add more names here later
+  var STAGES = [
+    { id: 'import', label: 'Import' },
+    { id: 'list', label: 'List' },
+    { id: 'sold', label: 'Sold' },
+    { id: 'packed', label: 'Packed' },
+    { id: 'shipped', label: 'Shipped' }
+  ];
+  var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Facebook Marketplace', 'Etsy', 'Other'];
   var KEY = 'stockroom.items.v1';
-  var WKEY = 'stockroom.withdrawals.v1';
-  var LKEY = 'stockroom.locations.v1';
 
-  var items = load(KEY);
-  var withdrawals = load(WKEY);   // each: { id, date, parts: { Depop: 10, Vinted: 5 } }
-  var locations = load(LKEY);     // place names, e.g. ['Bin 1', 'Closet']; items point to one by name
-  var view = 'items';             // 'items' or 'places'
-  var selecting = false, selected = {};   // for combining sold items into one parcel
-  var period = 'all';     // profit card: 'all' | 'week' | 'month'
-  var filter = 'listed';  // which tab is showing: 'listed' (default) or 'sold'
+  var items = load();
+  var stage = 'import';
+  var query = '';
+  var filter = null;
+  var selected = [];
 
-  function load(key) {
-    try { return JSON.parse(localStorage.getItem(key)) || []; } catch (e) { return []; }
+  function $(id) { return document.getElementById(id); }
+
+  function stageIndex(id) {
+    for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id === id) return i;
+    return -1;
   }
+
+  function load() {
+    var list;
+    try {
+      var raw = localStorage.getItem(KEY);
+      list = raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+    // Older saves used status "in_stock" / "sold"; map them onto stages.
+    return list.map(function (i) {
+      if (stageIndex(i.stage) === -1) i.stage = i.status === 'sold' ? 'sold' : 'import';
+      delete i.status;
+      return i;
+    });
+  }
+
   function save() {
     try {
       localStorage.setItem(KEY, JSON.stringify(items));
-      localStorage.setItem(WKEY, JSON.stringify(withdrawals));
-      localStorage.setItem(LKEY, JSON.stringify(locations));
-    } catch (e) { alert('Could not save. The phone storage may be full (photos use a lot).'); }
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
-  function r2(n) { return Math.round(n * 100) / 100; }
-  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
-  function money(n) { return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2); }
-  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-  function $(id) { return document.getElementById(id); }
 
-  // listed -> sold (waiting to ship) -> shipped (money counts as yours)
-  function status(it) { return it.shipped ? 'shipped' : it.sold ? 'sold' : 'listed'; }
-  var STATUS_LABEL = { listed: 'Listed', sold: 'Sold', shipped: 'Shipped' };
+  function todayLocal() {
+    var d = new Date();
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
 
-  // money per platform: profit from sold items minus what was withdrawn
-  function balances() {
-    var b = {};
-    PLATFORMS.forEach(function (p) { b[p] = 0; });
-    items.forEach(function (i) { if (i.shipped) b[i.sold.platform] += i.sold.price; });
-    withdrawals.forEach(function (w) { Object.keys(w.parts).forEach(function (p) { b[p] -= w.parts[p]; }); });
-    Object.keys(b).forEach(function (p) { b[p] = r2(b[p]); });
+  function money(n) { return '$' + Number(n).toFixed(2); }
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function chip(label, on, onClick) {
+    var b = el('button', 'chip' + (on ? ' on' : ''), label);
+    b.type = 'button';
+    b.addEventListener('click', onClick);
     return b;
   }
-  var PERIODS = { all: 'All time', week: 'Week', month: 'Month' };
-  // calendar periods: the week starts Monday, the month starts on the 1st
-  function periodStart() {
-    var d = new Date(); d.setHours(0, 0, 0, 0);
-    if (period === 'week') d.setDate(d.getDate() - (d.getDay() + 6) % 7);
-    else if (period === 'month') d.setDate(1);
-    else return 0;
-    return d.getTime();
-  }
-  function comingIn() {   // sold, but not shipped yet
-    return r2(items.reduce(function (a, i) { return a + (i.sold && !i.shipped ? i.sold.price : 0); }, 0));
-  }
-  function totalOf(b) { return r2(Object.keys(b).reduce(function (a, p) { return a + b[p]; }, 0)); }
-  function wdTotal(w) { return r2(Object.keys(w.parts).reduce(function (a, p) { return a + w.parts[p]; }, 0)); }
 
-  /* ---------- Stock page ---------- */
-  function renderTabs() {
-    $('tabs').innerHTML = ['listed', 'sold', 'shipped'].map(function (s) {
-      var n = items.filter(function (i) { return status(i) === s; }).length;
-      return '<button class="chip s-' + s + (filter === s ? ' on' : '') + '" data-f="' + s + '">' + STATUS_LABEL[s] + ' ' + n + '</button>';
-    }).join('');
+  function renderSteps() {
+    var box = $('steps');
+    box.replaceChildren();
+    var current = stageIndex(stage);
+    STAGES.forEach(function (s, idx) {
+      var count = items.filter(function (i) { return i.stage === s.id; }).length;
+      var cls = 'step' + (idx === current ? ' on' : idx < current ? ' done' : '');
+      var b = el('button', cls);
+      b.type = 'button';
+      b.appendChild(el('span', 'count', String(count)));
+      b.appendChild(el('span', '', s.label));
+      if (idx === current) b.setAttribute('aria-current', 'step');
+      b.addEventListener('click', function () {
+        stage = s.id;
+        render();
+      });
+      box.appendChild(b);
+    });
   }
+
+  function renderFilters() {
+    var box = $('filters');
+    box.replaceChildren();
+    [null].concat(PLATFORMS).forEach(function (p) {
+      box.appendChild(chip(p === null ? 'All apps' : p, filter === p, function () {
+        filter = p;
+        renderFilters();
+        renderList();
+      }));
+    });
+  }
+
+  function moveForward(item) {
+    var next = STAGES[stageIndex(item.stage) + 1];
+    if (!next) return;
+    var before = item.stage;
+    item.stage = next.id;
+    if (!save()) {
+      item.stage = before;
+      alert('Could not save on this device. Is private browsing on?');
+      return;
+    }
+    render();
+  }
+
   function renderList() {
-    if (filter === 'sold') { renderSold(); return; }
-    var shown = items.filter(function (i) { return status(i) === filter; });
-    shown.sort(function (a, b) { return b.created - a.created; });
-    if (!shown.length) {
-      $('list').innerHTML = '<div class="empty">' + (items.length ? ({ listed: 'Nothing listed right now.', sold: 'Nothing waiting to ship.', shipped: 'Nothing shipped yet.' })[filter] : 'No items yet.<br>Tap the + button to add your first one.') + '</div>';
+    var q = query.trim().toLowerCase();
+    var inStage = items.filter(function (i) { return i.stage === stage; });
+    var visible = inStage.filter(function (i) {
+      return (!q || i.name.toLowerCase().indexOf(q) !== -1) &&
+        (!filter || i.platforms.indexOf(filter) !== -1);
+    });
+    var label = STAGES[stageIndex(stage)].label;
+    var next = STAGES[stageIndex(stage) + 1];
+    var box = $('list');
+    box.replaceChildren();
+    if (visible.length === 0) {
+      box.appendChild(el('div', 'empty',
+        inStage.length === 0
+          ? 'Nothing in ' + label + ' yet. Tap + Add to put an item here.'
+          : 'No items match your search or filter.'));
       return;
     }
-    $('list').innerHTML = shown.map(function (it) {
-      var s = status(it), meta = [];
-      if (it.platforms.length) meta.push(it.platforms.join(' + '));
-      meta.push(s === 'listed' ? money(it.price) : s + ' ' + money(it.sold.price));
-      if (it.location && s !== 'shipped') meta.push(it.location);
-      var thumb = it.photo ? 'style="background-image:url(' + it.photo + ')"' : '';
-      return '<button class="row" data-id="' + it.id + '"><div class="thumb" ' + thumb + '>' + (it.photo ? '' : '&#128247;') + '</div>' +
-        '<div class="info"><div class="name">' + esc(it.name) + '</div><div class="meta">' + esc(meta.join(' · ')) + '</div></div>' +
-        '<span class="badge b-' + s + '">' + STATUS_LABEL[s] + '</span></button>';
-    }).join('');
-  }
-
-  /* ---------- Money page ---------- */
-  function renderMoney() {
-    var start = periodStart();
-    var shipped = items.filter(function (i) { return i.shipped && i.shipped >= start; });
-    var waiting = items.filter(function (i) { return i.sold && !i.shipped; });
-    var total = r2(shipped.reduce(function (a, i) { return a + i.sold.price; }, 0));
-    var bal = balances();
-    $('m-balance').textContent = money(totalOf(bal));
-    $('m-plat').innerHTML = Object.keys(bal).map(function (p) {
-      return '<div class="plat-line"><span>' + esc(p) + '</span><b>' + money(bal[p]) + '</b></div>';
-    }).join('');
-    $('p-tabs').innerHTML = Object.keys(PERIODS).map(function (k) {
-      return '<button class="chip sm' + (period === k ? ' on' : '') + '" data-period="' + k + '">' + PERIODS[k] + '</button>';
-    }).join('');
-    $('m-profit').textContent = money(total);
-    $('m-sold-count').textContent = shipped.length + (shipped.length === 1 ? ' item shipped' : ' items shipped');
-    $('m-incoming').textContent = money(comingIn());
-    $('m-incoming-count').textContent = waiting.length + (waiting.length === 1 ? ' sold item waiting to ship' : ' sold items waiting to ship');
-    $('m-withdrawals').innerHTML = withdrawals.length
-      ? '<div class="wd-title">Withdrawals (tap one to undo it)</div>' + withdrawals.slice().reverse().map(function (w) {
-          var from = Object.keys(w.parts).filter(function (p) { return w.parts[p] > 0; });
-          return '<button class="wd-row" data-wid="' + w.id + '"><div><b>' + money(wdTotal(w)) + '</b><div class="small">' +
-            esc(from.join(' + ')) + ' · ' + new Date(w.date).toLocaleDateString() + '</div></div></button>';
-        }).join('')
-      : '';
-  }
-
-  /* ---------- Places ---------- */
-  function addLocation(name) {   // returns the stored name ('' if blank); new names are added to the list
-    name = name.trim(); if (!name) return '';
-    var hit = locations.filter(function (l) { return l.toLowerCase() === name.toLowerCase(); })[0];
-    if (hit) return hit;
-    locations.push(name); return name;
-  }
-  function itemsAt(loc) { return items.filter(function (i) { return !i.shipped && (i.location || '') === loc; }); }
-  function renderPlaces() {
-    var rows = locations.map(function (l) { return { name: l, n: itemsAt(l).length }; });
-    var none = itemsAt('').length;
-    if (none) rows.push({ name: '', n: none });
-    $('places').innerHTML = '<button class="primary" data-act="place-add" style="margin-top:0">+ Add place</button><div style="height:12px"></div>' +
-      (rows.length ? rows.map(function (r) {
-        return '<button class="row" data-place="' + esc(r.name) + '"><div class="thumb">&#128230;</div><div class="info"><div class="name">' +
-          esc(r.name || 'No location') + '</div><div class="meta">' + r.n + (r.n === 1 ? ' item' : ' items') + '</div></div></button>';
-      }).join('') : '<div class="empty">No places yet.<br>Add one like "Bin 1" or "Closet", or type a new place when you add an item.</div>');
-  }
-  var currentPlace = '';
-  function placeSheet(name) {
-    currentPlace = name;
-    var list = itemsAt(name);
-    openSheet('<div class="sheet-head"><h2>' + esc(name || 'No location') + '</h2><button class="link" data-act="close">Close</button></div>' +
-      (list.length ? list.map(function (it) {
-        return '<button class="row" data-act="open-item" data-id="' + it.id + '" style="margin-top:8px"><div class="thumb"' + (it.photo ? ' style="background-image:url(' + it.photo + ')"' : '') + '>' + (it.photo ? '' : '&#128247;') + '</div>' +
-          '<div class="info"><div class="name">' + esc(it.name) + '</div><div class="meta">' + STATUS_LABEL[status(it)] + ' \u00b7 ' + money(it.price) + '</div></div></button>';
-      }).join('') : '<div class="empty">Nothing here right now.</div>') +
-      (name ? '<button class="primary ghost" data-act="place-rename-form">Rename</button>' +
-        '<div style="text-align:center;margin-top:8px"><button class="link danger" data-act="place-delete">Delete place</button></div>' : ''));
-  }
-  function placeNameForm(title, value, act) {
-    openSheet('<div class="sheet-head"><h2>' + title + '</h2><button class="link" data-act="close">Cancel</button></div>' +
-      '<label for="pl-name">Name</label><input type="text" id="pl-name" value="' + esc(value) + '" autocomplete="off" placeholder="e.g. Bin 1">' +
-      '<button class="primary" data-act="' + act + '">Save</button>');
-    $('pl-name').focus();
-  }
-
-  /* ---------- Sold tab: pick list and parcels ---------- */
-  function groupItems(key) {
-    return items.filter(function (i) { return i.sold && !i.shipped && (i.parcel || 'i:' + i.id) === key; });
-  }
-  function renderSold() {
-    var waiting = items.filter(function (i) { return i.sold && !i.shipped; });
-    if (!waiting.length) { $('list').innerHTML = '<div class="empty">Nothing waiting to ship.</div>'; return; }
-    waiting.sort(function (a, b) { return b.sold.date - a.sold.date; });
-    var groups = {}, order = [], grab = {}, gorder = [];
-    waiting.forEach(function (i) {
-      var k = i.parcel || 'i:' + i.id;
-      if (!groups[k]) { groups[k] = []; order.push(k); }
-      groups[k].push(i);
-      if (!i.packed) {
-        var l = i.location || 'No location';
-        if (!grab[l]) { grab[l] = []; gorder.push(l); }
-        grab[l].push(i.name);
+    visible.forEach(function (i) {
+      var row = el('div', 'row');
+      var top = el('div', 'row-top');
+      top.appendChild(el('div', 'name', i.name));
+      top.appendChild(el('div', '', money(i.cost)));
+      row.appendChild(top);
+      row.appendChild(el('div', 'meta', 'Bought ' + i.dateBought));
+      row.appendChild(el('div', 'meta',
+        i.platforms.length ? i.platforms.join(', ') : 'Not listed on an app yet'));
+      if (next) {
+        var mv = el('button', 'move', 'Move to ' + next.label + ' →');
+        mv.type = 'button';
+        mv.addEventListener('click', function () { moveForward(i); });
+        row.appendChild(mv);
       }
+      box.appendChild(row);
     });
-    var html = '';
-    if (gorder.length) {
-      html += '<div class="card"><div class="label">Grab from</div>' + gorder.map(function (l) {
-        return '<div class="plat-line"><span>' + esc(l) + '</span><b>' + esc(grab[l].join(', ')) + '</b></div>';
-      }).join('') + '</div>';
-    }
-    if (order.length > 1) {
-      var n = Object.keys(selected).length;
-      html += '<div class="chips" style="margin-bottom:10px">' + (selecting
-        ? '<button class="chip sm on" data-lact="combine">Combine ' + n + ' into one parcel</button><button class="chip sm" data-lact="cancel-select">Cancel</button>'
-        : '<button class="chip sm" data-lact="select">Combine into one parcel</button>') + '</div>';
-    }
-    order.forEach(function (k) {
-      var g = groups[k], total = r2(g.reduce(function (a, i) { return a + i.sold.price; }, 0));
-      html += '<div class="parcel' + (selecting && selected[k] ? ' sel' : '') + '"' + (selecting ? ' data-lact="toggle" data-key="' + esc(k) + '"' : '') + '>' +
-        '<div class="parcel-head"><span>' + (g.length > 1 ? 'Parcel \u00b7 ' + g.length + ' items' : 'Parcel') + ' \u00b7 ' + money(total) + '</span>' +
-        (g.length > 1 && !selecting ? '<button class="link" data-lact="ungroup" data-key="' + esc(k) + '">Split</button>' : '') + '</div>' +
-        g.map(function (i) {
-          var sub = esc(i.location || 'No location') + ' \u00b7 ' + money(i.sold.price);
-          return selecting
-            ? '<div class="pitem static"><div class="pname"><b>' + esc(i.name) + '</b><span>' + sub + '</span></div></div>'
-            : '<div class="pitem' + (i.packed ? ' done' : '') + '"><label class="pk"><input type="checkbox" data-pack="' + i.id + '"' + (i.packed ? ' checked' : '') + '></label>' +
-              '<button class="pname" data-id="' + i.id + '"><b>' + esc(i.name) + '</b><span>' + sub + '</span></button></div>';
-        }).join('') +
-        (selecting ? '' : '<button class="primary green sm" data-lact="ship" data-key="' + esc(k) + '">Mark parcel shipped</button>') + '</div>';
-    });
-    $('list').innerHTML = html;
-  }
-  function listAction(act, key) {
-    if (act === 'select') { selecting = true; selected = {}; }
-    else if (act === 'cancel-select') { selecting = false; selected = {}; }
-    else if (act === 'toggle') { if (selected[key]) delete selected[key]; else selected[key] = true; }
-    else if (act === 'combine') {
-      var keys = Object.keys(selected);
-      if (keys.length < 2) { alert('Pick at least two parcels to combine.'); return; }
-      var pid = uid();
-      keys.forEach(function (k) { groupItems(k).forEach(function (i) { i.parcel = pid; }); });
-      selecting = false; selected = {}; save();
-    }
-    else if (act === 'ungroup') { groupItems(key).forEach(function (i) { i.parcel = null; }); save(); }
-    else if (act === 'ship') { var now = Date.now(); groupItems(key).forEach(function (i) { i.shipped = now; i.packed = true; }); save(); }
-    render();
   }
 
-  function renderViewTabs() {
-    $('view-tabs').innerHTML = [['items', 'Items'], ['places', 'Places']].map(function (v) {
-      return '<button class="chip sm' + (view === v[0] ? ' on' : '') + '" data-v="' + v[0] + '">' + v[1] + '</button>';
-    }).join('');
-    $('tabs').classList.toggle('hidden', view !== 'items');
-    $('list').classList.toggle('hidden', view !== 'items');
-    $('places').classList.toggle('hidden', view !== 'places');
-  }
   function render() {
-    renderViewTabs();
-    if (view === 'places') renderPlaces(); else { renderTabs(); renderList(); }
-    renderMoney();
+    renderSteps();
+    renderList();
   }
 
-  function showPage(p) {
-    $('page-stock').classList.toggle('hidden', p !== 'stock');
-    $('page-money').classList.toggle('hidden', p !== 'money');
-    $('nav-stock').classList.toggle('on', p === 'stock');
-    $('nav-money').classList.toggle('on', p === 'money');
-    window.scrollTo(0, 0);
-  }
-
-  /* ---------- Sheets ---------- */
-  function openSheet(html) { $('sheet').innerHTML = html; $('overlay').classList.remove('hidden'); }
-  function closeSheet() { $('overlay').classList.add('hidden'); $('sheet').innerHTML = ''; }
-
-  // single = only one chip can be on at a time (used for "Sold on" and "From")
-  function platformChips(selected, single, names) {
-    return '<div class="chips" id="plat"' + (single ? ' data-single="1"' : '') + '>' + (names || PLATFORMS).map(function (p) {
-      return '<button type="button" class="chip' + (selected.indexOf(p) > -1 ? ' on' : '') + '" data-p="' + esc(p) + '">' + esc(p) + '</button>';
-    }).join('') + '</div>';
-  }
-  function readPlatforms() {
-    return Array.prototype.map.call(document.querySelectorAll('#plat .chip.on'), function (b) { return b.dataset.p; });
-  }
-  function numOrNull(v) { v = String(v).trim(); if (v === '') return null; var n = parseFloat(v); return isNaN(n) || n < 0 ? null : n; }
-
-  var pendingPhoto = null;
-  function photoField(current) {
-    pendingPhoto = current || null;
-    return '<label class="label-t">Photo (optional)</label>' +
-      '<label class="photo-btn" for="photo-input" style="margin:0">&#128247; <span id="photo-text">' + (current ? 'Change photo' : 'Add photo') + '</span></label>' +
-      '<input type="file" id="photo-input" accept="image/*" class="hidden">' +
-      '<img id="photo-prev" class="photo-preview' + (current ? '' : ' hidden') + '" ' + (current ? 'src="' + current + '"' : '') + ' alt="">';
-  }
-  // shrink photos so they fit in phone storage
-  function shrink(file, cb) {
-    var reader = new FileReader();
-    reader.onload = function () {
-      var img = new Image();
-      img.onload = function () {
-        var max = 600, r = Math.min(1, max / Math.max(img.width, img.height));
-        var c = document.createElement('canvas');
-        c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-        cb(c.toDataURL('image/jpeg', 0.7));
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function itemForm(it) {
-    var isNew = !it;
-    it = it || { name: '', price: null, platforms: [], photo: null };
-    openSheet(
-      '<div class="sheet-head"><h2>' + (isNew ? 'Add item' : 'Edit item') + '</h2><button class="link" data-act="close">Cancel</button></div>' +
-      '<label for="f-name">Name (required)</label><input type="text" id="f-name" value="' + esc(it.name) + '" autocomplete="off" placeholder="e.g. Blue denim jacket">' +
-      photoField(it.photo) +
-      '<label class="label-t">Listed on (required)</label>' + platformChips(it.platforms) +
-      '<label for="f-price">Listing price $ (required)</label><input type="number" inputmode="decimal" id="f-price" min="0" step="0.01" value="' + (it.price == null ? '' : it.price) + '">' +
-      '<label for="f-loc">Location (optional)</label><input type="text" id="f-loc" list="loc-list" value="' + esc(it.location || '') + '" placeholder="e.g. Bin 1, Closet" autocomplete="off">' +
-      '<datalist id="loc-list">' + locations.map(function (l) { return '<option value="' + esc(l) + '">'; }).join('') + '</datalist>' +
-      '<button class="primary" data-act="save-item" data-id="' + (isNew ? '' : it.id) + '">' + (isNew ? 'Add item' : 'Save') + '</button>'
-    );
-    if (isNew) setTimeout(function () { $('f-name').focus(); }, 50);
-  }
-
-  function itemDetail(id) {
-    var it = items.filter(function (i) { return i.id === id; })[0];
-    if (!it) return;
-    var s = status(it);
-    var body =
-      '<div class="sheet-head"><h2>' + esc(it.name) + '</h2><button class="link" data-act="close">Close</button></div>' +
-      '<div style="margin:6px 0 10px"><span class="badge b-' + s + '">' + STATUS_LABEL[s] + '</span></div>' +
-      (it.photo ? '<img class="photo-preview" src="' + it.photo + '" alt="">' : '') +
-      '<div class="small" style="margin-top:10px">' +
-        (it.platforms.length ? 'On ' + esc(it.platforms.join(' + ')) + '<br>' : '') +
-        'Listing price ' + money(it.price) +
-        (it.location && !it.shipped ? '<br>Location ' + esc(it.location) : '') +
-        (it.sold ? '<br>Sold for ' + money(it.sold.price) + ' on ' + esc(it.sold.platform) : '') +
-        (it.shipped ? '<br>Shipped ' + new Date(it.shipped).toLocaleDateString() : '') +
-      '</div>' +
-            (s === 'listed' ? '<button class="primary green" data-act="sell-form" data-id="' + it.id + '">Mark as sold</button>' : '') +
-      (s === 'sold' ? '<button class="primary green" data-act="ship" data-id="' + it.id + '">Mark as shipped</button>' +
-        '<button class="primary ghost" data-act="unsell" data-id="' + it.id + '">Undo sold</button>' : '') +
-      (s === 'shipped' ? '<button class="primary ghost" data-act="unship" data-id="' + it.id + '">Undo shipped</button>' : '') +
-      '<button class="primary ghost" data-act="edit" data-id="' + it.id + '">Edit</button>' +
-      '<div style="text-align:center;margin-top:8px"><button class="link danger" data-act="delete" data-id="' + it.id + '">Delete item</button></div>';
-    openSheet(body);
-  }
-
-  function sellForm(id) {
-    var it = items.filter(function (i) { return i.id === id; })[0];
-    var plats = it.platforms.length === 1 ? it.platforms : [];
-    openSheet(
-      '<div class="sheet-head"><h2>Mark as sold</h2><button class="link" data-act="close">Cancel</button></div>' +
-      '<div class="small">' + esc(it.name) + '</div>' +
-      '<label for="s-price">Sold for $</label><input type="number" inputmode="decimal" id="s-price" min="0" step="0.01" value="' + it.price + '">' +
-      '<label class="label-t">Sold on (required)</label>' + platformChips(plats, true) +
-      '<button class="primary green" data-act="confirm-sell" data-id="' + id + '">Confirm sale</button>'
-    );
-    $('s-price').focus();
-  }
-
-  /* ---------- Withdraw ---------- */
-  function availableFor(src) { return Math.max(0, balances()[src]); }
-  function withdrawStep1() {
-    var tot = Math.max(0, totalOf(balances()));
-    if (tot <= 0) {
-      openSheet('<div class="sheet-head"><h2>Withdraw</h2><button class="link" data-act="close">Close</button></div>' +
-        '<div class="empty">Nothing to withdraw yet.<br>Your balance grows when you mark items as sold.</div>');
-      return;
-    }
-    openSheet('<div class="sheet-head"><h2>Withdraw</h2><button class="link" data-act="close">Cancel</button></div>' +
-      '<button class="choice" data-act="wd-everything"><b>Everything</b><span>' + money(tot) + ' from all platforms</span></button>' +
-      '<button class="choice" data-act="wd-amount"><b>A different amount</b><span>Choose how much, and from where</span></button>');
-  }
-  function withdrawStep2() {
-    var names = PLATFORMS.filter(function (p) { return availableFor(p) > 0; });
-    openSheet('<div class="sheet-head"><h2>Withdraw</h2><button class="link" data-act="close">Cancel</button></div>' +
-      '<label for="w-amt">Amount $</label><input type="number" inputmode="decimal" id="w-amt" min="0" step="0.01">' +
-      '<label class="label-t">From</label>' + platformChips([names[0]], true, names) +
-      '<div class="small" id="w-from" style="margin-top:10px"></div>' +
-      '<button class="primary" data-act="wd-confirm">Withdraw</button>');
-    updateWithdrawHint();
-    $('w-amt').focus();
-  }
-  function updateWithdrawHint() {
-    var src = readPlatforms()[0];
-    $('w-from').textContent = 'Available: ' + money(availableFor(src));
-  }
-  $('btn-withdraw').onclick = withdrawStep1;
-  $('p-tabs').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-period]'); if (!b) return;
-    period = b.dataset.period; render();
-  });
-  $('m-withdrawals').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-wid]'); if (!b) return;
-    var w = withdrawals.filter(function (x) { return x.id === b.dataset.wid; })[0];
-    if (w && confirm('Undo this ' + money(wdTotal(w)) + ' withdrawal? It goes back into your balance.')) {
-      withdrawals = withdrawals.filter(function (x) { return x.id !== w.id; });
-      save(); render();
-    }
-  });
-
-  /* ---------- Events ---------- */
-  $('tabs').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-f]'); if (!b) return;
-    filter = b.dataset.f; selecting = false; selected = {};
-    render();
-  });
-  $('list').addEventListener('click', function (e) {
-    var a = e.target.closest('[data-lact]');
-    if (a) { listAction(a.dataset.lact, a.dataset.key); return; }
-    var b = e.target.closest('[data-id]'); if (b) itemDetail(b.dataset.id);
-  });
-  $('list').addEventListener('change', function (e) {
-    var c = e.target.closest('[data-pack]'); if (!c) return;
-    var it = items.filter(function (i) { return i.id === c.dataset.pack; })[0];
-    it.packed = c.checked; save(); render();
-  });
-  $('view-tabs').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-v]'); if (!b) return;
-    view = b.dataset.v; selecting = false; selected = {}; render();
-  });
-  $('places').addEventListener('click', function (e) {
-    if (e.target.closest('[data-act=place-add]')) { placeNameForm('Add place', '', 'place-create'); return; }
-    var b = e.target.closest('[data-place]'); if (b) placeSheet(b.dataset.place);
-  });
-  $('nav-stock').onclick = function () { showPage('stock'); };
-  $('nav-money').onclick = function () { showPage('money'); };
-  $('nav-add').onclick = function () { itemForm(null); };
-  $('overlay').addEventListener('click', function (e) { if (e.target === $('overlay')) closeSheet(); });
-
-  $('sheet').addEventListener('change', function (e) {
-    if (e.target.id !== 'photo-input' || !e.target.files[0]) return;
-    shrink(e.target.files[0], function (data) {
-      pendingPhoto = data;
-      $('photo-prev').src = data; $('photo-prev').classList.remove('hidden');
-      $('photo-text').textContent = 'Change photo';
+  function renderPlatformChips() {
+    var box = $('platform-chips');
+    box.replaceChildren();
+    PLATFORMS.forEach(function (p) {
+      var on = selected.indexOf(p) !== -1;
+      box.appendChild(chip(p, on, function () {
+        selected = on ? selected.filter(function (x) { return x !== p; }) : selected.concat(p);
+        renderPlatformChips();
+      }));
     });
-  });
+  }
 
-  $('sheet').addEventListener('click', function (e) {
-    var chip = e.target.closest('#plat .chip');
-    if (chip) {
-      if (chip.parentNode.dataset.single) {
-        Array.prototype.forEach.call(document.querySelectorAll('#plat .chip'), function (c) { c.classList.remove('on'); });
-        chip.classList.add('on');   // single choice: stays on once picked
-      } else {
-        chip.classList.toggle('on');
-      }
-      if ($('w-from')) updateWithdrawHint();
+  function showList() {
+    $('add-view').hidden = true;
+    $('list-view').hidden = false;
+    render();
+  }
+
+  function showAdd() {
+    $('add-title').textContent = 'Add to ' + STAGES[stageIndex(stage)].label;
+    $('name').value = '';
+    $('cost').value = '';
+    $('date').value = todayLocal();
+    $('error').textContent = '';
+    selected = [];
+    renderPlatformChips();
+    $('list-view').hidden = true;
+    $('add-view').hidden = false;
+    $('name').focus();
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    var name = $('name').value.trim();
+    var costText = $('cost').value.trim();
+    var cost = Number(costText);
+    var date = $('date').value;
+    var err = $('error');
+
+    if (!name) { err.textContent = 'Enter what the item is.'; return; }
+    if (costText === '' || !isFinite(cost) || cost < 0) {
+      err.textContent = 'Enter what you paid, e.g. 12.50 (0 if it was free).';
       return;
     }
-    var b = e.target.closest('[data-act]'); if (!b) return;
-    var act = b.dataset.act, id = b.dataset.id;
-    var it = items.filter(function (i) { return i.id === id; })[0];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { err.textContent = 'Pick the date you bought it.'; return; }
 
-    if (act === 'close') closeSheet();
-    else if (act === 'edit') itemForm(it);
-    else if (act === 'sell-form') sellForm(id);
-    else if (act === 'save-item') {
-      var name = $('f-name').value.trim();
-      if (!name) { $('f-name').focus(); $('f-name').style.borderColor = 'var(--danger)'; return; }
-      var price = numOrNull($('f-price').value);
-      if (price == null) { $('f-price').focus(); $('f-price').style.borderColor = 'var(--danger)'; return; }
-      var plats = readPlatforms();
-      if (!plats.length) { alert('Pick at least one platform it is listed on.'); return; }
-      var data = { name: name, photo: pendingPhoto, platforms: plats, price: price, location: addLocation($('f-loc').value) };
-      if (id) { Object.assign(it, data); }
-      else { items.push(Object.assign({ id: uid(), created: Date.now(), sold: null }, data)); }
-      save(); closeSheet(); render();
+    items.unshift({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      name: name,
+      cost: cost,
+      dateBought: date,
+      platforms: selected.slice(),
+      stage: stage,
+      createdAt: Date.now()
+    });
+    if (!save()) {
+      items.shift();
+      err.textContent = 'Could not save on this device. Is private browsing on?';
+      return;
     }
-    else if (act === 'confirm-sell') {
-      var p = numOrNull($('s-price').value);
-      if (p == null) { $('s-price').focus(); $('s-price').style.borderColor = 'var(--danger)'; return; }
-      var sp = readPlatforms();
-      if (!sp.length) { alert('Pick which platform it sold on.'); return; }
-      it.sold = { price: p, platform: sp[0], date: Date.now() };
-      save(); closeSheet(); render();
-    }
-    else if (act === 'wd-everything') {
-      var all = balances(), tot = totalOf(all);
-      if (confirm('Withdraw everything (' + money(tot) + ')?')) {
-        var parts = {};
-        Object.keys(all).forEach(function (p) { if (all[p] > 0) parts[p] = all[p]; });
-        withdrawals.push({ id: uid(), date: Date.now(), parts: parts });
-        save(); closeSheet(); render();
-      }
-    }
-    else if (act === 'wd-amount') withdrawStep2();
-    else if (act === 'wd-confirm') {
-      var amt = numOrNull($('w-amt').value), src = readPlatforms()[0];
-      var avail = availableFor(src);
-      if (amt == null || amt <= 0) { $('w-amt').focus(); $('w-amt').style.borderColor = 'var(--danger)'; return; }
-      if (amt > avail) { alert('You only have ' + money(avail) + ' to withdraw from there.'); return; }
-      withdrawals.push({ id: uid(), date: Date.now(), parts: (function () { var o = {}; o[src] = amt; return o; })() });
-      save(); closeSheet(); render();
-    }
-    else if (act === 'ship') { it.shipped = Date.now(); it.packed = true; save(); closeSheet(); render(); }
-    else if (act === 'unship') { it.shipped = null; save(); closeSheet(); render(); }
-    else if (act === 'unsell') { it.sold = null; it.parcel = null; it.packed = false; save(); closeSheet(); render(); }
-    else if (act === 'open-item') itemDetail(id);
-    else if (act === 'place-create') {
-      var pn = $('pl-name').value.trim();
-      if (!pn) { $('pl-name').focus(); return; }
-      addLocation(pn); save(); closeSheet(); render();
-    }
-    else if (act === 'place-rename-form') placeNameForm('Rename place', currentPlace, 'place-rename');
-    else if (act === 'place-rename') {
-      var nn = $('pl-name').value.trim();
-      if (!nn) { $('pl-name').focus(); return; }
-      var clash = locations.filter(function (l) { return l !== currentPlace && l.toLowerCase() === nn.toLowerCase(); }).length;
-      if (clash) { alert('You already have a place called "' + nn + '".'); return; }
-      locations = locations.map(function (l) { return l === currentPlace ? nn : l; });
-      items.forEach(function (i) { if (i.location === currentPlace) i.location = nn; });
-      save(); closeSheet(); render();
-    }
-    else if (act === 'place-delete') {
-      var cnt = itemsAt(currentPlace).length;
-      if (confirm('Delete "' + currentPlace + '"?' + (cnt ? ' Its ' + cnt + ' item(s) will have no location.' : ''))) {
-        locations = locations.filter(function (l) { return l !== currentPlace; });
-        items.forEach(function (i) { if (i.location === currentPlace) i.location = ''; });
-        save(); closeSheet(); render();
-      }
-    }
-    else if (act === 'delete') {
-      if (confirm('Delete "' + it.name + '"? This cannot be undone.')) {
-        items = items.filter(function (i) { return i.id !== id; });
-        save(); closeSheet(); render();
-      }
-    }
+    showList();
+  }
+
+  $('add-btn').addEventListener('click', showAdd);
+  $('cancel-btn').addEventListener('click', showList);
+  $('add-form').addEventListener('submit', submit);
+  $('search').addEventListener('input', function (e) {
+    query = e.target.value;
+    renderList();
   });
 
+  renderFilters();
   render();
 })();
 </script>
