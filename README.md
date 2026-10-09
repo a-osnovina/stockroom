@@ -8,16 +8,16 @@ and your items are saved on your own device. No accounts, no server.
 Three tabs along the bottom: Inventory, Places and Summary.
 
 **Inventory**
-- A step bar at the top: Import > List > Sold > Packed > Shipped. Tap a step to see the items in it; each step shows how many items it holds.
-- "+ Add" puts a new item in the step you are looking at (name, what you paid, date bought, optional location, which apps it is listed on)
+- A step bar at the top: All > List > Sold > Packed > Shipped. "All" shows every item with a small tag for its step. Tap a step to see only the items in it; each step shows how many items it holds.
+- "+ Add" puts a new item in the step you are looking at (name, what you paid, optional location, which apps it is listed on). Adding from All starts the item as "Not listed".
 - Each item has a button to move it to the next step. Moving an item to Sold asks what it sold for and which app it sold on, and shows the profit (sale price minus what you paid).
-- Sold, Packed and Shipped items show the sale price and profit.
-- Locations: an optional place for each item, like Closet or Tub 3. In the Sold step each item shows "Grab from: ...". Tap Change (or Set location) to edit it.
+- Cards stay small: name, price, one line of info, and the location. Sold, Packed and Shipped items show what you paid, the app it sold on, and the profit.
+- Locations: an optional place for each item, like Closet or Tub 3. In the Sold step each item shows "Grab from: ...". Tap the location to change it.
 - Search and filter by app inside a step
 
 **Places**: every place with how many items are in it. Tap a place to see its items. Items that have shipped are not counted.
 
-**Summary**: total profit, money tied up in unsold items (what you paid for items still in Import or List), and profit for each app.
+**Summary**: total profit, money tied up in unsold items (what you paid for items not sold yet), and profit for each app.
 
 Fees and shipping costs are not counted yet. The sale record already has room for them, so they can be added later once each app's fees are known.
 

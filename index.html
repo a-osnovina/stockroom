@@ -24,7 +24,7 @@
   button { font: inherit; cursor: pointer; }
   .link { background: none; border: 0; color: #0a6cff; font-size: 17px; font-weight: 600; min-height: 44px; padding: 4px 8px; }
   .back { background: none; border: 0; color: #0a6cff; font-size: 17px; font-weight: 600; min-height: 44px; padding: 4px 8px 4px 0; }
-  input[type=text], input[type=search], input[type=number], input[type=date] {
+  input[type=text], input[type=search], input[type=number] {
     width: 100%; font-size: 16px; padding: 10px 12px;
     border: 1px solid #ccc; border-radius: 8px; background: #fff; color: #111;
   }
@@ -61,17 +61,20 @@
   .row-top { display: flex; justify-content: space-between; gap: 12px; }
   .name { font-size: 17px; font-weight: 600; }
   .meta { font-size: 13px; color: #666; margin-top: 2px; }
-  .sale-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 4px; }
+  .info { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 4px; }
+  .info .meta { margin-top: 0; }
+  .info .profit { margin-left: auto; }
   .profit { font-size: 17px; font-weight: 700; color: #0a7a3d; white-space: nowrap; }
   .neg { color: #b3261e; }
-  .loc {
-    display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    margin-top: 6px; font-size: 14px; color: #444;
+  .pill { font-size: 12px; font-weight: 600; background: #eef4ff; color: #0757c9; border-radius: 10px; padding: 2px 8px; }
+  .card-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+  .loc-btn {
+    flex: 1; min-width: 0; min-height: 44px; text-align: left; background: none; border: 0; padding: 0;
+    color: #0757c9; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .loc.grab { background: #fff6e0; border-radius: 8px; padding: 2px 2px 2px 10px; color: #111; }
-  .loc button { background: none; border: 0; color: #0757c9; font-size: 14px; font-weight: 600; padding: 10px 8px; }
+  .loc-btn.grab { background: #fff6e0; color: #111; border-radius: 8px; padding: 0 10px; font-weight: 400; }
   .move {
-    margin-top: 8px; background: #eef4ff; color: #0757c9; border: 0; min-height: 44px;
+    flex: none; background: #eef4ff; color: #0757c9; border: 0; min-height: 44px;
     border-radius: 8px; padding: 6px 14px; font-size: 14px; font-weight: 600;
   }
   .empty { text-align: center; color: #666; padding: 48px 16px; font-size: 15px; }
@@ -154,9 +157,6 @@
 
     <label for="cost">Cost (what you paid)</label>
     <input type="number" id="cost" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
-
-    <label for="date">Date bought</label>
-    <input type="date" id="date">
 
     <label for="loc">Location (optional)</label>
     <input type="text" id="loc" list="locations" placeholder="e.g. Closet, Tub 3" autocomplete="off">
@@ -257,19 +257,21 @@
 <script>
 (function () {
   var STAGES = [
-    { id: 'import', label: 'Import' },
+    { id: 'import', label: 'Not listed' },
     { id: 'list', label: 'List' },
     { id: 'sold', label: 'Sold' },
     { id: 'packed', label: 'Packed' },
     { id: 'shipped', label: 'Shipped' }
   ];
   var SOLD_AT = 2; // index of the Sold step: this step and later have a sale price
+  // The bar at the top: "All" shows every item, each other step shows the items in that step.
+  var BAR = [{ id: 'all', label: 'All' }].concat(STAGES.slice(1));
   var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Vinted', 'Facebook Marketplace', 'Etsy', 'Other'];
   var VIEWS = ['list-view', 'add-view', 'places-view', 'place-view', 'summary-view'];
   var KEY = 'stockroom.items.v1';
 
   var items = load();
-  var stage = 'import';
+  var stage = 'all';       // which bar step is open
   var query = '';
   var filter = null;
   var selected = [];       // "listed on" apps in the add form
@@ -283,6 +285,11 @@
   function stageIndex(id) {
     for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id === id) return i;
     return -1;
+  }
+
+  function barIndex(id) {
+    for (var i = 0; i < BAR.length; i++) if (BAR[i].id === id) return i;
+    return 0;
   }
 
   function load() {
@@ -307,7 +314,6 @@
       if (typeof i.name !== 'string' || !i.name) i.name = 'Untitled item';
       if (!Array.isArray(i.platforms)) i.platforms = [];
       if (typeof i.location !== 'string') i.location = '';
-      if (typeof i.dateBought !== 'string') i.dateBought = '';
       if (!i.sold || typeof i.sold !== 'object' || !isFinite(Number(i.sold.price))) delete i.sold;
       return i;
     });
@@ -320,13 +326,6 @@
     } catch (e) {
       return false;
     }
-  }
-
-  function todayLocal() {
-    var d = new Date();
-    return d.getFullYear() + '-' +
-      String(d.getMonth() + 1).padStart(2, '0') + '-' +
-      String(d.getDate()).padStart(2, '0');
   }
 
   function money(n) { return '$' + Number(n).toFixed(2); }
@@ -510,9 +509,9 @@
   function renderSteps() {
     var box = $('steps');
     box.replaceChildren();
-    var current = stageIndex(stage);
-    STAGES.forEach(function (s, idx) {
-      var count = items.filter(function (i) { return i.stage === s.id; }).length;
+    var current = barIndex(stage);
+    BAR.forEach(function (s, idx) {
+      var count = s.id === 'all' ? items.length : items.filter(function (i) { return i.stage === s.id; }).length;
       var cls = 'step' + (idx === current ? ' on' : idx < current ? ' done' : '');
       var b = el('button', cls);
       b.type = 'button';
@@ -553,38 +552,35 @@
     render();
   }
 
-  // The location line on a card. In the Sold step it reads "Grab from: ...".
-  function locationRow(i) {
-    var grab = stage === 'sold';
-    var row = el('div', 'loc' + (grab ? ' grab' : ''));
-    var text = el('span');
+  // One tappable line for "where is it": "Grab from: Closet" on sold items, "In Closet" otherwise.
+  function locationButton(i) {
+    var grab = i.stage === 'sold';
+    var b = el('button', 'loc-btn' + (grab ? ' grab' : ''));
+    b.type = 'button';
     if (grab) {
-      text.appendChild(document.createTextNode('Grab from: '));
-      text.appendChild(el('strong', '', i.location || 'not set'));
+      b.appendChild(document.createTextNode('Grab from: '));
+      b.appendChild(el('strong', '', i.location || 'not set'));
     } else {
-      text.textContent = i.location ? 'Location: ' + i.location : 'No location yet';
+      b.textContent = i.location ? 'In ' + i.location : 'Set location';
     }
-    row.appendChild(text);
-    row.appendChild(button('', i.location ? 'Change' : 'Set location', function () { openSheet(i); }));
-    return row;
+    b.addEventListener('click', function () { openSheet(i); });
+    return b;
   }
 
   function renderList() {
     var q = query.trim().toLowerCase();
-    var inStage = items.filter(function (i) { return i.stage === stage; });
-    var visible = inStage.filter(function (i) {
+    var inView = stage === 'all' ? items : items.filter(function (i) { return i.stage === stage; });
+    var visible = inView.filter(function (i) {
       return (!q || i.name.toLowerCase().indexOf(q) !== -1) &&
         (!filter || i.platforms.indexOf(filter) !== -1);
     });
-    var label = STAGES[stageIndex(stage)].label;
-    var next = STAGES[stageIndex(stage) + 1];
     var box = $('list');
     box.replaceChildren();
     if (visible.length === 0) {
       box.appendChild(el('div', 'empty',
-        inStage.length === 0
-          ? 'Nothing in ' + label + ' yet. Tap + Add to put an item here.'
-          : 'No items match your search or filter.'));
+        inView.length > 0 ? 'No items match your search or filter.'
+          : stage === 'all' ? 'No items yet. Tap + Add to put your first one here.'
+          : 'Nothing in ' + BAR[barIndex(stage)].label + ' yet. Tap + Add to put an item here.'));
       return;
     }
     visible.forEach(function (i) {
@@ -593,20 +589,29 @@
       top.appendChild(el('div', 'name', i.name));
       top.appendChild(el('div', '', i.sold ? money(i.sold.price) : costText(i)));
       row.appendChild(top);
+
+      var info = el('div', 'info');
+      if (stage === 'all') info.appendChild(el('span', 'pill', STAGES[stageIndex(i.stage)].label));
       if (i.sold) {
-        var line = el('div', 'sale-line');
-        line.appendChild(el('div', 'meta',
-          (i.cost === null ? 'No cost saved' : 'Paid ' + money(i.cost)) + ' · sold on ' + (i.sold.platform || 'an unknown app')));
+        info.appendChild(el('span', 'meta',
+          (i.cost === null ? 'No cost saved' : 'Paid ' + money(i.cost)) + ' \u00b7 sold on ' + (i.sold.platform || 'an unknown app')));
         var p = profitOf(i);
-        if (p !== null) line.appendChild(el('div', 'profit' + (p < 0 ? ' neg' : ''), 'Profit ' + profitText(p)));
-        row.appendChild(line);
-      } else {
-        if (i.dateBought) row.appendChild(el('div', 'meta', 'Bought ' + i.dateBought));
-        row.appendChild(el('div', 'meta',
-          i.platforms.length ? i.platforms.join(', ') : 'Not listed on an app yet'));
+        if (p !== null) info.appendChild(el('span', 'profit' + (p < 0 ? ' neg' : ''), 'Profit ' + profitText(p)));
+      } else if (i.platforms.length) {
+        info.appendChild(el('span', 'meta', i.platforms.join(', ')));
+      } else if (i.stage !== 'import') {
+        info.appendChild(el('span', 'meta', 'No app yet'));
       }
-      if (i.stage !== 'shipped') row.appendChild(locationRow(i));
-      if (next) row.appendChild(button('move', 'Move to ' + next.label + ' →', function () { moveForward(i); }));
+      row.appendChild(info);
+
+      var next = STAGES[stageIndex(i.stage) + 1];
+      var here = i.stage !== 'shipped'; // shipped items have left, so no location
+      if (here || next) {
+        var actions = el('div', 'card-actions');
+        actions.appendChild(here ? locationButton(i) : el('span'));
+        if (next) actions.appendChild(button('move', 'Move to ' + next.label + ' \u2192', function () { moveForward(i); }));
+        row.appendChild(actions);
+      }
       box.appendChild(row);
     });
   }
@@ -727,7 +732,7 @@
     box.appendChild(summaryCard('Total profit', 'card-big ' + (total < 0 ? 'neg' : 'good'),
       profitText(total), 'From ' + countText(counted) + ' sold'));
     box.appendChild(summaryCard('Money tied up in unsold items', 'card-mid', money(tied),
-      countText(tiedN) + ' still in Import or List'));
+      countText(tiedN) + ' not sold yet'));
 
     box.appendChild(el('div', 'section-label', 'Profit by app'));
     var apps = Array.from(byApp.keys()).sort(function (a, b) { return byApp.get(b).profit - byApp.get(a).profit; });
@@ -768,12 +773,14 @@
     });
   }
 
+  // New items start as "not listed" when added from All, otherwise in the open step.
+  function addStage() { return stage === 'all' ? 'import' : stage; }
+
   function showAdd() {
-    var alreadySold = stageIndex(stage) >= SOLD_AT;
-    $('add-title').textContent = 'Add to ' + STAGES[stageIndex(stage)].label;
+    var alreadySold = addStage() !== 'import' && stageIndex(addStage()) >= SOLD_AT;
+    $('add-title').textContent = stage === 'all' ? 'Add item' : 'Add to ' + BAR[barIndex(stage)].label;
     $('name').value = '';
     $('cost').value = '';
-    $('date').value = todayLocal();
     $('loc').value = '';
     $('add-price').value = '';
     $('error').textContent = '';
@@ -792,8 +799,7 @@
     var name = $('name').value.trim();
     var costText = $('cost').value.trim();
     var cost = Number(costText);
-    var date = $('date').value;
-    var alreadySold = stageIndex(stage) >= SOLD_AT;
+    var alreadySold = stageIndex(addStage()) >= SOLD_AT;
     var price = parseMoney($('add-price').value);
     var err = $('error');
 
@@ -802,7 +808,6 @@
       err.textContent = 'Enter what you paid, e.g. 12.50 (0 if it was free).';
       return;
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { err.textContent = 'Pick the date you bought it.'; return; }
     if (alreadySold && price === null) { err.textContent = 'Enter what it sold for, e.g. 40.00.'; return; }
     if (alreadySold && !addSoldOn) { err.textContent = 'Pick the app it sold on.'; return; }
 
@@ -810,10 +815,9 @@
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
       name: name,
       cost: cost,
-      dateBought: date,
       platforms: selected.slice(),
       location: canonLocation($('loc').value),
-      stage: stage,
+      stage: addStage(),
       createdAt: Date.now()
     };
     if (alreadySold) item.sold = { price: price, platform: addSoldOn, fees: 0, shipping: 0, date: Date.now() };
