@@ -11,7 +11,6 @@
   :root {
     --bg: #f4f4f6; --card: #ffffff; --text: #111; --muted: #666; --line: #dcdce0;
     --accent: #0a6cff; --danger: #d92d20;
-    --progress-bg: #fff3c4; --progress-fg: #8a6500;
     --listed-bg: #dbeafe; --listed-fg: #1d4ed8;
     --sold-bg: #d6f5e0; --sold-fg: #15803d;
   }
@@ -19,7 +18,6 @@
     :root {
       --bg: #000; --card: #1c1c1e; --text: #f2f2f7; --muted: #9a9aa0; --line: #38383a;
       --accent: #4c9dff; --danger: #ff6b60;
-      --progress-bg: #4a3b00; --progress-fg: #ffd966;
       --listed-bg: #11284d; --listed-fg: #8ebdff;
       --sold-bg: #0f3a20; --sold-fg: #7fe3a3;
     }
@@ -45,7 +43,6 @@
     background: var(--card); font-size: 15px;
   }
   .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .chip.s-progress.on { background: var(--progress-bg); border-color: var(--progress-fg); color: var(--progress-fg); }
   .chip.s-listed.on { background: var(--listed-bg); border-color: var(--listed-fg); color: var(--listed-fg); }
   .chip.s-sold.on { background: var(--sold-bg); border-color: var(--sold-fg); color: var(--sold-fg); }
   .tabs { margin-bottom: 12px; }
@@ -63,7 +60,6 @@
   .row .name { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .row .meta { font-size: 13px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 12px; flex: none; }
-  .b-progress { background: var(--progress-bg); color: var(--progress-fg); }
   .b-listed { background: var(--listed-bg); color: var(--listed-fg); }
   .b-sold { background: var(--sold-bg); color: var(--sold-fg); }
   .empty { text-align: center; color: var(--muted); padding: 48px 16px; line-height: 1.5; }
@@ -166,7 +162,7 @@
 
   var items = load(KEY);
   var withdrawals = load(WKEY);   // each: { id, date, parts: { Depop: 10, Vinted: 5 } }
-  var filter = null;      // null = all active, or 'progress' | 'listed' | 'sold'
+  var filter = 'listed';  // which tab is showing: 'listed' (default) or 'sold'
 
   function load(key) {
     try { return JSON.parse(localStorage.getItem(key)) || []; } catch (e) { return []; }
@@ -183,13 +179,8 @@
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function $(id) { return document.getElementById(id); }
 
-  // status comes from the data: sold > listed (a platform is picked) > in progress
-  function status(it) {
-    if (it.sold) return 'sold';
-    if (it.platforms.length) return 'listed';
-    return 'progress';
-  }
-  var STATUS_LABEL = { progress: 'In progress', listed: 'Listed', sold: 'Sold' };
+  function status(it) { return it.sold ? 'sold' : 'listed'; }
+  var STATUS_LABEL = { listed: 'Listed', sold: 'Sold' };
 
   // money per platform: profit from sold items minus what was withdrawn
   function balances() {
@@ -205,16 +196,16 @@
 
   /* ---------- Stock page ---------- */
   function renderTabs() {
-    $('tabs').innerHTML = ['progress', 'listed', 'sold'].map(function (s) {
+    $('tabs').innerHTML = ['listed', 'sold'].map(function (s) {
       var n = items.filter(function (i) { return status(i) === s; }).length;
       return '<button class="chip s-' + s + (filter === s ? ' on' : '') + '" data-f="' + s + '">' + STATUS_LABEL[s] + ' ' + n + '</button>';
     }).join('');
   }
   function renderList() {
-    var shown = items.filter(function (i) { return !filter || status(i) === filter; });
+    var shown = items.filter(function (i) { return status(i) === filter; });
     shown.sort(function (a, b) { return b.created - a.created; });
     if (!shown.length) {
-      $('list').innerHTML = '<div class="empty">' + (items.length ? 'Nothing here.' : 'No items yet.<br>Tap the + button to add your first one.') + '</div>';
+      $('list').innerHTML = '<div class="empty">' + (items.length ? (filter === 'sold' ? 'Nothing sold yet.' : 'Nothing listed right now.') : 'No items yet.<br>Tap the + button to add your first one.') + '</div>';
       return;
     }
     $('list').innerHTML = shown.map(function (it) {
@@ -305,7 +296,7 @@
       '<div class="sheet-head"><h2>' + (isNew ? 'Add item' : 'Edit item') + '</h2><button class="link" data-act="close">Cancel</button></div>' +
       '<label for="f-name">Name (required)</label><input type="text" id="f-name" value="' + esc(it.name) + '" autocomplete="off" placeholder="e.g. Blue denim jacket">' +
       photoField(it.photo) +
-      '<label class="label-t">Listed on</label>' + platformChips(it.platforms) +
+      '<label class="label-t">Listed on (required)</label>' + platformChips(it.platforms) +
       '<label for="f-price">Listing price $ (required)</label><input type="number" inputmode="decimal" id="f-price" min="0" step="0.01" value="' + (it.price == null ? '' : it.price) + '">' +
       '<button class="primary" data-act="save-item" data-id="' + (isNew ? '' : it.id) + '">' + (isNew ? 'Add item' : 'Save') + '</button>'
     );
@@ -386,7 +377,7 @@
   /* ---------- Events ---------- */
   $('tabs').addEventListener('click', function (e) {
     var b = e.target.closest('[data-f]'); if (!b) return;
-    filter = filter === b.dataset.f ? null : b.dataset.f;   // tap again to clear
+    filter = b.dataset.f;
     render();
   });
   $('list').addEventListener('click', function (e) {
@@ -430,7 +421,9 @@
       if (!name) { $('f-name').focus(); $('f-name').style.borderColor = 'var(--danger)'; return; }
       var price = numOrNull($('f-price').value);
       if (price == null) { $('f-price').focus(); $('f-price').style.borderColor = 'var(--danger)'; return; }
-      var data = { name: name, photo: pendingPhoto, platforms: readPlatforms(), price: price };
+      var plats = readPlatforms();
+      if (!plats.length) { alert('Pick at least one platform it is listed on.'); return; }
+      var data = { name: name, photo: pendingPhoto, platforms: plats, price: price };
       if (id) { Object.assign(it, data); }
       else { items.push(Object.assign({ id: uid(), created: Date.now(), sold: null }, data)); }
       save(); closeSheet(); render();

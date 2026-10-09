@@ -5,11 +5,8 @@ and your items are saved on your own device. No accounts, no server. The whole a
 
 ## What it does
 
-- **Add item**: name and listing price are required. Photo and platforms (Depop / Vinted) are optional.
-- **Stock**: all your items with a status. Tap a status tab to filter, tap it again to clear.
-  - In progress = no platform picked yet
-  - Listed = a platform is picked
-  - Sold = marked as sold
+- **Add item**: name, listing price, and at least one platform (Depop / Vinted) are required. A photo is optional.
+- **Stock**: shows what is listed by default. Tap Sold to see sold items, tap Listed to come back.
 - **Mark as sold**: enter the sale price and the platform it sold on, and the profit shows right away.
 - **Money**: your balance (with a line per platform), a Withdraw button, and total profit.
 - **Withdraw**: take out everything, or a different amount from one platform. Tap a past withdrawal to undo it.
