@@ -5,14 +5,21 @@ and your items are saved on your own device. No accounts, no server.
 
 ## What it does so far
 
+Three tabs along the bottom: Inventory, Places and Summary.
+
+**Inventory**
 - A step bar at the top: Import > List > Sold > Packed > Shipped. Tap a step to see the items in it; each step shows how many items it holds.
 - "+ Add" puts a new item in the step you are looking at (name, what you paid, date bought, optional location, which apps it is listed on)
-- Each item has a button to move it to the next step
-- Locations: an optional place for each item, like Closet or Tub 3. In the Sold step each item shows "Grab from: ..." so you know where to find it. Tap Change (or Set location) on any item to edit it.
-- Places button at the top: every place with how many items are in it. Tap a place to see its items. Items that have shipped are not counted.
+- Each item has a button to move it to the next step. Moving an item to Sold asks what it sold for and which app it sold on, and shows the profit (sale price minus what you paid).
+- Sold, Packed and Shipped items show the sale price and profit.
+- Locations: an optional place for each item, like Closet or Tub 3. In the Sold step each item shows "Grab from: ...". Tap Change (or Set location) to edit it.
 - Search and filter by app inside a step
 
-Coming next: sale price when an item is sold, with profit calculated for you, then a summary screen.
+**Places**: every place with how many items are in it. Tap a place to see its items. Items that have shipped are not counted.
+
+**Summary**: total profit, money tied up in unsold items (what you paid for items still in Import or List), and profit for each app.
+
+Fees and shipping costs are not counted yet. The sale record already has room for them, so they can be added later once each app's fees are known.
 
 ## Put it online (GitHub Pages)
 

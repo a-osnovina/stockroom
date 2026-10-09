@@ -14,14 +14,14 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: #111;
     background: #fff;
-    padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+    padding: env(safe-area-inset-top) 16px 0;
   }
   main { max-width: 600px; margin: 0 auto; padding-bottom: 32px; }
+  main.has-tabs { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
   header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
   h1 { font-size: 28px; margin: 0; }
   h2 { font-size: 22px; margin: 0; }
   button { font: inherit; cursor: pointer; }
-  .head-btns { display: flex; gap: 4px; }
   .link { background: none; border: 0; color: #0a6cff; font-size: 17px; font-weight: 600; min-height: 44px; padding: 4px 8px; }
   .back { background: none; border: 0; color: #0a6cff; font-size: 17px; font-weight: 600; min-height: 44px; padding: 4px 8px 4px 0; }
   input[type=text], input[type=search], input[type=number], input[type=date] {
@@ -61,6 +61,9 @@
   .row-top { display: flex; justify-content: space-between; gap: 12px; }
   .name { font-size: 17px; font-weight: 600; }
   .meta { font-size: 13px; color: #666; margin-top: 2px; }
+  .sale-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 4px; }
+  .profit { font-size: 17px; font-weight: 700; color: #0a7a3d; white-space: nowrap; }
+  .neg { color: #b3261e; }
   .loc {
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
     margin-top: 6px; font-size: 14px; color: #444;
@@ -87,26 +90,53 @@
   .chev { color: #0a6cff; font-size: 24px; line-height: 1; }
   #places-view .meta, #place-view .meta { margin-bottom: 12px; }
 
-  /* Bottom sheet for setting a location */
+  /* Summary */
+  .card { background: #f4f6f9; border-radius: 12px; padding: 16px; margin-top: 12px; }
+  .card-label { font-size: 13px; color: #555; }
+  .card-big { font-size: 44px; font-weight: 700; line-height: 1.15; margin-top: 4px; }
+  .card-mid { font-size: 36px; font-weight: 700; line-height: 1.15; margin-top: 4px; }
+  .good { color: #0a7a3d; }
+  .section-label { font-size: 13px; color: #555; margin: 24px 0 6px; }
+  .plat-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    min-height: 60px; border-top: 1px solid #ddd; padding: 8px 0;
+  }
+  .plat-name { font-size: 17px; font-weight: 600; }
+  .plat-profit { font-size: 17px; font-weight: 700; }
+
+  /* Bottom sheets (location, sale) */
   .sheet-wrap {
     position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 10;
     display: flex; align-items: flex-end; background: rgba(17, 17, 17, 0.45);
   }
   .sheet {
-    width: 100%; max-width: 600px; margin: 0 auto; background: #fff;
+    width: 100%; max-width: 600px; margin: 0 auto; background: #fff; max-height: 100%; overflow-y: auto;
     border-radius: 16px 16px 0 0; padding: 24px 16px calc(24px + env(safe-area-inset-bottom));
   }
+  .profit-box {
+    display: flex; align-items: baseline; justify-content: space-between; margin-top: 18px;
+    padding: 14px 16px; background: #f0f8f3; border-radius: 10px; font-size: 15px;
+  }
+  .profit-box strong { font-size: 28px; }
+
+  /* Bottom tab bar */
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex;
+    background: #fff; border-top: 1px solid #ddd; padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tab {
+    flex: 1; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; background: none; border: 0; color: #555; font-size: 12px; font-weight: 600;
+  }
+  .tab.on { color: #0a6cff; }
 </style>
 </head>
 <body>
 
-<main id="list-view">
+<main id="list-view" class="has-tabs">
   <header>
     <h1>Stockroom</h1>
-    <div class="head-btns">
-      <button class="link" id="places-btn" type="button">Places</button>
-      <button class="link" id="add-btn" type="button">+ Add</button>
-    </div>
+    <button class="link" id="add-btn" type="button">+ Add</button>
   </header>
   <nav class="steps" id="steps" aria-label="Stages"></nav>
   <input type="search" id="search" placeholder="Search this stage" autocomplete="off">
@@ -134,6 +164,13 @@
     <div class="label">Listed on (optional)</div>
     <div class="chips" id="platform-chips"></div>
 
+    <div id="add-sold" hidden>
+      <label for="add-price">Sold for $</label>
+      <input type="number" id="add-price" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
+      <div class="label">Sold on</div>
+      <div class="chips" id="add-sold-chips"></div>
+    </div>
+
     <div class="error" id="error" role="alert"></div>
     <div class="actions">
       <button type="button" class="secondary" id="cancel-btn">Cancel</button>
@@ -142,16 +179,15 @@
   </form>
 </main>
 
-<main id="places-view" hidden>
+<main id="places-view" class="has-tabs" hidden>
   <header>
-    <button class="back" id="places-back" type="button">&lsaquo; Back</button>
+    <h1>Places</h1>
   </header>
-  <h1>Places</h1>
   <div class="meta">Items that have shipped are not counted.</div>
   <div id="places-list"></div>
 </main>
 
-<main id="place-view" hidden>
+<main id="place-view" class="has-tabs" hidden>
   <header>
     <button class="back" id="place-back" type="button">&lsaquo; Places</button>
   </header>
@@ -159,6 +195,28 @@
   <div class="meta" id="place-sub"></div>
   <div id="place-items"></div>
 </main>
+
+<main id="summary-view" class="has-tabs" hidden>
+  <header>
+    <h1>Summary</h1>
+  </header>
+  <div id="summary"></div>
+</main>
+
+<nav class="tabbar" id="tabbar" aria-label="Main">
+  <button class="tab" id="tab-stock" type="button">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4z"></path><path d="M3 12l9 4 9-4"></path><path d="M3 17l9 4 9-4"></path></svg>
+    <span>Inventory</span>
+  </button>
+  <button class="tab" id="tab-places" type="button">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+    <span>Places</span>
+  </button>
+  <button class="tab" id="tab-summary" type="button">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V10"></path><path d="M12 20V4"></path><path d="M19 20v-7"></path></svg>
+    <span>Summary</span>
+  </button>
+</nav>
 
 <datalist id="locations"></datalist>
 
@@ -175,6 +233,27 @@
   </form>
 </div>
 
+<div class="sheet-wrap" id="sold-sheet" hidden>
+  <form class="sheet" id="sold-form" role="dialog" aria-modal="true" aria-labelledby="sold-title" novalidate>
+    <h2 id="sold-title">Mark as sold</h2>
+    <div class="name" id="sold-item" style="margin-top: 12px"></div>
+    <div class="meta" id="sold-paid"></div>
+    <label for="sold-price">Sold for $</label>
+    <input type="number" id="sold-price" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
+    <div class="label">Sold on</div>
+    <div class="chips" id="sold-chips"></div>
+    <div class="profit-box">
+      <span>Profit</span>
+      <strong id="sold-profit">&mdash;</strong>
+    </div>
+    <div class="error" id="sold-error" role="alert"></div>
+    <div class="actions">
+      <button type="button" class="secondary" id="sold-cancel">Cancel</button>
+      <button type="submit" class="primary">Mark as sold</button>
+    </div>
+  </form>
+</div>
+
 <script>
 (function () {
   var STAGES = [
@@ -184,16 +263,20 @@
     { id: 'packed', label: 'Packed' },
     { id: 'shipped', label: 'Shipped' }
   ];
+  var SOLD_AT = 2; // index of the Sold step: this step and later have a sale price
   var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Vinted', 'Facebook Marketplace', 'Etsy', 'Other'];
-  var VIEWS = ['list-view', 'add-view', 'places-view', 'place-view'];
+  var VIEWS = ['list-view', 'add-view', 'places-view', 'place-view', 'summary-view'];
   var KEY = 'stockroom.items.v1';
 
   var items = load();
   var stage = 'import';
   var query = '';
   var filter = null;
-  var selected = [];
-  var editing = null;   // item whose location is being changed
+  var selected = [];       // "listed on" apps in the add form
+  var addSoldOn = null;    // "sold on" app in the add form
+  var editing = null;      // item whose location is being changed
+  var selling = null;      // item being marked as sold
+  var soldOn = null;       // "sold on" app in the sale sheet
 
   function $(id) { return document.getElementById(id); }
 
@@ -225,6 +308,7 @@
       if (!Array.isArray(i.platforms)) i.platforms = [];
       if (typeof i.location !== 'string') i.location = '';
       if (typeof i.dateBought !== 'string') i.dateBought = '';
+      if (!i.sold || typeof i.sold !== 'object' || !isFinite(Number(i.sold.price))) delete i.sold;
       return i;
     });
   }
@@ -248,6 +332,22 @@
   function money(n) { return '$' + Number(n).toFixed(2); }
   function costText(i) { return i.cost === null ? 'No cost yet' : money(i.cost); }
   function countText(n) { return n + (n === 1 ? ' item' : ' items'); }
+  function profitText(n) {
+    var r = Math.round(n * 100) / 100;
+    return (r < 0 ? '-' : '') + '$' + Math.abs(r).toFixed(2);
+  }
+  function parseMoney(text) {
+    var t = String(text).trim();
+    var n = Number(t);
+    return (t === '' || !isFinite(n) || n < 0) ? null : n;
+  }
+
+  // Sale price minus cost, fees and shipping (fees and shipping are 0 until they are added).
+  // Returns null when the sale price or the cost is not known.
+  function profitOf(i) {
+    if (!i.sold || i.cost === null) return null;
+    return Number(i.sold.price) - i.cost - Number(i.sold.fees || 0) - Number(i.sold.shipping || 0);
+  }
 
   function el(tag, className, text) {
     var node = document.createElement(tag);
@@ -267,13 +367,34 @@
     return button('chip' + (on ? ' on' : ''), label, onClick);
   }
 
+  // A row of chips where exactly one can be picked.
+  function renderPickChips(box, options, current, onPick) {
+    box.replaceChildren();
+    options.forEach(function (p) {
+      box.appendChild(chip(p, current === p, function () {
+        onPick(p);
+        renderPickChips(box, options, p, onPick);
+      }));
+    });
+  }
+
   function byName(a, b) {
     var x = a.toLowerCase(), y = b.toLowerCase();
     return x < y ? -1 : x > y ? 1 : 0;
   }
 
+  // ---------- views and tabs ----------
+
   function showView(id) {
     VIEWS.forEach(function (v) { $(v).hidden = (v !== id); });
+    $('tabbar').hidden = (id === 'add-view');
+    var active = (id === 'places-view' || id === 'place-view') ? 'places' : id === 'summary-view' ? 'summary' : 'stock';
+    ['stock', 'places', 'summary'].forEach(function (t) {
+      var b = $('tab-' + t);
+      b.classList.toggle('on', t === active);
+      if (t === active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    window.scrollTo(0, 0);
   }
 
   // ---------- locations ----------
@@ -333,6 +454,57 @@
     render();
   }
 
+  // ---------- sale sheet ----------
+
+  function updateSoldProfit() {
+    var out = $('sold-profit');
+    var price = parseMoney($('sold-price').value);
+    out.className = '';
+    if (price === null || !selling) { out.textContent = '—'; return; }
+    if (selling.cost === null) { out.textContent = 'No cost saved'; return; }
+    var p = price - selling.cost;
+    out.className = p < 0 ? 'neg' : 'good';
+    out.textContent = profitText(p);
+  }
+
+  function openSoldSheet(item) {
+    selling = item;
+    soldOn = item.platforms.length === 1 ? item.platforms[0] : null;
+    $('sold-item').textContent = item.name;
+    $('sold-paid').textContent = item.cost === null ? 'No cost saved for this item' : 'You paid ' + money(item.cost);
+    $('sold-price').value = '';
+    $('sold-error').textContent = '';
+    renderPickChips($('sold-chips'), item.platforms.length ? item.platforms : PLATFORMS, soldOn, function (p) { soldOn = p; });
+    updateSoldProfit();
+    $('sold-sheet').hidden = false;
+    $('sold-price').focus();
+  }
+
+  function closeSoldSheet() {
+    selling = null;
+    $('sold-sheet').hidden = true;
+  }
+
+  function confirmSold(e) {
+    e.preventDefault();
+    if (!selling) return;
+    var price = parseMoney($('sold-price').value);
+    var err = $('sold-error');
+    if (price === null) { err.textContent = 'Enter what it sold for, e.g. 40.00.'; return; }
+    if (!soldOn) { err.textContent = 'Pick the app it sold on.'; return; }
+    var before = { stage: selling.stage, sold: selling.sold };
+    selling.sold = { price: price, platform: soldOn, fees: 0, shipping: 0, date: Date.now() };
+    selling.stage = 'sold';
+    if (!save()) {
+      selling.stage = before.stage;
+      if (before.sold) selling.sold = before.sold; else delete selling.sold;
+      err.textContent = 'Could not save on this device. Is private browsing on?';
+      return;
+    }
+    closeSoldSheet();
+    render();
+  }
+
   // ---------- stage list ----------
 
   function renderSteps() {
@@ -370,6 +542,7 @@
   function moveForward(item) {
     var next = STAGES[stageIndex(item.stage) + 1];
     if (!next) return;
+    if (next.id === 'sold') { openSoldSheet(item); return; }
     var before = item.stage;
     item.stage = next.id;
     if (!save()) {
@@ -418,12 +591,21 @@
       var row = el('div', 'row');
       var top = el('div', 'row-top');
       top.appendChild(el('div', 'name', i.name));
-      top.appendChild(el('div', '', costText(i)));
+      top.appendChild(el('div', '', i.sold ? money(i.sold.price) : costText(i)));
       row.appendChild(top);
-      if (i.dateBought) row.appendChild(el('div', 'meta', 'Bought ' + i.dateBought));
-      row.appendChild(el('div', 'meta',
-        i.platforms.length ? i.platforms.join(', ') : 'Not listed on an app yet'));
-      row.appendChild(locationRow(i));
+      if (i.sold) {
+        var line = el('div', 'sale-line');
+        line.appendChild(el('div', 'meta',
+          (i.cost === null ? 'No cost saved' : 'Paid ' + money(i.cost)) + ' · sold on ' + (i.sold.platform || 'an unknown app')));
+        var p = profitOf(i);
+        if (p !== null) line.appendChild(el('div', 'profit' + (p < 0 ? ' neg' : ''), 'Profit ' + profitText(p)));
+        row.appendChild(line);
+      } else {
+        if (i.dateBought) row.appendChild(el('div', 'meta', 'Bought ' + i.dateBought));
+        row.appendChild(el('div', 'meta',
+          i.platforms.length ? i.platforms.join(', ') : 'Not listed on an app yet'));
+      }
+      if (i.stage !== 'shipped') row.appendChild(locationRow(i));
       if (next) row.appendChild(button('move', 'Move to ' + next.label + ' →', function () { moveForward(i); }));
       box.appendChild(row);
     });
@@ -510,6 +692,68 @@
     showView('place-view');
   }
 
+  // ---------- summary ----------
+
+  function summaryCard(label, bigClass, value, sub) {
+    var c = el('div', 'card');
+    c.appendChild(el('div', 'card-label', label));
+    c.appendChild(el('div', bigClass, value));
+    c.appendChild(el('div', 'meta', sub));
+    return c;
+  }
+
+  function renderSummary() {
+    var total = 0, counted = 0, skipped = 0;
+    var byApp = new Map();
+    items.forEach(function (i) {
+      if (stageIndex(i.stage) < SOLD_AT) return;
+      var p = profitOf(i);
+      if (p === null) { skipped++; return; }
+      total += p;
+      counted++;
+      var app = i.sold.platform || 'Unknown app';
+      var e = byApp.get(app) || { n: 0, profit: 0 };
+      e.n++;
+      e.profit += p;
+      byApp.set(app, e);
+    });
+    var tied = 0, tiedN = 0;
+    items.forEach(function (i) {
+      if ((i.stage === 'import' || i.stage === 'list') && i.cost !== null) { tied += i.cost; tiedN++; }
+    });
+
+    var box = $('summary');
+    box.replaceChildren();
+    box.appendChild(summaryCard('Total profit', 'card-big ' + (total < 0 ? 'neg' : 'good'),
+      profitText(total), 'From ' + countText(counted) + ' sold'));
+    box.appendChild(summaryCard('Money tied up in unsold items', 'card-mid', money(tied),
+      countText(tiedN) + ' still in Import or List'));
+
+    box.appendChild(el('div', 'section-label', 'Profit by app'));
+    var apps = Array.from(byApp.keys()).sort(function (a, b) { return byApp.get(b).profit - byApp.get(a).profit; });
+    if (apps.length === 0) {
+      box.appendChild(el('div', 'empty', 'No sales yet. Move an item to Sold to see profit for each app.'));
+    }
+    apps.forEach(function (app) {
+      var e = byApp.get(app);
+      var row = el('div', 'plat-row');
+      var left = el('div');
+      left.appendChild(el('div', 'plat-name', app));
+      left.appendChild(el('div', 'meta', e.n + ' sold'));
+      row.appendChild(left);
+      row.appendChild(el('div', 'plat-profit ' + (e.profit < 0 ? 'neg' : 'good'), profitText(e.profit)));
+      box.appendChild(row);
+    });
+    if (skipped) {
+      box.appendChild(el('div', 'meta', countText(skipped) + ' sold but not counted: the sale price or the cost is missing.'));
+    }
+  }
+
+  function showSummary() {
+    renderSummary();
+    showView('summary-view');
+  }
+
   // ---------- add item ----------
 
   function renderPlatformChips() {
@@ -525,13 +769,18 @@
   }
 
   function showAdd() {
+    var alreadySold = stageIndex(stage) >= SOLD_AT;
     $('add-title').textContent = 'Add to ' + STAGES[stageIndex(stage)].label;
     $('name').value = '';
     $('cost').value = '';
     $('date').value = todayLocal();
     $('loc').value = '';
+    $('add-price').value = '';
     $('error').textContent = '';
     selected = [];
+    addSoldOn = null;
+    $('add-sold').hidden = !alreadySold;
+    if (alreadySold) renderPickChips($('add-sold-chips'), PLATFORMS, null, function (p) { addSoldOn = p; });
     fillLocationOptions();
     renderPlatformChips();
     showView('add-view');
@@ -544,6 +793,8 @@
     var costText = $('cost').value.trim();
     var cost = Number(costText);
     var date = $('date').value;
+    var alreadySold = stageIndex(stage) >= SOLD_AT;
+    var price = parseMoney($('add-price').value);
     var err = $('error');
 
     if (!name) { err.textContent = 'Enter what the item is.'; return; }
@@ -552,8 +803,10 @@
       return;
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { err.textContent = 'Pick the date you bought it.'; return; }
+    if (alreadySold && price === null) { err.textContent = 'Enter what it sold for, e.g. 40.00.'; return; }
+    if (alreadySold && !addSoldOn) { err.textContent = 'Pick the app it sold on.'; return; }
 
-    items.unshift({
+    var item = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
       name: name,
       cost: cost,
@@ -562,7 +815,9 @@
       location: canonLocation($('loc').value),
       stage: stage,
       createdAt: Date.now()
-    });
+    };
+    if (alreadySold) item.sold = { price: price, platform: addSoldOn, fees: 0, shipping: 0, date: Date.now() };
+    items.unshift(item);
     if (!save()) {
       items.shift();
       err.textContent = 'Could not save on this device. Is private browsing on?';
@@ -572,20 +827,24 @@
   }
 
   $('add-btn').addEventListener('click', showAdd);
-  $('places-btn').addEventListener('click', showPlaces);
-  $('places-back').addEventListener('click', showList);
+  $('tab-stock').addEventListener('click', showList);
+  $('tab-places').addEventListener('click', showPlaces);
+  $('tab-summary').addEventListener('click', showSummary);
   $('place-back').addEventListener('click', showPlaces);
   $('cancel-btn').addEventListener('click', showList);
   $('add-form').addEventListener('submit', submit);
   $('sheet-form').addEventListener('submit', saveSheet);
   $('sheet-cancel').addEventListener('click', closeSheet);
+  $('sold-form').addEventListener('submit', confirmSold);
+  $('sold-cancel').addEventListener('click', closeSoldSheet);
+  $('sold-price').addEventListener('input', updateSoldProfit);
   $('search').addEventListener('input', function (e) {
     query = e.target.value;
     renderList();
   });
 
   renderFilters();
-  render();
+  showList();
 })();
 </script>
 </body>
