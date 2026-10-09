@@ -5,10 +5,11 @@ and your items are saved on your own device. No accounts, no server. The whole a
 
 ## What it does
 
-- **Add item**: name, listing price, and at least one platform (Depop / Vinted) are required. A photo is optional.
+- **Add item**: name, listing price, and at least one platform (Depop / Vinted) are required. Photo and location are optional.
+- **Places**: a location is just a name (Bin 1, Closet, Attic) with no limit on how many items it holds. Switch to Places at the top of Stock to see each place and what is in it. Items leave a place when they ship.
 - **Stock**: three tabs. Listed (the default), Sold (waiting to ship), and Shipped.
 - **Mark as sold**: enter the sale price and the platform it sold on.
-- **Mark as shipped**: open a sold item and tap it once the parcel is on its way.
+- **Sold tab**: a "Grab from" list shows where to find each item. Tick items as you pack them, combine several items bought by one person into a single parcel, then tap Mark parcel shipped.
 - **Money**: Balance (a line per platform) with a Withdraw button, Coming in (sold items not shipped yet), and total profit (switch between All time, Week, and Month).
 - **Withdraw**: take out everything, or a different amount from one platform. Tap a past withdrawal to undo it.
 
