@@ -49,6 +49,8 @@
   .chip.s-sold.on { background: var(--sold-bg); border-color: var(--sold-fg); color: var(--sold-fg); }
   .chip.s-shipped.on { background: var(--ship-bg); border-color: var(--ship-fg); color: var(--ship-fg); }
   .tabs { margin-bottom: 12px; }
+  .chip.sm { min-height: 36px; padding: 0 14px; font-size: 14px; }
+  #p-tabs { margin: 10px 0 8px; }
 
   /* Item rows */
   .row {
@@ -146,7 +148,8 @@
       <div class="small" id="m-incoming-count"></div>
     </div>
     <div class="card">
-      <div class="label">Total profit so far</div>
+      <div class="label">Total profit</div>
+      <div class="chips" id="p-tabs"></div>
       <div class="big" style="font-size:28px" id="m-profit">$0.00</div>
       <div class="small" id="m-sold-count"></div>
     </div>
@@ -171,6 +174,7 @@
 
   var items = load(KEY);
   var withdrawals = load(WKEY);   // each: { id, date, parts: { Depop: 10, Vinted: 5 } }
+  var period = 'all';     // profit card: 'all' | 'week' | 'month'
   var filter = 'listed';  // which tab is showing: 'listed' (default) or 'sold'
 
   function load(key) {
@@ -200,6 +204,15 @@
     withdrawals.forEach(function (w) { Object.keys(w.parts).forEach(function (p) { b[p] -= w.parts[p]; }); });
     Object.keys(b).forEach(function (p) { b[p] = r2(b[p]); });
     return b;
+  }
+  var PERIODS = { all: 'All time', week: 'Week', month: 'Month' };
+  // calendar periods: the week starts Monday, the month starts on the 1st
+  function periodStart() {
+    var d = new Date(); d.setHours(0, 0, 0, 0);
+    if (period === 'week') d.setDate(d.getDate() - (d.getDay() + 6) % 7);
+    else if (period === 'month') d.setDate(1);
+    else return 0;
+    return d.getTime();
   }
   function comingIn() {   // sold, but not shipped yet
     return r2(items.reduce(function (a, i) { return a + (i.sold && !i.shipped ? i.sold.price : 0); }, 0));
@@ -234,13 +247,17 @@
 
   /* ---------- Money page ---------- */
   function renderMoney() {
-    var shipped = items.filter(function (i) { return i.shipped; });
+    var start = periodStart();
+    var shipped = items.filter(function (i) { return i.shipped && i.shipped >= start; });
     var waiting = items.filter(function (i) { return i.sold && !i.shipped; });
     var total = r2(shipped.reduce(function (a, i) { return a + i.sold.price; }, 0));
     var bal = balances();
     $('m-balance').textContent = money(totalOf(bal));
     $('m-plat').innerHTML = Object.keys(bal).map(function (p) {
       return '<div class="plat-line"><span>' + esc(p) + '</span><b>' + money(bal[p]) + '</b></div>';
+    }).join('');
+    $('p-tabs').innerHTML = Object.keys(PERIODS).map(function (k) {
+      return '<button class="chip sm' + (period === k ? ' on' : '') + '" data-period="' + k + '">' + PERIODS[k] + '</button>';
     }).join('');
     $('m-profit').textContent = money(total);
     $('m-sold-count').textContent = shipped.length + (shipped.length === 1 ? ' item shipped' : ' items shipped');
@@ -383,6 +400,10 @@
     $('w-from').textContent = 'Available: ' + money(availableFor(src));
   }
   $('btn-withdraw').onclick = withdrawStep1;
+  $('p-tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-period]'); if (!b) return;
+    period = b.dataset.period; render();
+  });
   $('m-withdrawals').addEventListener('click', function (e) {
     var b = e.target.closest('[data-wid]'); if (!b) return;
     var w = withdrawals.filter(function (x) { return x.id === b.dataset.wid; })[0];

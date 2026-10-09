@@ -9,7 +9,7 @@ and your items are saved on your own device. No accounts, no server. The whole a
 - **Stock**: three tabs. Listed (the default), Sold (waiting to ship), and Shipped.
 - **Mark as sold**: enter the sale price and the platform it sold on.
 - **Mark as shipped**: open a sold item and tap it once the parcel is on its way.
-- **Money**: Balance (a line per platform) with a Withdraw button, Coming in (sold items not shipped yet), and total profit.
+- **Money**: Balance (a line per platform) with a Withdraw button, Coming in (sold items not shipped yet), and total profit (switch between All time, Week, and Month).
 - **Withdraw**: take out everything, or a different amount from one platform. Tap a past withdrawal to undo it.
 
 Money only counts once an item is shipped. Sold items that haven't shipped show up under Coming in.
