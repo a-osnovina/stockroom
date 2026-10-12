@@ -228,7 +228,7 @@
   .plat-top { display: flex; justify-content: space-between; align-items: center; }
   .plat-top .chev { margin-left: -4px; }
   .receipt { background: var(--card); border-radius: 12px; padding: 20px 16px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
-  .receipt-head { text-align: center; font-size: 14px; font-weight: 700; letter-spacing: .06em; overflow-wrap: anywhere; }
+  .receipt-head { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
   .receipt-rule { border-top: 1.5px dashed #3A4460; margin: 14px 0; }
   .receipt-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
   .receipt-name { font-size: 15px; font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
@@ -2386,19 +2386,28 @@
 
   function renderReceipt() {
     var app = receiptApp;
+    // Only items that have shipped and left the inventory.
     var sales = items.filter(function (i) {
-      return stageIndex(i.stage) >= SOLD_AT && i.sold && (i.sold.platform || 'Unknown app') === app;
+      return i.history && i.sold && (i.sold.platform || 'Unknown app') === app;
     });
+    sales.sort(function (x, y) { return (y.sold.date || 0) - (x.sold.date || 0); });
     $('receipt-title').textContent = app;
     var box = $('receipt');
     box.replaceChildren();
     if (sales.length === 0) {
-      box.appendChild(el('div', 'empty', 'Nothing sold on ' + app + ' yet.'));
+      box.appendChild(el('div', 'empty', 'Nothing shipped from ' + app + ' yet.'));
       return;
     }
     var card = el('div', 'receipt');
-    var sold = 0, paid = 0, profit = 0;
+    var sold = 0, paid = 0, profit = 0, month = null;
     sales.forEach(function (i) {
+      var d = i.sold.date ? new Date(i.sold.date) : null;
+      var label = d ? d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : 'No date';
+      if (label !== month) {
+        if (month !== null) card.appendChild(el('div', 'receipt-rule'));
+        card.appendChild(el('div', 'receipt-head', label));
+        month = label;
+      }
       var p = Number(i.sold.price) - (i.cost === null ? 0 : i.cost) - Number(i.sold.fees || 0) - Number(i.sold.shipping || 0);
       sold += Number(i.sold.price);
       if (i.cost !== null) paid += i.cost;
@@ -2408,10 +2417,8 @@
       line.appendChild(el('span', 'receipt-amt', money(i.sold.price)));
       card.appendChild(line);
       var sub = el('div', 'receipt-sub');
-      sub.appendChild(document.createTextNode((i.history ? 'Shipped' : i.stage === 'shipped' ? 'Packed' : 'Sold') +
-        (i.sold.date ? ' · ' + new Date(i.sold.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '') +
-        ' · Paid ' + money(i.cost === null ? 0 : i.cost)));
-      sub.appendChild(document.createTextNode(' · '));
+      sub.appendChild(document.createTextNode((d ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · ' : '') +
+        'Paid ' + money(i.cost === null ? 0 : i.cost) + ' · '));
       sub.appendChild(el('span', p < 0 ? 'neg' : 'good', signedText(p)));
       card.appendChild(sub);
     });
@@ -2423,8 +2430,8 @@
       card.appendChild(row);
     }
     total('Items', String(sales.length));
-    total('Sold for', money(sold));
     total('Paid', money(paid));
+    total('Sold for', money(sold));
     card.appendChild(el('div', 'receipt-rule'));
     total('Profit', profitText(profit), profit < 0 ? 'neg' : 'good', true);
     box.appendChild(card);
