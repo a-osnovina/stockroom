@@ -80,7 +80,7 @@
 
   /* Stage colors: --fg text/icon, --bg tint, --solid filled */
   .s-all { --fg: #C3CADB; --bg: #2B3040; --solid: #9AA4B8; }
-  .s-import { --fg: #9AA4B8; --bg: #2B3040; --solid: #9AA4B8; } /* calm slate, shared with Archive; amber is kept for warnings (No spot) */
+  .s-import { --fg: #F5C46E; --bg: #3B3320; --solid: #F5C46E; } /* amber = drafts: Not listed and Archive. Slate gray is used for the Places warning (No spot) */
   .s-list { --fg: #6EA8FF; --bg: #243456; --solid: #6EA8FF; }
   .s-sold { --fg: #4FD1B5; --bg: #1D3A37; --solid: #4FD1B5; }
   .s-shipped { --fg: #C79BFF; --bg: #35294B; --solid: #C79BFF; }
@@ -95,7 +95,7 @@
   .two > div:last-child { text-align: right; }
   .good { color: var(--green); }
   .neg { color: var(--red); }
-  .amber { color: #F5C46E; }
+  .slate { color: #9AA4B8; }
   .apps { display: flex; gap: 12px; margin-top: 8px; }
   .app { flex: 1; min-width: 0; }
   .app-name { font-size: 13px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -123,7 +123,7 @@
   .steps { display: flex; margin: 8px 0 0; }
   .seg { display: flex; gap: 4px; background: var(--card); border-radius: 22px; padding: 4px; margin-top: 12px; }
   .seg button { flex: 1; min-height: 40px; border: 0; border-radius: 18px; background: none; color: var(--muted); font-size: 15px; font-weight: 700; }
-  .seg button.on { background: #2B3040; color: var(--text); }
+  .seg button.on { background: #3B3320; color: #F5C46E; }
   .step {
     flex: 1; min-width: 0; min-height: 52px; border: 0; margin-left: -10px; padding: 0;
     background: var(--card2); color: var(--muted); font-size: 12px; font-weight: 700;
@@ -147,7 +147,7 @@
     background: var(--card); color: var(--muted); display: flex; align-items: center; justify-content: center;
   }
   .apps-btn.set { background: #2A3350; color: var(--blue-text); }
-  .apps-btn.archive { color: var(--soft); background: #2B3040; }
+  .apps-btn.archive { color: #F5C46E; background: #3B3320; }
   .apps-btn[aria-expanded="true"] { box-shadow: inset 0 0 0 1.5px var(--blue); }
   .apps-btn .badge {
     position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
@@ -209,8 +209,8 @@
   }
   .place-name { font-size: 16px; font-weight: 700; }
   .add-place { opacity: .5; border: 1.5px dashed #3A4460; background: none; color: #8FBBFF; justify-content: center; margin-top: 4px; }
-  .nospot { background: #3B3320; }
-  .nospot .place-name, .nospot .chev { color: #F5C46E; }
+  .nospot { background: #2B3040; }
+  .nospot .place-name, .nospot .chev { color: #9AA4B8; }
   .chev { color: var(--blue); font-size: 24px; line-height: 1; }
 
   .plat-row { background: var(--card); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; }
@@ -316,7 +316,7 @@
   }
   .swipe-actions .act-edit { background: #243456; color: var(--blue-text); }
   .swipe-actions .act-del { background: #4A1D22; color: var(--red); }
-  .swipe-actions .act-arch { background: #2B3040; color: var(--soft); }
+  .swipe-actions .act-arch { background: #3B3320; color: #F5C46E; }
   .swipe-actions .act-arch small { font-size: 10px; font-weight: 500; margin-top: -3px; }
   .swipe-right { display: flex; }
   .swipe.edit-open .act-edit, .swipe.del-open .act-del, .swipe.del-open .act-arch, .swipe.drag .swipe-actions button, .swipe-actions button:focus-visible { opacity: 1; }
@@ -2106,7 +2106,7 @@
     ta.appendChild(el('div', 'big', String(inPlaces)));
     var tb = el('div');
     tb.appendChild(el('div', 'card-label', 'Not in a place'));
-    tb.appendChild(el('div', 'big' + (g.none.length ? ' amber' : ''), String(g.none.length)));
+    tb.appendChild(el('div', 'big' + (g.none.length ? ' slate' : ''), String(g.none.length)));
     tc.appendChild(ta);
     tc.appendChild(tb);
     top.appendChild(tc);
