@@ -66,3 +66,5 @@ A soft fade sits under the bottom bar so items don't show sharply behind it.
 - **Parcels** (the last step) holds the packed parcels: the item names, a **Ship** button at the top right and the total at the bottom right. Ship moves the parcel to **History** and shows an Undo. **Ship all** at the top ships every parcel at once.
 - **History** is in Summary. Shipped parcels leave the steps there but still count in your profit. **Back to List** on a card puts its items back in List and removes the sale. If an item's old slot was taken meanwhile, it comes back without a slot.
 - Swipe a parcel (in Sold, Parcels or History) right to **Edit the sale**: change the total price or the app, for example if a bundle price was typed wrong. The price is shared out again and the profit updates. Parcels no longer open item details; only a lone item still waiting in Sold does. Swipe left to delete the whole parcel.
+
+The top of **Places** has an empty card in the same style as the Total profit card. It is a placeholder for now.
