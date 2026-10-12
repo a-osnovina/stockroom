@@ -170,6 +170,7 @@
   .item-name { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .item-meta { font-size: 13px; color: var(--soft); margin-top: 1px; line-height: 1.5; }
   .item-meta .loc { color: var(--blue-text); }
+  .item-meta.loc { color: var(--blue-text); margin-top: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .item-meta .dim { color: var(--muted); }
   .pill { font-size: 12px; font-weight: 700; background: var(--bg); color: var(--fg); border-radius: 8px; padding: 1px 7px; margin-right: 6px; }
   .amt { font-size: 16px; font-weight: 700; flex: none; white-space: nowrap; margin-right: 4px; }
@@ -1430,7 +1431,7 @@
     return true;
   }
 
-  function metaLine(i, showPill) {
+  function metaLine(i, showPill, hidePlace) {
     var line = el('div', 'item-meta');
     var first = true;
     function part(node) {
@@ -1449,10 +1450,12 @@
         part(el('span', i.platforms.length ? '' : 'dim', i.platforms.length ? i.platforms.join(', ') : 'No app yet'));
       }
     }
-    if (i.stage !== 'shipped') {
-      part(el('span', i.location ? 'loc' : 'dim', i.location ? where(i) : 'No place'));
-    }
-    return line;
+    // The place gets its own third line, and only when the item has one.
+    if (hidePlace || !i.location || i.stage === 'shipped') return line;
+    var box = el('div', 'item-meta-wrap');
+    box.appendChild(line);
+    box.appendChild(el('div', 'item-meta loc', where(i)));
+    return box;
   }
 
   function itemRow(i, opts) {
@@ -1785,7 +1788,7 @@
           row.setAttribute('aria-label', slotDisplay(name, n) + ': ' + occ.name + '. Edit');
           var main = el('div', 'item-main');
           main.appendChild(el('div', 'item-name', occ.name));
-          main.appendChild(metaLine(occ, true));
+          main.appendChild(metaLine(occ, true, true));
           row.appendChild(main);
           row.addEventListener('click', function () { showEdit(occ); });
         } else {
@@ -1828,7 +1831,7 @@
       b.appendChild(th);
       var m = el('div', 'item-main');
       m.appendChild(el('div', 'item-name', i.name));
-      m.appendChild(metaLine(i, true));
+      m.appendChild(metaLine(i, true, true));
       b.appendChild(m);
       b.addEventListener('click', function () {
         var prev = i.slot;

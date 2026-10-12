@@ -15,7 +15,7 @@ and a round **+** button to add an item from anywhere.
 
 **Step list**
 - A step bar at the top: All > Not listed > List > Sold > Shipped. "All" shows every item with a small tag for its step. Tap a step to see only the items in it; each step shows how many items it holds.
-- Slim cards: photo (or an icon), name, apps and place, and the price. Sold and Shipped items show the profit instead.
+- Slim cards: photo (or an icon), name, step and app, and the price. If the item has a place, it shows on its own third line (like "my closet #4"); items with no place show nothing there. Sold and Shipped items show the profit instead.
 - The arrow button moves an item to the next step. Moving an item to Sold asks what it sold for and which app it sold on, and shows the profit (sale price minus what you paid). Moving an item to Shipped asks "Did you grab it?" and names its place, but only if the item has a place.
 - Swipe an item right to **Edit** it, or left to **Delete** it. Delete asks you to confirm first. An **Archive** button sits next to Delete: it moves a Not listed or List item to Not listed > Archive and shows a "View" link to open it. In the Archive section the same button reads **Unarchive** and puts the item back in Draft. Sold and shipped items can't be archived, so they only show Delete.
 - The **Not listed** step is split into **Draft** and **Archive**. It has no app filter, since nothing is listed on an app yet.
