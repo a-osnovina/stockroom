@@ -1659,7 +1659,9 @@
     if (notListed) inView = inView.filter(function (i) { return !!i.archived === (subTab === 'archive'); });
     renderSubTabs();
     // Nothing is listed on an app yet in Not listed, so Draft and Archive take the place of the Apps row.
-    $('apps-btn').hidden = notListed;
+    // Keep the button's space on Not listed so the search box is the same length on every step.
+    $('apps-btn').style.visibility = notListed ? 'hidden' : '';
+    $('apps-btn').disabled = notListed;
     $('filters').hidden = notListed || !appsOpen;
     var visible = inView.filter(function (i) {
       return (!q || i.name.toLowerCase().indexOf(q) !== -1 || (i.location || '').toLowerCase().indexOf(q) !== -1) &&
