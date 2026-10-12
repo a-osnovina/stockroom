@@ -224,8 +224,23 @@
   .nospot .place-name, .nospot .chev { color: #9AA4B8; }
   .chev { color: var(--blue); font-size: 24px; line-height: 1; }
 
-  .plat-row { background: var(--card); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; }
-  .plat-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .plat-row { display: block; width: 100%; border: 0; text-align: left; color: var(--text); font: inherit; background: var(--card); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; }
+  .plat-top { display: flex; justify-content: space-between; align-items: center; }
+  .plat-top .chev { margin-left: -4px; }
+  .receipt { background: var(--card); border-radius: 12px; padding: 20px 16px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+  .receipt-head { text-align: center; font-size: 14px; font-weight: 700; letter-spacing: .06em; overflow-wrap: anywhere; }
+  .receipt-rule { border-top: 1.5px dashed #3A4460; margin: 14px 0; }
+  .receipt-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .receipt-name { font-size: 15px; font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+  .receipt-amt { flex: none; font-size: 15px; font-weight: 700; }
+  .receipt-sub { font-size: 12px; color: var(--muted); margin: 2px 0 12px; }
+  .receipt-sub .good { color: var(--green); }
+  .receipt-sub .neg { color: var(--red); }
+  .receipt-total .receipt-name { font-weight: 500; }
+  .receipt-total { margin-bottom: 4px; }
+  .receipt-total.big .receipt-name, .receipt-total.big .receipt-amt { font-size: 20px; font-weight: 700; }
+  .receipt-amt.good { color: var(--green); }
+  .receipt-amt.neg { color: var(--red); }
   .plat-top { gap: 12px; }
   .plat-name { font-size: 17px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .plat-profit { font-size: 17px; font-weight: 700; flex: none; }
@@ -518,6 +533,15 @@
   <div id="summary"></div>
 </main>
 
+<main id="receipt-view" class="has-dock" hidden>
+  <header>
+    <button class="round" id="receipt-back" type="button" aria-label="Back to summary"></button>
+  </header>
+  <h1 id="receipt-title" class="place-h1"></h1>
+  <div class="meta" id="receipt-sub" style="margin-bottom:12px"></div>
+  <div id="receipt"></div>
+</main>
+
 <div class="dock" id="dock">
   <nav class="pill-nav" aria-label="Main">
     <button class="tab" id="tab-home" type="button"></button>
@@ -678,7 +702,7 @@
   var BAR = [{ id: 'all', label: 'All' }].concat(STAGES);
   var HOME_STEPS = ['import', 'list', 'sold', 'shipped'];
   var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Vinted', 'Facebook Marketplace', 'Etsy', 'Other'];
-  var VIEWS = ['home-view', 'list-view', 'add-view', 'places-view', 'place-view', 'summary-view'];
+  var VIEWS = ['home-view', 'list-view', 'add-view', 'places-view', 'place-view', 'summary-view', 'receipt-view'];
   var KEY = 'stockroom.items.v1';
 
   var ICONS = {
@@ -893,7 +917,7 @@
     currentView = id;
     VIEWS.forEach(function (v) { $(v).hidden = (v !== id); });
     $('dock').hidden = (id === 'add-view');
-    var active = (id === 'places-view' || id === 'place-view') ? 'places' : id === 'summary-view' ? 'summary' : 'home';
+    var active = (id === 'places-view' || id === 'place-view') ? 'places' : (id === 'summary-view' || id === 'receipt-view') ? 'summary' : 'home';
     ['home', 'places', 'summary'].forEach(function (t) {
       var b = $('tab-' + t);
       b.classList.toggle('on', t === active);
@@ -2149,6 +2173,7 @@
     else if (currentView === 'home-view') renderHome();
     else if (currentView === 'places-view') renderPlaces();
     else if (currentView === 'summary-view') renderSummary();
+    else if (currentView === 'receipt-view') renderReceipt();
   }
 
   // ---------- places ----------
@@ -2330,10 +2355,14 @@
     }
     var max = s.apps.length ? s.apps[0].profit : 0;
     s.apps.forEach(function (a) {
-      var row = el('div', 'plat-row');
+      var row = el('button', 'plat-row');
+      row.type = 'button';
+      row.setAttribute('aria-label', a.name + ', profit ' + profitText(a.profit) + '. Open everything sold on ' + a.name + '.');
+      row.addEventListener('click', function () { showReceipt(a.name); });
       var top = el('div', 'plat-top');
       top.appendChild(el('div', 'plat-name', a.name));
       top.appendChild(el('div', 'plat-profit ' + (a.profit < 0 ? 'neg' : 'good'), profitText(a.profit)));
+      top.appendChild(el('span', 'chev', '›'));
       row.appendChild(top);
       var bar = el('div', 'bar');
       bar.style.height = '8px';
@@ -2347,15 +2376,67 @@
     if (s.skipped) {
       box.appendChild(el('div', 'meta', countText(s.skipped) + ' sold but not counted: the sale price or the cost is missing.'));
     }
-    var hist = items.filter(function (i) { return i.history; }).length;
-    box.appendChild(el('div', 'section-label', 'Already shipped'));
-    box.appendChild(placeRow('Shipped', hist, showHistory));
   }
 
-  function showHistory() {
-    stage = 'history';
-    appsOpen = false;
-    showList();
+  // ---------- receipt: everything sold on one app ----------
+
+  var receiptApp = null;
+
+  function showReceipt(app) {
+    receiptApp = app;
+    renderReceipt();
+    showView('receipt-view');
+  }
+
+  function renderReceipt() {
+    var app = receiptApp;
+    var sales = items.filter(function (i) {
+      return stageIndex(i.stage) >= SOLD_AT && i.sold && (i.sold.platform || 'Unknown app') === app;
+    });
+    $('receipt-title').textContent = app;
+    $('receipt-sub').textContent = countText(sales.length) + ' sold, including shipped';
+    var box = $('receipt');
+    box.replaceChildren();
+    if (sales.length === 0) {
+      box.appendChild(el('div', 'empty', 'Nothing sold on ' + app + ' yet.'));
+      return;
+    }
+    var card = el('div', 'receipt');
+    card.appendChild(el('div', 'receipt-head', 'STOCKROOM · ' + app.toUpperCase()));
+    card.appendChild(el('div', 'receipt-rule'));
+    var sold = 0, paid = 0, profit = 0, left = 0;
+    sales.forEach(function (i) {
+      var p = profitOf(i);
+      sold += Number(i.sold.price);
+      if (i.cost !== null) paid += i.cost;
+      if (p === null) left++; else profit += p;
+      var line = el('div', 'receipt-line');
+      line.appendChild(el('span', 'receipt-name', i.name));
+      line.appendChild(el('span', 'receipt-amt', money(i.sold.price)));
+      card.appendChild(line);
+      var sub = el('div', 'receipt-sub');
+      sub.appendChild(document.createTextNode((i.history ? 'Shipped' : i.stage === 'shipped' ? 'Packed' : 'Sold') +
+        ' · ' + (i.cost === null ? 'No cost saved' : 'Paid ' + money(i.cost))));
+      if (p !== null) {
+        sub.appendChild(document.createTextNode(' · '));
+        sub.appendChild(el('span', p < 0 ? 'neg' : 'good', signedText(p)));
+      }
+      card.appendChild(sub);
+    });
+    card.appendChild(el('div', 'receipt-rule'));
+    function total(label, amount, cls, big) {
+      var row = el('div', 'receipt-line receipt-total' + (big ? ' big' : ''));
+      row.appendChild(el('span', 'receipt-name', label));
+      row.appendChild(el('span', 'receipt-amt' + (cls ? ' ' + cls : ''), amount));
+      card.appendChild(row);
+    }
+    total('Items', String(sales.length));
+    total('Sold for', money(sold));
+    total('Paid', money(paid));
+    card.appendChild(el('div', 'receipt-rule'));
+    total('Profit', profitText(profit), profit < 0 ? 'neg' : 'good', true);
+    box.appendChild(card);
+    if (left) box.appendChild(el('div', 'meta', countText(left) + ' left out of the profit: no cost saved.'));
   }
 
   function showSummary() {
@@ -2534,6 +2615,7 @@
     else if (addOrigin === 'place-view' && currentPlace !== null) showPlace(currentPlace);
     else if (addOrigin === 'places-view' || addOrigin === 'place-view') showPlaces();
     else if (addOrigin === 'summary-view') showSummary();
+    else if (addOrigin === 'receipt-view' && receiptApp !== null) showReceipt(receiptApp);
     else showHome();
   }
 
@@ -2690,6 +2772,7 @@
     $('list-back').appendChild(icon('back', 22));
     $('add-back').appendChild(icon('back', 22));
     $('place-back').appendChild(icon('back', 22));
+    $('receipt-back').appendChild(icon('back', 22));
     $('place-search-btn').appendChild(icon('search', 22));
     $('search-x').appendChild(icon('x', 18));
     $('place-search-x').appendChild(icon('x', 18));
@@ -2720,6 +2803,7 @@
   $('tab-summary').addEventListener('click', showSummary);
   $('fab').addEventListener('click', function () { showAdd(); });
   $('place-back').addEventListener('click', showPlaces);
+  $('receipt-back').addEventListener('click', showSummary);
   $('add-back').addEventListener('click', leaveAdd);
   $('add-form').addEventListener('submit', saveAndLeave);
   $('again-btn').addEventListener('click', saveAndAnother);
