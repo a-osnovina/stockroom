@@ -79,7 +79,8 @@
   label, .label { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
 
   /* Stage colors: --fg text/icon, --bg tint, --solid filled */
-  .s-all, .s-import { --fg: #C3CADB; --bg: #2B3040; --solid: #9AA4B8; }
+  .s-all { --fg: #C3CADB; --bg: #2B3040; --solid: #9AA4B8; }
+  .s-import { --fg: #F5C46E; --bg: #3B3320; --solid: #F5C46E; } /* same amber as the Archive swipe button */
   .s-list { --fg: #6EA8FF; --bg: #243456; --solid: #6EA8FF; }
   .s-sold { --fg: #4FD1B5; --bg: #1D3A37; --solid: #4FD1B5; }
   .s-shipped { --fg: #C79BFF; --bg: #35294B; --solid: #C79BFF; }
@@ -119,7 +120,7 @@
   .steps { display: flex; margin: 8px 0 0; }
   .seg { display: flex; gap: 4px; background: var(--card); border-radius: 22px; padding: 4px; margin-top: 12px; }
   .seg button { flex: 1; min-height: 40px; border: 0; border-radius: 18px; background: none; color: var(--muted); font-size: 15px; font-weight: 700; }
-  .seg button.on { background: var(--blue-bg); color: var(--blue-text); }
+  .seg button.on { background: #3B3320; color: #F5C46E; }
   .step {
     flex: 1; min-width: 0; min-height: 52px; border: 0; margin-left: -10px; padding: 0;
     background: var(--card2); color: var(--muted); font-size: 12px; font-weight: 700;
