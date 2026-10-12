@@ -5,226 +5,340 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Stockroom">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#12151C">
+<meta name="color-scheme" content="dark">
 <title>Stockroom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --bg: #12151C;
+    --card: #1B2030;
+    --card2: #232A3B;
+    --line: #2A3144;
+    --text: #F1F3F8;
+    --muted: #A3ACC2;
+    --soft: #C3CADB;
+    --blue: #6EA8FF;
+    --blue-bg: #243456;
+    --blue-text: #A9CBFF;
+    --green: #5BE0A0;
+    --red: #FF8A80;
+  }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
+  html { background: var(--bg); }
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #111;
-    background: #fff;
-    padding: env(safe-area-inset-top) 16px 0;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    padding: 0 16px;
   }
-  main { max-width: 600px; margin: 0 auto; padding-bottom: 32px; }
-  main.has-tabs { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
-  h1 { font-size: 28px; margin: 0; }
-  h2 { font-size: 22px; margin: 0; }
+  main { max-width: 600px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 16px) 0 32px; }
+  main.has-dock { padding-bottom: calc(130px + env(safe-area-inset-bottom)); }
+  header { display: flex; align-items: center; gap: 12px; min-height: 48px; margin-bottom: 4px; }
+  h1 { font-size: 28px; margin: 0; font-weight: 700; }
+  h2 { font-size: 20px; margin: 0; font-weight: 700; }
   button { font: inherit; cursor: pointer; }
-  .link { background: none; border: 0; color: #0a6cff; font-size: 17px; font-weight: 600; min-height: 44px; padding: 4px 8px; }
-  .back { background: none; border: 0; color: #0a6cff; font-size: 17px; font-weight: 600; min-height: 44px; padding: 4px 8px 4px 0; }
-  input[type=text], input[type=search], input[type=number] {
-    width: 100%; font-size: 16px; padding: 10px 12px;
-    border: 1px solid #ccc; border-radius: 8px; background: #fff; color: #111;
-  }
-  label, .label { display: block; font-size: 13px; color: #555; margin: 16px 0 6px; }
+  svg { display: block; flex: none; }
 
-  /* Stage bar: Import > List > Sold > Packed > Shipped */
-  .steps { display: flex; margin: 0 0 16px; }
+  .round {
+    width: 44px; height: 44px; border: 0; border-radius: 22px; padding: 0; flex: none;
+    background: var(--card); color: var(--text); display: flex; align-items: center; justify-content: center;
+  }
+  .link { background: none; border: 0; color: var(--blue); font-size: 16px; font-weight: 700; min-height: 44px; padding: 0 0 0 12px; }
+
+  input[type=text], input[type=search], input[type=number] {
+    width: 100%; font-size: 16px; font-family: inherit; min-height: 48px; padding: 0 14px;
+    border: 0; border-radius: 12px; background: var(--card); color: var(--text);
+    -webkit-appearance: none; appearance: none;
+  }
+  input::placeholder { color: #7D879F; }
+  input[type=search] { border-radius: 24px; padding: 0 18px; }
+  label, .label { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+
+  /* Stage colors: --fg text/icon, --bg tint, --solid filled */
+  .s-all, .s-import { --fg: #C3CADB; --bg: #2B3040; --solid: #9AA4B8; }
+  .s-list { --fg: #6EA8FF; --bg: #243456; --solid: #6EA8FF; }
+  .s-sold { --fg: #4FD1B5; --bg: #1D3A37; --solid: #4FD1B5; }
+  .s-packed { --fg: #F5B454; --bg: #463A22; --solid: #F5B454; }
+  .s-shipped { --fg: #C79BFF; --bg: #35294B; --solid: #C79BFF; }
+
+  /* Cards */
+  .card { background: var(--card); border-radius: 12px; padding: 14px 16px; margin-top: 10px; }
+  .card-label { font-size: 13px; color: var(--muted); }
+  .big { font-size: 34px; font-weight: 700; line-height: 1.15; margin-top: 2px; }
+  .two { display: flex; justify-content: space-between; gap: 12px; }
+  .two > div:last-child { text-align: right; }
+  .good { color: var(--green); }
+  .neg { color: var(--red); }
+  .apps { display: flex; gap: 12px; margin-top: 8px; }
+  .app { flex: 1; min-width: 0; }
+  .app-name { font-size: 13px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .app-val { font-size: 16px; font-weight: 700; white-space: nowrap; }
+  .bar { height: 6px; border-radius: 3px; background: var(--line); margin-top: 6px; overflow: hidden; }
+  .bar > span { display: block; height: 6px; border-radius: 3px; background: var(--blue); }
+  .section { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 6px; }
+  .section-label { font-size: 13px; color: var(--muted); margin: 22px 0 10px; font-weight: 700; }
+  .meta { font-size: 13px; color: var(--muted); }
+  .empty { text-align: center; color: var(--muted); padding: 40px 16px; font-size: 15px; }
+
+  /* Home step cards */
+  .step-card { display: flex; align-items: center; gap: 4px; background: var(--card); border-radius: 12px; padding: 6px 12px 6px 6px; margin-bottom: 8px; }
+  .step-open {
+    flex: 1; min-width: 0; min-height: 56px; display: flex; align-items: center; gap: 12px; text-align: left;
+    background: none; border: 0; color: var(--text); padding: 0 0 0 6px;
+  }
+  .tile { width: 40px; height: 40px; border-radius: 10px; background: var(--bg); color: var(--fg); display: flex; align-items: center; justify-content: center; flex: none; }
+  .step-title { font-size: 16px; font-weight: 700; }
+  .step-sub { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .step-text { min-width: 0; }
+  .add-pill { min-height: 44px; padding: 0 18px; border: 0; border-radius: 22px; background: var(--bg); color: var(--fg); font-size: 16px; font-weight: 700; flex: none; }
+
+  /* Step bar */
+  .steps { display: flex; margin: 8px 0 0; }
   .step {
-    flex: 1; min-width: 0; border: 0; margin-left: -10px; padding: 9px 0 8px;
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
-    background: #e6e9ee; color: #555; font-size: 12px; font-weight: 600;
+    flex: 1; min-width: 0; min-height: 52px; border: 0; margin-left: -10px; padding: 0;
+    background: var(--card2); color: var(--muted); font-size: 12px; font-weight: 700;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
     clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
   }
   .step:first-child {
-    margin-left: 0; border-radius: 8px 0 0 8px;
+    margin-left: 0; border-radius: 10px 0 0 10px;
     clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
   }
-  .step:last-child {
-    border-radius: 0 8px 8px 0;
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%);
-  }
-  .step.done { background: #bcd6ff; color: #0a3d8f; }
-  .step.on { background: #0a6cff; color: #fff; }
-  .step .count { font-size: 17px; font-weight: 700; line-height: 1; }
+  .step:last-child { border-radius: 0 10px 10px 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%); }
+  .step .count { font-size: 17px; line-height: 1; color: var(--fg); }
+  .step.on { background: var(--solid); color: #0B1220; }
+  .step.on .count { color: #0B1220; }
 
+  .search-wrap { margin-top: 12px; }
+  .filters { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 14px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .filters { margin: 12px 0; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
   .chip {
-    border: 1px solid #ccc; border-radius: 16px; background: #fff; color: #333;
-    padding: 6px 12px; font-size: 14px; white-space: nowrap;
+    min-height: 44px; padding: 0 16px; border: 1.5px solid transparent; border-radius: 22px;
+    background: var(--card); color: var(--soft); font-size: 15px; font-weight: 500; white-space: nowrap;
   }
-  .chip.on { background: #0a6cff; border-color: #0a6cff; color: #fff; }
-  .row { padding: 12px 0; border-top: 1px solid #ddd; }
-  .row-top { display: flex; justify-content: space-between; gap: 12px; }
-  .name { font-size: 17px; font-weight: 600; }
-  .meta { font-size: 13px; color: #666; margin-top: 2px; }
-  .info { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 4px; }
-  .info .meta { margin-top: 0; }
-  .info .profit { margin-left: auto; }
-  .profit { font-size: 17px; font-weight: 700; color: #0a7a3d; white-space: nowrap; }
-  .neg { color: #b3261e; }
-  .pill { font-size: 12px; font-weight: 600; background: #eef4ff; color: #0757c9; border-radius: 10px; padding: 2px 8px; }
-  .card-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
-  .loc-btn {
-    flex: 1; min-width: 0; min-height: 44px; text-align: left; background: none; border: 0; padding: 0;
-    color: #0757c9; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .loc-btn.grab { background: #fff6e0; color: #111; border-radius: 8px; padding: 0 10px; font-weight: 400; }
-  .move {
-    flex: none; background: #eef4ff; color: #0757c9; border: 0; min-height: 44px;
-    border-radius: 8px; padding: 6px 14px; font-size: 14px; font-weight: 600;
-  }
-  .empty { text-align: center; color: #666; padding: 48px 16px; font-size: 15px; }
-  .error { color: #c00; font-size: 14px; margin-top: 12px; min-height: 1em; }
-  .actions { display: flex; gap: 12px; margin-top: 20px; }
-  .primary { background: #0a6cff; color: #fff; border: 0; border-radius: 8px; padding: 12px 20px; font-size: 17px; font-weight: 600; flex: 1; min-height: 48px; }
-  .secondary { background: #eee; color: #111; border: 0; border-radius: 8px; padding: 12px 20px; font-size: 17px; min-height: 48px; }
+  .filters .chip { min-height: 40px; padding: 0 14px; font-size: 14px; flex: none; }
+  .chip.on { border-color: var(--blue); background: var(--blue-bg); color: var(--blue-text); font-weight: 700; }
+  .chip.new { border: 1.5px dashed #3A4460; background: none; color: #8FBBFF; font-weight: 700; }
+
+  /* Item rows */
+  .item { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 12px; padding: 8px; margin-bottom: 8px; }
+  .thumb { width: 48px; height: 48px; border-radius: 10px; background: var(--bg); color: var(--fg); display: flex; align-items: center; justify-content: center; flex: none; overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .item-main { flex: 1; min-width: 0; min-height: 48px; text-align: left; background: none; border: 0; color: var(--text); padding: 0; display: block; font: inherit; }
+  .item-name { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-meta { font-size: 13px; color: var(--soft); margin-top: 1px; line-height: 1.5; }
+  .item-meta .loc { color: var(--blue-text); }
+  .item-meta .dim { color: var(--muted); }
+  .pill { font-size: 12px; font-weight: 700; background: var(--bg); color: var(--fg); border-radius: 8px; padding: 1px 7px; margin-right: 6px; }
+  .amt { font-size: 16px; font-weight: 700; flex: none; white-space: nowrap; margin-right: 4px; }
+  .next { width: 44px; height: 44px; border: 0; border-radius: 22px; background: var(--line); color: var(--fg); display: flex; align-items: center; justify-content: center; flex: none; }
 
   /* Places */
   .place-row {
     display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
-    text-align: left; background: none; border: 0; border-top: 1px solid #ddd; color: #111;
-    min-height: 60px; padding: 10px 0;
+    text-align: left; background: var(--card); border: 0; border-radius: 12px; color: var(--text);
+    min-height: 60px; padding: 8px 16px; margin-bottom: 8px;
   }
-  .place-name { font-size: 17px; font-weight: 600; }
-  .chev { color: #0a6cff; font-size: 24px; line-height: 1; }
-  #places-view .meta, #place-view .meta { margin-bottom: 12px; }
+  .place-name { font-size: 16px; font-weight: 700; }
+  .chev { color: var(--blue); font-size: 24px; line-height: 1; }
 
-  /* Summary */
-  .card { background: #f4f6f9; border-radius: 12px; padding: 16px; margin-top: 12px; }
-  .card-label { font-size: 13px; color: #555; }
-  .card-big { font-size: 44px; font-weight: 700; line-height: 1.15; margin-top: 4px; }
-  .card-mid { font-size: 36px; font-weight: 700; line-height: 1.15; margin-top: 4px; }
-  .good { color: #0a7a3d; }
-  .section-label { font-size: 13px; color: #555; margin: 24px 0 6px; }
-  .plat-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    min-height: 60px; border-top: 1px solid #ddd; padding: 8px 0;
-  }
-  .plat-name { font-size: 17px; font-weight: 600; }
+  .plat-row { background: var(--card); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; }
+  .plat-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .plat-name { font-size: 17px; font-weight: 700; }
   .plat-profit { font-size: 17px; font-weight: 700; }
 
-  /* Bottom sheets (location, sale) */
+  /* Add form */
+  .add-top { position: relative; display: flex; align-items: center; justify-content: center; min-height: 48px; }
+  .add-top .round { position: absolute; left: 0; top: 2px; }
+  .stage-pick { position: relative; display: flex; align-items: center; gap: 6px; color: var(--blue); font-size: 18px; font-weight: 700; margin: 0; }
+  .stage-pick { min-height: 44px; }
+  .stage-pick select {
+    position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px;
+    -webkit-appearance: none; appearance: none; border: 0; background: none;
+  }
+  .stage-pick:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 8px; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .add-main { display: flex; gap: 12px; align-items: stretch; margin-top: 16px; }
+  .photo-tile {
+    width: 112px; flex: none; min-height: 140px; border: 1.5px dashed #3A4460; border-radius: 12px; background: var(--card);
+    color: #8FBBFF; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    font-size: 14px; font-weight: 700; overflow: hidden; padding: 0;
+  }
+  .photo-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .fields { flex: 1; min-width: 0; }
+  .fields label + input { margin-bottom: 12px; }
+  .group { margin-top: 20px; }
+  .soon {
+    width: 100%; min-height: 52px; border: 1.5px dashed #3A4460; border-radius: 12px; background: none; color: #8A94AB;
+    font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 22px;
+  }
+  .error { color: var(--red); font-size: 14px; margin-top: 12px; min-height: 1em; }
+  .note { color: var(--green); font-size: 14px; margin-top: 12px; }
+  .save-bar { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .primary { background: var(--blue); color: #0B1220; border: 0; border-radius: 28px; font-size: 17px; font-weight: 700; min-height: 56px; }
+  .secondary { background: var(--card); color: #8FBBFF; border: 0; border-radius: 24px; font-size: 16px; font-weight: 700; min-height: 48px; }
+  .actions { display: flex; gap: 12px; margin-top: 20px; }
+  .actions .primary, .actions .secondary { flex: 1; }
+
+  /* Bottom sheets (place, sale) */
   .sheet-wrap {
-    position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 10;
-    display: flex; align-items: flex-end; background: rgba(17, 17, 17, 0.45);
+    position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 20;
+    display: flex; align-items: flex-end; background: rgba(0, 0, 0, 0.6);
   }
   .sheet {
-    width: 100%; max-width: 600px; margin: 0 auto; background: #fff; max-height: 100%; overflow-y: auto;
-    border-radius: 16px 16px 0 0; padding: 24px 16px calc(24px + env(safe-area-inset-bottom));
+    width: 100%; max-width: 600px; margin: 0 auto; background: #1B2030; max-height: 100%; overflow-y: auto;
+    border-radius: 20px 20px 0 0; padding: 24px 16px calc(24px + env(safe-area-inset-bottom));
   }
+  .sheet input[type=text], .sheet input[type=number] { background: var(--bg); }
+  .sheet .chip { background: var(--bg); }
+  .sheet .chip.on { background: var(--blue-bg); }
+  .sheet .secondary { background: var(--bg); }
+  .sheet-name { font-size: 17px; font-weight: 700; margin-top: 12px; }
+  .sheet label { margin-top: 16px; }
   .profit-box {
     display: flex; align-items: baseline; justify-content: space-between; margin-top: 18px;
-    padding: 14px 16px; background: #f0f8f3; border-radius: 10px; font-size: 15px;
+    padding: 14px 16px; background: var(--bg); border-radius: 12px; font-size: 15px;
   }
   .profit-box strong { font-size: 28px; }
 
-  /* Bottom tab bar */
-  .tabbar {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex;
-    background: #fff; border-top: 1px solid #ddd; padding-bottom: env(safe-area-inset-bottom);
+  /* Floating bar and add button */
+  .dock {
+    position: fixed; left: 0; right: 0; bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 10;
+    max-width: 600px; margin: 0 auto; padding: 0 16px; display: flex; justify-content: space-between; gap: 12px;
+    pointer-events: none;
+  }
+  .pill-nav {
+    pointer-events: auto; flex: 1; max-width: 300px; height: 68px; padding: 6px; display: flex; gap: 4px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 34px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   }
   .tab {
-    flex: 1; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px; background: none; border: 0; color: #555; font-size: 12px; font-weight: 600;
+    flex: 1; border: 0; border-radius: 28px; background: none; color: var(--muted);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; font-weight: 700;
   }
-  .tab.on { color: #0a6cff; }
+  .tab.on { background: #2A3350; color: var(--text); }
+  .fab {
+    pointer-events: auto; width: 68px; height: 68px; border: 0; border-radius: 34px; background: var(--blue); color: #0B1220;
+    display: flex; align-items: center; justify-content: center; flex: none; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  }
 </style>
 </head>
 <body>
 
-<main id="list-view" class="has-tabs">
+<main id="home-view" class="has-dock">
+  <header><h1>Stockroom</h1></header>
+  <div id="home-summary"></div>
+  <div class="section">
+    <h2>Steps</h2>
+    <button class="link" id="view-all" type="button">View all items</button>
+  </div>
+  <div id="home-steps"></div>
+</main>
+
+<main id="list-view" class="has-dock" hidden>
   <header>
-    <h1>Stockroom</h1>
-    <button class="link" id="add-btn" type="button">+ Add</button>
+    <button class="round" id="list-back" type="button" aria-label="Back to home"></button>
+    <h1 id="list-title">All items</h1>
   </header>
-  <nav class="steps" id="steps" aria-label="Stages"></nav>
-  <input type="search" id="search" placeholder="Search this stage" autocomplete="off">
-  <div class="chips filters" id="filters"></div>
+  <nav class="steps" id="steps" aria-label="Steps"></nav>
+  <div class="search-wrap">
+    <label for="search" style="position:absolute;left:-9999px">Search this step</label>
+    <input type="search" id="search" placeholder="Search this step" autocomplete="off">
+  </div>
+  <div class="filters" id="filters"></div>
   <div id="list"></div>
 </main>
 
 <main id="add-view" hidden>
-  <header>
-    <h1 id="add-title">Add item</h1>
-  </header>
+  <div class="add-top">
+    <button class="round" id="add-back" type="button" aria-label="Back"></button>
+    <label class="stage-pick" for="add-stage"><span id="add-stage-text">Add to</span><select id="add-stage"></select></label>
+  </div>
   <form id="add-form" novalidate>
-    <label for="name">Name</label>
-    <input type="text" id="name" placeholder="e.g. Levi's 501 jeans" autocomplete="off">
+    <div class="add-main">
+      <button type="button" class="photo-tile" id="photo-tile" aria-label="Add a photo"></button>
+      <input type="file" id="photo-input" accept="image/*" hidden>
+      <div class="fields">
+        <label for="name">Item name</label>
+        <input type="text" id="name" placeholder="e.g. Levi's 501 jeans" autocomplete="off">
+        <label for="cost">What you paid</label>
+        <input type="number" id="cost" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
+      </div>
+    </div>
 
-    <label for="cost">Cost (what you paid)</label>
-    <input type="number" id="cost" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
+    <div class="group">
+      <div class="label">Place (optional)</div>
+      <div class="chips" id="place-chips"></div>
+      <div id="new-place-row" hidden style="margin-top:8px">
+        <label for="new-place" style="position:absolute;left:-9999px">New place name</label>
+        <input type="text" id="new-place" placeholder="Name the new place, e.g. Garage shelf" autocomplete="off">
+      </div>
+    </div>
 
-    <label for="loc">Location (optional)</label>
-    <input type="text" id="loc" list="locations" placeholder="e.g. Closet, Tub 3" autocomplete="off">
+    <div class="group">
+      <div class="label">Listed on (optional)</div>
+      <div class="chips" id="platform-chips"></div>
+    </div>
 
-    <div class="label">Listed on (optional)</div>
-    <div class="chips" id="platform-chips"></div>
-
-    <div id="add-sold" hidden>
+    <div id="add-sold" class="group" hidden>
       <label for="add-price">Sold for $</label>
       <input type="number" id="add-price" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
-      <div class="label">Sold on</div>
+      <div class="label" style="margin-top:16px">Sold on</div>
       <div class="chips" id="add-sold-chips"></div>
     </div>
 
+    <button type="button" class="soon" disabled id="shot-btn"></button>
+
+    <div class="note" id="saved-note" role="status" hidden></div>
     <div class="error" id="error" role="alert"></div>
-    <div class="actions">
-      <button type="button" class="secondary" id="cancel-btn">Cancel</button>
+    <div class="save-bar">
       <button type="submit" class="primary">Save</button>
+      <button type="button" class="secondary" id="again-btn">Save and add another</button>
     </div>
   </form>
 </main>
 
-<main id="places-view" class="has-tabs" hidden>
-  <header>
-    <h1>Places</h1>
-  </header>
-  <div class="meta">Items that have shipped are not counted.</div>
+<main id="places-view" class="has-dock" hidden>
+  <header><h1>Places</h1></header>
+  <div class="meta" style="margin-bottom:12px">Items that have shipped are not counted.</div>
   <div id="places-list"></div>
 </main>
 
-<main id="place-view" class="has-tabs" hidden>
+<main id="place-view" class="has-dock" hidden>
   <header>
-    <button class="back" id="place-back" type="button">&lsaquo; Places</button>
+    <button class="round" id="place-back" type="button" aria-label="Back to places"></button>
+    <h1 id="place-title"></h1>
   </header>
-  <h1 id="place-title"></h1>
-  <div class="meta" id="place-sub"></div>
+  <div class="meta" id="place-sub" style="margin-bottom:12px"></div>
   <div id="place-items"></div>
 </main>
 
-<main id="summary-view" class="has-tabs" hidden>
-  <header>
-    <h1>Summary</h1>
-  </header>
+<main id="summary-view" class="has-dock" hidden>
+  <header><h1>Summary</h1></header>
   <div id="summary"></div>
 </main>
 
-<nav class="tabbar" id="tabbar" aria-label="Main">
-  <button class="tab" id="tab-stock" type="button">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4z"></path><path d="M3 12l9 4 9-4"></path><path d="M3 17l9 4 9-4"></path></svg>
-    <span>Inventory</span>
-  </button>
-  <button class="tab" id="tab-places" type="button">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
-    <span>Places</span>
-  </button>
-  <button class="tab" id="tab-summary" type="button">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V10"></path><path d="M12 20V4"></path><path d="M19 20v-7"></path></svg>
-    <span>Summary</span>
-  </button>
-</nav>
+<div class="dock" id="dock">
+  <nav class="pill-nav" aria-label="Main">
+    <button class="tab" id="tab-home" type="button"></button>
+    <button class="tab" id="tab-places" type="button"></button>
+    <button class="tab" id="tab-summary" type="button"></button>
+  </nav>
+  <button class="fab" id="fab" type="button" aria-label="Add item"></button>
+</div>
 
 <datalist id="locations"></datalist>
 
 <div class="sheet-wrap" id="loc-sheet" hidden>
   <form class="sheet" id="sheet-form" role="dialog" aria-modal="true" aria-labelledby="sheet-title" novalidate>
     <h2 id="sheet-title">Where is it?</h2>
-    <div class="meta" id="sheet-item"></div>
-    <label for="sheet-loc">Location (leave empty for none)</label>
+    <div class="meta" id="sheet-item" style="margin-top:4px"></div>
+    <label for="sheet-loc">Place (leave empty for none)</label>
     <input type="text" id="sheet-loc" list="locations" placeholder="e.g. Closet, Tub 3" autocomplete="off">
     <div class="actions">
       <button type="button" class="secondary" id="sheet-cancel">Cancel</button>
@@ -236,11 +350,11 @@
 <div class="sheet-wrap" id="sold-sheet" hidden>
   <form class="sheet" id="sold-form" role="dialog" aria-modal="true" aria-labelledby="sold-title" novalidate>
     <h2 id="sold-title">Mark as sold</h2>
-    <div class="name" id="sold-item" style="margin-top: 12px"></div>
+    <div class="sheet-name" id="sold-item"></div>
     <div class="meta" id="sold-paid"></div>
     <label for="sold-price">Sold for $</label>
     <input type="number" id="sold-price" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
-    <div class="label">Sold on</div>
+    <div class="label" style="margin-top:16px">Sold on</div>
     <div class="chips" id="sold-chips"></div>
     <div class="profit-box">
       <span>Profit</span>
@@ -266,21 +380,49 @@
   var SOLD_AT = 2; // index of the Sold step: this step and later have a sale price
   // The bar at the top: "All" shows every item, each other step shows the items in that step.
   var BAR = [{ id: 'all', label: 'All' }].concat(STAGES.slice(1));
+  var HOME_STEPS = ['list', 'sold', 'packed', 'shipped'];
   var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Vinted', 'Facebook Marketplace', 'Etsy', 'Other'];
-  var VIEWS = ['list-view', 'add-view', 'places-view', 'place-view', 'summary-view'];
+  var VIEWS = ['home-view', 'list-view', 'add-view', 'places-view', 'place-view', 'summary-view'];
   var KEY = 'stockroom.items.v1';
+
+  var ICONS = {
+    camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    tag: '<path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1"/>',
+    sold: '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
+    box: '<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4"/><path d="M12 11v10"/>',
+    truck: '<path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
+    inbox: '<path d="M4 13l2-8h12l2 8v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/>',
+    back: '<path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/>',
+    arrow: '<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>',
+    plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+    home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
+    pin: '<path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+    bars: '<path d="M5 20V10"/><path d="M12 20V4"/><path d="M19 20v-7"/>',
+    phone: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M10 7h4"/>',
+    down: '<path d="M6 9l6 6 6-6"/>'
+  };
+  var STAGE_ICON = { import: 'inbox', list: 'tag', sold: 'sold', packed: 'box', shipped: 'truck' };
 
   var items = load();
   var stage = 'all';       // which bar step is open
   var query = '';
   var filter = null;
-  var selected = [];       // "listed on" apps in the add form
-  var addSoldOn = null;    // "sold on" app in the add form
-  var editing = null;      // item whose location is being changed
+  var currentView = 'home-view';
+  var addOrigin = 'home-view';
+  var add = null;          // state of the add form
+  var editing = null;      // item whose place is being changed
   var selling = null;      // item being marked as sold
   var soldOn = null;       // "sold on" app in the sale sheet
 
   function $(id) { return document.getElementById(id); }
+
+  function icon(name, size, width) {
+    var s = size || 24;
+    var t = document.createElement('span');
+    t.innerHTML = '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' +
+      (width || 2) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[name] + '</svg>';
+    return t.firstChild;
+  }
 
   function stageIndex(id) {
     for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id === id) return i;
@@ -291,6 +433,8 @@
     for (var i = 0; i < BAR.length; i++) if (BAR[i].id === id) return i;
     return 0;
   }
+
+  function stageLabel(id) { return STAGES[stageIndex(id)].label; }
 
   function load() {
     var list;
@@ -314,6 +458,7 @@
       if (typeof i.name !== 'string' || !i.name) i.name = 'Untitled item';
       if (!Array.isArray(i.platforms)) i.platforms = [];
       if (typeof i.location !== 'string') i.location = '';
+      if (typeof i.photo !== 'string') delete i.photo;
       if (!i.sold || typeof i.sold !== 'object' || !isFinite(Number(i.sold.price))) delete i.sold;
       return i;
     });
@@ -330,11 +475,15 @@
 
   function money(n) { return '$' + Number(n).toFixed(2); }
   function costText(i) { return i.cost === null ? 'No cost yet' : money(i.cost); }
-  function countText(n) { return n + (n === 1 ? ' item' : ' items'); }
   function profitText(n) {
     var r = Math.round(n * 100) / 100;
     return (r < 0 ? '-' : '') + '$' + Math.abs(r).toFixed(2);
   }
+  function signedText(n) {
+    var r = Math.round(n * 100) / 100;
+    return (r < 0 ? '-' : '+') + '$' + Math.abs(r).toFixed(2);
+  }
+  function countText(n) { return n + (n === 1 ? ' item' : ' items'); }
   function parseMoney(text) {
     var t = String(text).trim();
     var n = Number(t);
@@ -363,7 +512,9 @@
   }
 
   function chip(label, on, onClick) {
-    return button('chip' + (on ? ' on' : ''), label, onClick);
+    var b = button('chip' + (on ? ' on' : ''), label, onClick);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    return b;
   }
 
   // A row of chips where exactly one can be picked.
@@ -385,10 +536,11 @@
   // ---------- views and tabs ----------
 
   function showView(id) {
+    currentView = id;
     VIEWS.forEach(function (v) { $(v).hidden = (v !== id); });
-    $('tabbar').hidden = (id === 'add-view');
-    var active = (id === 'places-view' || id === 'place-view') ? 'places' : id === 'summary-view' ? 'summary' : 'stock';
-    ['stock', 'places', 'summary'].forEach(function (t) {
+    $('dock').hidden = (id === 'add-view');
+    var active = (id === 'places-view' || id === 'place-view') ? 'places' : id === 'summary-view' ? 'summary' : 'home';
+    ['home', 'places', 'summary'].forEach(function (t) {
       var b = $('tab-' + t);
       b.classList.toggle('on', t === active);
       if (t === active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
@@ -396,7 +548,7 @@
     window.scrollTo(0, 0);
   }
 
-  // ---------- locations ----------
+  // ---------- places (names) ----------
 
   // Every place name used so far, one spelling per name.
   function allLocations() {
@@ -450,7 +602,7 @@
       return;
     }
     closeSheet();
-    render();
+    refresh();
   }
 
   // ---------- sale sheet ----------
@@ -501,10 +653,110 @@
       return;
     }
     closeSoldSheet();
-    render();
+    refresh();
   }
 
-  // ---------- stage list ----------
+  // ---------- numbers shared by Home and Summary ----------
+
+  function stats() {
+    var total = 0, counted = 0, skipped = 0;
+    var byApp = new Map();
+    items.forEach(function (i) {
+      if (stageIndex(i.stage) < SOLD_AT) return;
+      var p = profitOf(i);
+      if (p === null) { skipped++; return; }
+      total += p;
+      counted++;
+      var app = i.sold.platform || 'Unknown app';
+      byApp.set(app, (byApp.get(app) || 0) + p);
+    });
+    var tied = 0;
+    items.forEach(function (i) {
+      if ((i.stage === 'import' || i.stage === 'list') && i.cost !== null) tied += i.cost;
+    });
+    var apps = Array.from(byApp.keys()).sort(function (a, b) { return byApp.get(b) - byApp.get(a); })
+      .map(function (a) { return { name: a, profit: byApp.get(a) }; });
+    return { total: total, counted: counted, skipped: skipped, tied: tied, apps: apps };
+  }
+
+  function barWidth(profit, max) {
+    return (max > 0 && profit > 0 ? Math.max(4, Math.round(profit / max * 100)) : 0) + '%';
+  }
+
+  function bigCard(s) {
+    var card = el('div', 'card two');
+    var a = el('div');
+    a.appendChild(el('div', 'card-label', 'Total profit'));
+    a.appendChild(el('div', 'big ' + (s.total < 0 ? 'neg' : 'good'), profitText(s.total)));
+    var b = el('div');
+    b.appendChild(el('div', 'card-label', 'Tied up in unsold'));
+    b.appendChild(el('div', 'big', money(s.tied)));
+    card.appendChild(a);
+    card.appendChild(b);
+    return card;
+  }
+
+  // ---------- home ----------
+
+  function renderHome() {
+    var s = stats();
+    var box = $('home-summary');
+    box.replaceChildren();
+    box.appendChild(bigCard(s));
+
+    var card = el('div', 'card');
+    card.appendChild(el('div', 'card-label', 'Profit by app'));
+    if (s.apps.length === 0) {
+      card.appendChild(el('div', 'meta', 'No sales yet.'));
+      card.lastChild.style.marginTop = '8px';
+    } else {
+      var row = el('div', 'apps');
+      var max = s.apps[0].profit;
+      s.apps.slice(0, 4).forEach(function (a) {
+        var c = el('div', 'app');
+        c.appendChild(el('div', 'app-name', a.name));
+        c.appendChild(el('div', 'app-val', profitText(a.profit)));
+        var bar = el('div', 'bar');
+        var fill = el('span');
+        fill.style.width = barWidth(a.profit, max);
+        bar.appendChild(fill);
+        c.appendChild(bar);
+        row.appendChild(c);
+      });
+      card.appendChild(row);
+    }
+    box.appendChild(card);
+
+    var steps = $('home-steps');
+    steps.replaceChildren();
+    HOME_STEPS.forEach(function (id) {
+      var inStage = items.filter(function (i) { return i.stage === id; });
+      var c = el('div', 'step-card s-' + id);
+      var open = el('button', 'step-open');
+      open.type = 'button';
+      var tile = el('span', 'tile');
+      tile.appendChild(icon(STAGE_ICON[id], 22));
+      open.appendChild(tile);
+      var text = el('span', 'step-text');
+      text.appendChild(el('div', 'step-title', stageLabel(id)));
+      text.appendChild(el('div', 'step-sub', inStage.length === 0 ? 'Nothing here yet'
+        : inStage[0].name + (inStage.length > 1 ? ' and ' + (inStage.length - 1) + ' more' : '')));
+      open.appendChild(text);
+      open.addEventListener('click', function () { stage = id; showList(); });
+      c.appendChild(open);
+      var addBtn = button('add-pill', 'Add', function () { showAdd(id); });
+      addBtn.setAttribute('aria-label', 'Add an item to ' + stageLabel(id));
+      c.appendChild(addBtn);
+      steps.appendChild(c);
+    });
+  }
+
+  function showHome() {
+    renderHome();
+    showView('home-view');
+  }
+
+  // ---------- step list ----------
 
   function renderSteps() {
     var box = $('steps');
@@ -512,15 +764,14 @@
     var current = barIndex(stage);
     BAR.forEach(function (s, idx) {
       var count = s.id === 'all' ? items.length : items.filter(function (i) { return i.stage === s.id; }).length;
-      var cls = 'step' + (idx === current ? ' on' : idx < current ? ' done' : '');
-      var b = el('button', cls);
+      var b = el('button', 'step s-' + s.id + (idx === current ? ' on' : ''));
       b.type = 'button';
       b.appendChild(el('span', 'count', String(count)));
       b.appendChild(el('span', '', s.label));
       if (idx === current) b.setAttribute('aria-current', 'step');
       b.addEventListener('click', function () {
         stage = s.id;
-        render();
+        showList();
       });
       box.appendChild(b);
     });
@@ -549,22 +800,74 @@
       alert('Could not save on this device. Is private browsing on?');
       return;
     }
-    render();
+    refresh();
   }
 
-  // One tappable line for "where is it": "Grab from: Closet" on sold items, "In Closet" otherwise.
-  function locationButton(i) {
-    var grab = i.stage === 'sold';
-    var b = el('button', 'loc-btn' + (grab ? ' grab' : ''));
-    b.type = 'button';
-    if (grab) {
-      b.appendChild(document.createTextNode('Grab from: '));
-      b.appendChild(el('strong', '', i.location || 'not set'));
-    } else {
-      b.textContent = i.location ? 'In ' + i.location : 'Set location';
+  function metaLine(i, showPill) {
+    var line = el('div', 'item-meta');
+    var first = true;
+    function part(node) {
+      if (!first) line.appendChild(document.createTextNode(' · '));
+      line.appendChild(node);
+      first = false;
     }
-    b.addEventListener('click', function () { openSheet(i); });
-    return b;
+    if (showPill) {
+      var pill = el('span', 'pill', stageLabel(i.stage));
+      line.appendChild(pill);
+    }
+    if (i.stage !== 'import' || i.platforms.length) {
+      if (i.stage === 'sold' || i.stage === 'packed' || i.stage === 'shipped') {
+        part(el('span', '', (i.sold && i.sold.platform) || 'App not saved'));
+      } else {
+        part(el('span', i.platforms.length ? '' : 'dim', i.platforms.length ? i.platforms.join(', ') : 'No app yet'));
+      }
+    }
+    if (i.stage !== 'shipped') {
+      part(el('span', i.location ? 'loc' : 'dim', i.location ? i.location : 'No place'));
+    }
+    return line;
+  }
+
+  function itemRow(i, opts) {
+    var row = el('div', 'item s-' + i.stage);
+    var thumb = el('div', 'thumb');
+    if (i.photo) {
+      var img = document.createElement('img');
+      img.src = i.photo;
+      img.alt = '';
+      thumb.appendChild(img);
+    } else {
+      thumb.appendChild(icon('camera', 20));
+    }
+    row.appendChild(thumb);
+
+    var canEditPlace = !opts.readOnly && i.stage !== 'shipped'; // shipped items have left, so no place
+    var main = canEditPlace ? el('button', 'item-main') : el('div', 'item-main');
+    if (canEditPlace) {
+      main.type = 'button';
+      main.setAttribute('aria-label', i.name + ': change place');
+      main.addEventListener('click', function () { openSheet(i); });
+    }
+    main.appendChild(el('div', 'item-name', i.name));
+    main.appendChild(metaLine(i, opts.pill));
+    row.appendChild(main);
+
+    var p = profitOf(i);
+    var amt = i.sold
+      ? el('div', 'amt ' + (p === null ? '' : p < 0 ? 'neg' : 'good'), p === null ? money(i.sold.price) : signedText(p))
+      : el('div', 'amt', i.cost === null ? 'No cost' : money(i.cost));
+    row.appendChild(amt);
+
+    var next = STAGES[stageIndex(i.stage) + 1];
+    if (next && !opts.readOnly) {
+      var nb = el('button', 'next s-' + next.id);
+      nb.type = 'button';
+      nb.setAttribute('aria-label', 'Move ' + i.name + ' to ' + next.label);
+      nb.appendChild(icon('arrow', 22));
+      nb.addEventListener('click', function () { moveForward(i); });
+      row.appendChild(nb);
+    }
+    return row;
   }
 
   function renderList() {
@@ -572,58 +875,35 @@
     var inView = stage === 'all' ? items : items.filter(function (i) { return i.stage === stage; });
     var visible = inView.filter(function (i) {
       return (!q || i.name.toLowerCase().indexOf(q) !== -1) &&
-        (!filter || i.platforms.indexOf(filter) !== -1);
+        (!filter || i.platforms.indexOf(filter) !== -1 || (i.sold && i.sold.platform === filter));
     });
     var box = $('list');
     box.replaceChildren();
     if (visible.length === 0) {
       box.appendChild(el('div', 'empty',
         inView.length > 0 ? 'No items match your search or filter.'
-          : stage === 'all' ? 'No items yet. Tap + Add to put your first one here.'
-          : 'Nothing in ' + BAR[barIndex(stage)].label + ' yet. Tap + Add to put an item here.'));
+          : stage === 'all' ? 'No items yet. Tap the + button to put your first one here.'
+          : 'Nothing in ' + BAR[barIndex(stage)].label + ' yet. Tap the + button to put an item here.'));
       return;
     }
     visible.forEach(function (i) {
-      var row = el('div', 'row');
-      var top = el('div', 'row-top');
-      top.appendChild(el('div', 'name', i.name));
-      top.appendChild(el('div', '', i.sold ? money(i.sold.price) : costText(i)));
-      row.appendChild(top);
-
-      var info = el('div', 'info');
-      if (stage === 'all') info.appendChild(el('span', 'pill', STAGES[stageIndex(i.stage)].label));
-      if (i.sold) {
-        info.appendChild(el('span', 'meta',
-          (i.cost === null ? 'No cost saved' : 'Paid ' + money(i.cost)) + ' \u00b7 sold on ' + (i.sold.platform || 'an unknown app')));
-        var p = profitOf(i);
-        if (p !== null) info.appendChild(el('span', 'profit' + (p < 0 ? ' neg' : ''), 'Profit ' + profitText(p)));
-      } else if (i.platforms.length) {
-        info.appendChild(el('span', 'meta', i.platforms.join(', ')));
-      } else if (i.stage !== 'import') {
-        info.appendChild(el('span', 'meta', 'No app yet'));
-      }
-      row.appendChild(info);
-
-      var next = STAGES[stageIndex(i.stage) + 1];
-      var here = i.stage !== 'shipped'; // shipped items have left, so no location
-      if (here || next) {
-        var actions = el('div', 'card-actions');
-        actions.appendChild(here ? locationButton(i) : el('span'));
-        if (next) actions.appendChild(button('move', 'Move to ' + next.label + ' \u2192', function () { moveForward(i); }));
-        row.appendChild(actions);
-      }
-      box.appendChild(row);
+      box.appendChild(itemRow(i, { pill: stage === 'all' }));
     });
   }
 
-  function render() {
+  function showList() {
+    $('list-title').textContent = stage === 'all' ? 'All items' : stageLabel(stage);
     renderSteps();
     renderList();
+    showView('list-view');
   }
 
-  function showList() {
-    showView('list-view');
-    render();
+  // Redraw whatever screen is open (after a move or a place change).
+  function refresh() {
+    if (currentView === 'list-view') { renderSteps(); renderList(); }
+    else if (currentView === 'home-view') renderHome();
+    else if (currentView === 'places-view') renderPlaces();
+    else if (currentView === 'summary-view') renderSummary();
   }
 
   // ---------- places ----------
@@ -658,14 +938,14 @@
     var box = $('places-list');
     box.replaceChildren();
     if (g.names.length === 0 && g.none.length === 0) {
-      box.appendChild(el('div', 'empty', 'Nothing is stored anywhere yet. Add a location when you add an item.'));
+      box.appendChild(el('div', 'empty', 'Nothing is stored anywhere yet. Add a place when you add an item.'));
       return;
     }
     g.names.forEach(function (n) {
       box.appendChild(placeRow(n, g.map.get(n).length, function () { showPlace(n); }));
     });
     if (g.none.length) {
-      box.appendChild(placeRow('No location', g.none.length, function () { showPlace(''); }));
+      box.appendChild(placeRow('No place', g.none.length, function () { showPlace(''); }));
     }
   }
 
@@ -677,7 +957,7 @@
   function showPlace(name) {
     var g = groupByPlace();
     var here = name === '' ? g.none : (g.map.get(name) || []);
-    $('place-title').textContent = name === '' ? 'No location' : name;
+    $('place-title').textContent = name === '' ? 'No place' : name;
     $('place-sub').textContent = countText(here.length);
     var box = $('place-items');
     box.replaceChildren();
@@ -685,72 +965,41 @@
       box.appendChild(el('div', 'empty', 'Nothing here right now.'));
     }
     here.forEach(function (i) {
-      var row = el('div', 'row');
-      var top = el('div', 'row-top');
-      top.appendChild(el('div', 'name', i.name));
-      top.appendChild(el('div', '', costText(i)));
-      row.appendChild(top);
-      row.appendChild(el('div', 'meta',
-        STAGES[stageIndex(i.stage)].label + (i.platforms.length ? ' · ' + i.platforms.join(', ') : '')));
-      box.appendChild(row);
+      box.appendChild(itemRow(i, { pill: true, readOnly: true }));
     });
     showView('place-view');
   }
 
   // ---------- summary ----------
 
-  function summaryCard(label, bigClass, value, sub) {
-    var c = el('div', 'card');
-    c.appendChild(el('div', 'card-label', label));
-    c.appendChild(el('div', bigClass, value));
-    c.appendChild(el('div', 'meta', sub));
-    return c;
-  }
-
   function renderSummary() {
-    var total = 0, counted = 0, skipped = 0;
-    var byApp = new Map();
-    items.forEach(function (i) {
-      if (stageIndex(i.stage) < SOLD_AT) return;
-      var p = profitOf(i);
-      if (p === null) { skipped++; return; }
-      total += p;
-      counted++;
-      var app = i.sold.platform || 'Unknown app';
-      var e = byApp.get(app) || { n: 0, profit: 0 };
-      e.n++;
-      e.profit += p;
-      byApp.set(app, e);
-    });
-    var tied = 0, tiedN = 0;
-    items.forEach(function (i) {
-      if ((i.stage === 'import' || i.stage === 'list') && i.cost !== null) { tied += i.cost; tiedN++; }
-    });
-
+    var s = stats();
     var box = $('summary');
     box.replaceChildren();
-    box.appendChild(summaryCard('Total profit', 'card-big ' + (total < 0 ? 'neg' : 'good'),
-      profitText(total), 'From ' + countText(counted) + ' sold'));
-    box.appendChild(summaryCard('Money tied up in unsold items', 'card-mid', money(tied),
-      countText(tiedN) + ' not sold yet'));
+    box.appendChild(bigCard(s));
 
     box.appendChild(el('div', 'section-label', 'Profit by app'));
-    var apps = Array.from(byApp.keys()).sort(function (a, b) { return byApp.get(b).profit - byApp.get(a).profit; });
-    if (apps.length === 0) {
+    if (s.apps.length === 0) {
       box.appendChild(el('div', 'empty', 'No sales yet. Move an item to Sold to see profit for each app.'));
     }
-    apps.forEach(function (app) {
-      var e = byApp.get(app);
+    var max = s.apps.length ? s.apps[0].profit : 0;
+    s.apps.forEach(function (a) {
       var row = el('div', 'plat-row');
-      var left = el('div');
-      left.appendChild(el('div', 'plat-name', app));
-      left.appendChild(el('div', 'meta', e.n + ' sold'));
-      row.appendChild(left);
-      row.appendChild(el('div', 'plat-profit ' + (e.profit < 0 ? 'neg' : 'good'), profitText(e.profit)));
+      var top = el('div', 'plat-top');
+      top.appendChild(el('div', 'plat-name', a.name));
+      top.appendChild(el('div', 'plat-profit ' + (a.profit < 0 ? 'neg' : 'good'), profitText(a.profit)));
+      row.appendChild(top);
+      var bar = el('div', 'bar');
+      bar.style.height = '8px';
+      var fill = el('span');
+      fill.style.height = '8px';
+      fill.style.width = barWidth(a.profit, max);
+      bar.appendChild(fill);
+      row.appendChild(bar);
       box.appendChild(row);
     });
-    if (skipped) {
-      box.appendChild(el('div', 'meta', countText(skipped) + ' sold but not counted: the sale price or the cost is missing.'));
+    if (s.skipped) {
+      box.appendChild(el('div', 'meta', countText(s.skipped) + ' sold but not counted: the sale price or the cost is missing.'));
     }
   }
 
@@ -761,82 +1010,242 @@
 
   // ---------- add item ----------
 
+  function renderPhotoTile() {
+    var tile = $('photo-tile');
+    tile.replaceChildren();
+    if (add.photo) {
+      var img = document.createElement('img');
+      img.src = add.photo;
+      img.alt = 'Photo of the item';
+      tile.appendChild(img);
+      tile.setAttribute('aria-label', 'Change the photo');
+    } else {
+      tile.appendChild(icon('camera', 30));
+      tile.appendChild(el('span', '', 'Add photo'));
+      tile.setAttribute('aria-label', 'Add a photo');
+    }
+  }
+
+  function renderPlaceChips() {
+    var box = $('place-chips');
+    box.replaceChildren();
+    allLocations().forEach(function (l) {
+      var on = add.loc !== '' && add.loc.toLowerCase() === l.toLowerCase();
+      box.appendChild(chip(l, on, function () {
+        add.loc = on ? '' : l;
+        $('new-place').value = '';
+        renderPlaceChips();
+      }));
+    });
+    var np = button('chip new', '+ New place', function () {
+      add.newPlace = true;
+      $('new-place-row').hidden = false;
+      $('new-place').focus();
+    });
+    box.appendChild(np);
+  }
+
   function renderPlatformChips() {
     var box = $('platform-chips');
     box.replaceChildren();
     PLATFORMS.forEach(function (p) {
-      var on = selected.indexOf(p) !== -1;
+      var on = add.selected.indexOf(p) !== -1;
       box.appendChild(chip(p, on, function () {
-        selected = on ? selected.filter(function (x) { return x !== p; }) : selected.concat(p);
+        add.selected = on ? add.selected.filter(function (x) { return x !== p; }) : add.selected.concat(p);
         renderPlatformChips();
       }));
     });
   }
 
-  // New items start as "not listed" when added from All, otherwise in the open step.
-  function addStage() { return stage === 'all' ? 'import' : stage; }
+  function updateStageText() {
+    $('add-stage-text').textContent = 'Add to ' + stageLabel(add.stage);
+  }
 
-  function showAdd() {
-    var alreadySold = addStage() !== 'import' && stageIndex(addStage()) >= SOLD_AT;
-    $('add-title').textContent = stage === 'all' ? 'Add item' : 'Add to ' + BAR[barIndex(stage)].label;
+  function updateSoldFields() {
+    var sold = stageIndex(add.stage) >= SOLD_AT;
+    $('add-sold').hidden = !sold;
+    if (sold) renderPickChips($('add-sold-chips'), PLATFORMS, add.soldOn, function (p) { add.soldOn = p; });
+  }
+
+  // Open the form. A new item goes in the given step (or "Not listed" when none is given).
+  function showAdd(stageId) {
+    addOrigin = currentView === 'add-view' ? addOrigin : currentView;
+    var s = stageId || (currentView === 'list-view' && stage !== 'all' ? stage : 'import');
+    add = { stage: s, selected: [], loc: '', newPlace: false, photo: null, soldOn: null };
+    $('add-stage').value = s;
+    updateStageText();
     $('name').value = '';
     $('cost').value = '';
-    $('loc').value = '';
+    $('new-place').value = '';
     $('add-price').value = '';
     $('error').textContent = '';
-    selected = [];
-    addSoldOn = null;
-    $('add-sold').hidden = !alreadySold;
-    if (alreadySold) renderPickChips($('add-sold-chips'), PLATFORMS, null, function (p) { addSoldOn = p; });
-    fillLocationOptions();
+    $('saved-note').hidden = true;
+    var noPlaces = allLocations().length === 0;
+    add.newPlace = noPlaces;
+    $('new-place-row').hidden = !noPlaces;
+    renderPhotoTile();
+    renderPlaceChips();
     renderPlatformChips();
+    updateSoldFields();
     showView('add-view');
     $('name').focus();
   }
 
-  function submit(e) {
-    e.preventDefault();
+  function leaveAdd() {
+    add = null;
+    if (addOrigin === 'list-view') showList();
+    else if (addOrigin === 'places-view' || addOrigin === 'place-view') showPlaces();
+    else if (addOrigin === 'summary-view') showSummary();
+    else showHome();
+  }
+
+  // Shrink the photo so many photos fit in the phone's saved data.
+  function readPhoto(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var scale = Math.min(1, 360 / Math.max(img.width, img.height));
+          var c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(img.width * scale));
+          c.height = Math.max(1, Math.round(img.height * scale));
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL('image/jpeg', 0.72));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function onPhotoPicked(e) {
+    var file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    readPhoto(file).then(function (data) {
+      if (!add) return;
+      add.photo = data;
+      renderPhotoTile();
+    }, function () {
+      $('error').textContent = 'That photo could not be read. Try another one.';
+    });
+  }
+
+  // Returns true when the item was saved.
+  function submit() {
     var name = $('name').value.trim();
     var costText = $('cost').value.trim();
     var cost = Number(costText);
-    var alreadySold = stageIndex(addStage()) >= SOLD_AT;
+    var sold = stageIndex(add.stage) >= SOLD_AT;
     var price = parseMoney($('add-price').value);
     var err = $('error');
+    err.textContent = '';
 
-    if (!name) { err.textContent = 'Enter what the item is.'; return; }
+    if (!name) { err.textContent = 'Enter what the item is.'; return false; }
     if (costText === '' || !isFinite(cost) || cost < 0) {
       err.textContent = 'Enter what you paid, e.g. 12.50 (0 if it was free).';
-      return;
+      return false;
     }
-    if (alreadySold && price === null) { err.textContent = 'Enter what it sold for, e.g. 40.00.'; return; }
-    if (alreadySold && !addSoldOn) { err.textContent = 'Pick the app it sold on.'; return; }
+    if (sold && price === null) { err.textContent = 'Enter what it sold for, e.g. 40.00.'; return false; }
+    if (sold && !add.soldOn) { err.textContent = 'Pick the app it sold on.'; return false; }
 
+    var typed = $('new-place').value.trim();
     var item = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
       name: name,
       cost: cost,
-      platforms: selected.slice(),
-      location: canonLocation($('loc').value),
-      stage: addStage(),
+      platforms: add.selected.slice(),
+      location: canonLocation(typed || add.loc),
+      stage: add.stage,
       createdAt: Date.now()
     };
-    if (alreadySold) item.sold = { price: price, platform: addSoldOn, fees: 0, shipping: 0, date: Date.now() };
+    if (add.photo) item.photo = add.photo;
+    if (sold) item.sold = { price: price, platform: add.soldOn, fees: 0, shipping: 0, date: Date.now() };
     items.unshift(item);
     if (!save()) {
       items.shift();
-      err.textContent = 'Could not save on this device. Is private browsing on?';
-      return;
+      err.textContent = 'Could not save on this device. It may be out of space or private browsing may be on.';
+      return false;
     }
-    showList();
+    return true;
   }
 
-  $('add-btn').addEventListener('click', showAdd);
-  $('tab-stock').addEventListener('click', showList);
+  function saveAndLeave(e) {
+    e.preventDefault();
+    if (submit()) leaveAdd();
+  }
+
+  // Keeps the place and apps (handy when adding a batch), clears the name, cost and photo.
+  function saveAndAnother() {
+    var name = $('name').value.trim();
+    if (!submit()) return;
+    $('name').value = '';
+    $('cost').value = '';
+    $('add-price').value = '';
+    add.photo = null;
+    add.soldOn = null;
+    // Show a place typed as new as a normal choice from now on.
+    var typed = canonLocation($('new-place').value);
+    if (typed) { add.loc = typed; $('new-place').value = ''; add.newPlace = false; $('new-place-row').hidden = true; }
+    renderPhotoTile();
+    renderPlaceChips();
+    updateSoldFields();
+    var note = $('saved-note');
+    note.textContent = 'Saved ' + name;
+    note.hidden = false;
+    $('name').focus();
+  }
+
+  // ---------- start ----------
+
+  function build() {
+    $('list-back').appendChild(icon('back', 22));
+    $('add-back').appendChild(icon('back', 22));
+    $('place-back').appendChild(icon('back', 22));
+    [['tab-home', 'home', 'Home'], ['tab-places', 'pin', 'Places'], ['tab-summary', 'bars', 'Summary']].forEach(function (t) {
+      var b = $(t[0]);
+      b.appendChild(icon(t[1], 24));
+      b.appendChild(el('span', '', t[2]));
+    });
+    $('fab').appendChild(icon('plus', 32, 2.4));
+    $('shot-btn').appendChild(icon('phone', 20));
+    $('shot-btn').appendChild(document.createTextNode('Fill from a screenshot · coming soon'));
+    $('add-stage').parentNode.appendChild(icon('down', 16, 2.4));
+    STAGES.forEach(function (s) {
+      var o = document.createElement('option');
+      o.value = s.id;
+      o.textContent = s.label;
+      $('add-stage').appendChild(o);
+    });
+  }
+
+  $('view-all').addEventListener('click', function () { stage = 'all'; showList(); });
+  $('list-back').addEventListener('click', showHome);
+  $('tab-home').addEventListener('click', showHome);
   $('tab-places').addEventListener('click', showPlaces);
   $('tab-summary').addEventListener('click', showSummary);
+  $('fab').addEventListener('click', function () { showAdd(); });
   $('place-back').addEventListener('click', showPlaces);
-  $('cancel-btn').addEventListener('click', showList);
-  $('add-form').addEventListener('submit', submit);
+  $('add-back').addEventListener('click', leaveAdd);
+  $('add-form').addEventListener('submit', saveAndLeave);
+  $('again-btn').addEventListener('click', saveAndAnother);
+  $('add-stage').addEventListener('change', function (e) {
+    add.stage = e.target.value;
+    updateStageText();
+    updateSoldFields();
+  });
+  ['name', 'cost', 'add-price'].forEach(function (id) {
+    $(id).addEventListener('input', function () { $('error').textContent = ''; });
+  });
+  $('photo-tile').addEventListener('click', function () { $('photo-input').click(); });
+  $('photo-input').addEventListener('change', onPhotoPicked);
+  $('new-place').addEventListener('input', function () {
+    add.loc = '';
+    renderPlaceChips();
+  });
   $('sheet-form').addEventListener('submit', saveSheet);
   $('sheet-cancel').addEventListener('click', closeSheet);
   $('sold-form').addEventListener('submit', confirmSold);
@@ -847,8 +1256,9 @@
     renderList();
   });
 
+  build();
   renderFilters();
-  showList();
+  showHome();
 })();
 </script>
 </body>
