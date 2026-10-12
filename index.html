@@ -271,7 +271,7 @@
   }
   .swipe-actions .act-edit { background: #243456; color: var(--blue-text); }
   .swipe-actions .act-del { background: #4A1D22; color: var(--red); }
-  .swipe-actions .act-arch { background: #232A3B; color: var(--muted, #8A94AB); }
+  .swipe-actions .act-arch { background: #3B3320; color: #F5C46E; }
   .swipe-actions .act-arch small { font-size: 10px; font-weight: 500; margin-top: -3px; }
   .swipe-right { display: flex; }
   .swipe.edit-open .act-edit, .swipe.del-open .act-del, .swipe.del-open .act-arch, .swipe.drag .swipe-actions button, .swipe-actions button:focus-visible { opacity: 1; }
@@ -296,6 +296,13 @@
     padding: 14px 16px; background: var(--bg); border-radius: 12px; font-size: 15px;
   }
   .profit-box strong { font-size: 28px; }
+
+  .toast {
+    position: fixed; left: 16px; right: 16px; bottom: calc(104px + env(safe-area-inset-bottom)); z-index: 15; max-width: 568px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 10px 10px 16px;
+    background: #2A3350; color: var(--text); border-radius: 14px; font-size: 15px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  }
+  .toast-link { min-height: 40px; padding: 0 16px; border: 0; border-radius: 20px; background: var(--blue); color: #0B1220; font-weight: 700; font-size: 15px; flex: none; }
 
   /* Floating bar and add button */
   .dock {
@@ -455,6 +462,8 @@
   </nav>
   <button class="fab" id="fab" type="button" aria-label="Add item"></button>
 </div>
+
+<div class="toast" id="toast" role="status" hidden></div>
 
 <div class="sheet-wrap" id="del-sheet" hidden>
   <div class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="del-title">
@@ -1397,14 +1406,14 @@
   // ---------- swipe: right to edit, left to delete ----------
 
   var SWIPE_R = 96;   // swipe right reveals Edit
-  var SWIPE_L = 192;  // swipe left reveals Archive and Delete
+  var SWIPE_L = 192;  // swipe left reveals Archive and Delete (just Delete, 96, when the item can't be archived)
 
   function setSwipe(wrap, row, state) {
     wrap.classList.toggle('edit-open', state === 'edit');
     wrap.classList.toggle('del-open', state === 'del');
     row.style.transition = 'transform .2s';
     row.style.transform = state === 'edit' ? 'translateX(' + SWIPE_R + 'px)'
-      : state === 'del' ? 'translateX(-' + SWIPE_L + 'px)' : '';
+      : state === 'del' ? 'translateX(-' + (wrap._left || SWIPE_L) + 'px)' : '';
     wrap._state = state;
     if (state === 'closed') {
       if (openRow && openRow.wrap === wrap) openRow = null;
@@ -1422,7 +1431,7 @@
     var startX = 0, startY = 0, baseX = 0, pid = null;
     var tracking = false, decided = false, horizontal = false, lastX = 0, justSwiped = false;
 
-    function base() { return wrap._state === 'edit' ? SWIPE_R : wrap._state === 'del' ? -SWIPE_L : 0; }
+    function base() { return wrap._state === 'edit' ? SWIPE_R : wrap._state === 'del' ? -(wrap._left || SWIPE_L) : 0; }
 
     row.addEventListener('pointerdown', function (e) {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -1448,7 +1457,7 @@
         row.style.transition = 'none';
         wrap.classList.add('drag');
       }
-      lastX = Math.max(-SWIPE_L, Math.min(SWIPE_R, baseX + dx));
+      lastX = Math.max(-(wrap._left || SWIPE_L), Math.min(SWIPE_R, baseX + dx));
       row.style.transform = 'translateX(' + lastX + 'px)';
     });
 
@@ -1459,7 +1468,7 @@
       if (!horizontal) return;
       justSwiped = true;
       setTimeout(function () { justSwiped = false; }, 60);
-      setSwipe(wrap, row, lastX > SWIPE_R / 2 ? 'edit' : lastX < -SWIPE_L / 2 ? 'del' : 'closed');
+      setSwipe(wrap, row, lastX > SWIPE_R / 2 ? 'edit' : lastX < -(wrap._left || SWIPE_L) / 2 ? 'del' : 'closed');
     }
     row.addEventListener('pointerup', finish);
     row.addEventListener('pointercancel', finish);
@@ -1495,17 +1504,25 @@
     db.addEventListener('focus', function () { setSwipe(wrap, row, 'del'); });
     db.addEventListener('click', function () { closeOpen(); openDelete(item); });
 
-    // Archive is a placeholder for now: it shows up but does nothing yet.
-    var ab = el('button', 'act-arch');
-    ab.type = 'button';
-    ab.disabled = true;
-    ab.setAttribute('aria-label', 'Archive ' + item.name + ' (coming soon)');
-    ab.appendChild(icon('archive', 22));
-    ab.appendChild(el('span', '', 'Archive'));
-    ab.appendChild(el('small', '', 'Coming soon'));
+    // Archive sends an item to Not listed, Archive (and Unarchive brings it back to Draft).
+    // Sold and shipped items can't be archived: that would lose their sale.
+    var canArchive = item.stage === 'import' || item.stage === 'list';
+    var isArch = item.stage === 'import' && item.archived;
+    var ab = null;
+    if (canArchive) {
+      ab = el('button', 'act-arch');
+      ab.type = 'button';
+      ab.setAttribute('aria-label', (isArch ? 'Unarchive ' : 'Archive ') + item.name);
+      ab.appendChild(icon('archive', 22));
+      ab.appendChild(el('span', '', isArch ? 'Unarchive' : 'Archive'));
+      ab.addEventListener('focus', function () { setSwipe(wrap, row, 'del'); });
+      ab.addEventListener('click', function () { closeOpen(); archiveItem(item, !isArch); });
+    } else {
+      wrap._left = SWIPE_R;
+    }
 
     var right = el('div', 'swipe-right');
-    right.appendChild(ab);
+    if (ab) right.appendChild(ab);
     right.appendChild(db);
     actions.appendChild(eb);
     actions.appendChild(right);
@@ -1513,6 +1530,41 @@
     wrap.appendChild(row);
     attachSwipe(wrap, row);
     return wrap;
+  }
+
+  // ---------- archive ----------
+
+  var toastTimer = null;
+
+  function showToast(text, linkText, onLink) {
+    var t = $('toast');
+    t.replaceChildren();
+    t.appendChild(el('span', '', text));
+    if (linkText) {
+      var b = button('toast-link', linkText, function () { t.hidden = true; onLink(); });
+      t.appendChild(b);
+    }
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 5000);
+  }
+
+  function archiveItem(item, archive) {
+    var before = { stage: item.stage, archived: item.archived, sold: item.sold };
+    if (archive) { item.stage = 'import'; item.archived = true; }
+    else { delete item.archived; }
+    if (!save()) {
+      item.stage = before.stage;
+      if (before.archived) item.archived = true; else delete item.archived;
+      alert('Could not save on this device. Is private browsing on?');
+      return;
+    }
+    refresh();
+    showToast(archive ? 'Moved to Not listed › Archive' : 'Moved back to Not listed › Draft', 'View', function () {
+      stage = 'import';
+      subTab = archive ? 'archive' : 'draft';
+      showList();
+    });
   }
 
   function renderSubTabs() {
