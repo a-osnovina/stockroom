@@ -538,7 +538,6 @@
     <button class="round" id="receipt-back" type="button" aria-label="Back to summary"></button>
   </header>
   <h1 id="receipt-title" class="place-h1"></h1>
-  <div class="meta" id="receipt-sub" style="margin-bottom:12px"></div>
   <div id="receipt"></div>
 </main>
 
@@ -870,8 +869,8 @@
   // Sale price minus cost, fees and shipping (fees and shipping are 0 until they are added).
   // Returns null when the sale price or the cost is not known.
   function profitOf(i) {
-    if (!i.sold || i.cost === null) return null;
-    return Number(i.sold.price) - i.cost - Number(i.sold.fees || 0) - Number(i.sold.shipping || 0);
+    if (!i.sold) return null;
+    return Number(i.sold.price) - (i.cost === null ? 0 : i.cost) - Number(i.sold.fees || 0) - Number(i.sold.shipping || 0);
   }
 
   function el(tag, className, text) {
@@ -2373,9 +2372,6 @@
       row.appendChild(bar);
       box.appendChild(row);
     });
-    if (s.skipped) {
-      box.appendChild(el('div', 'meta', countText(s.skipped) + ' sold but not counted: the sale price or the cost is missing.'));
-    }
   }
 
   // ---------- receipt: everything sold on one app ----------
@@ -2394,7 +2390,6 @@
       return stageIndex(i.stage) >= SOLD_AT && i.sold && (i.sold.platform || 'Unknown app') === app;
     });
     $('receipt-title').textContent = app;
-    $('receipt-sub').textContent = countText(sales.length) + ' sold, including shipped';
     var box = $('receipt');
     box.replaceChildren();
     if (sales.length === 0) {
@@ -2402,25 +2397,22 @@
       return;
     }
     var card = el('div', 'receipt');
-    card.appendChild(el('div', 'receipt-head', 'STOCKROOM · ' + app.toUpperCase()));
-    card.appendChild(el('div', 'receipt-rule'));
-    var sold = 0, paid = 0, profit = 0, left = 0;
+    var sold = 0, paid = 0, profit = 0;
     sales.forEach(function (i) {
-      var p = profitOf(i);
+      var p = Number(i.sold.price) - (i.cost === null ? 0 : i.cost) - Number(i.sold.fees || 0) - Number(i.sold.shipping || 0);
       sold += Number(i.sold.price);
       if (i.cost !== null) paid += i.cost;
-      if (p === null) left++; else profit += p;
+      profit += p;
       var line = el('div', 'receipt-line');
       line.appendChild(el('span', 'receipt-name', i.name));
       line.appendChild(el('span', 'receipt-amt', money(i.sold.price)));
       card.appendChild(line);
       var sub = el('div', 'receipt-sub');
       sub.appendChild(document.createTextNode((i.history ? 'Shipped' : i.stage === 'shipped' ? 'Packed' : 'Sold') +
-        ' · ' + (i.cost === null ? 'No cost saved' : 'Paid ' + money(i.cost))));
-      if (p !== null) {
-        sub.appendChild(document.createTextNode(' · '));
-        sub.appendChild(el('span', p < 0 ? 'neg' : 'good', signedText(p)));
-      }
+        (i.sold.date ? ' · ' + new Date(i.sold.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '') +
+        ' · Paid ' + money(i.cost === null ? 0 : i.cost)));
+      sub.appendChild(document.createTextNode(' · '));
+      sub.appendChild(el('span', p < 0 ? 'neg' : 'good', signedText(p)));
       card.appendChild(sub);
     });
     card.appendChild(el('div', 'receipt-rule'));
@@ -2436,7 +2428,6 @@
     card.appendChild(el('div', 'receipt-rule'));
     total('Profit', profitText(profit), profit < 0 ? 'neg' : 'good', true);
     box.appendChild(card);
-    if (left) box.appendChild(el('div', 'meta', countText(left) + ' left out of the profit: no cost saved.'));
   }
 
   function showSummary() {
