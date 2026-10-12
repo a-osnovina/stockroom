@@ -19,7 +19,7 @@ and a round **+** button to add an item from anywhere.
 - The arrow button moves an item to the next step. Moving an item to Sold asks what it sold for and which app it sold on, and shows the profit (sale price minus what you paid). Moving an item to Shipped asks "Did you grab it?" and names its place, but only if the item has a place.
 - Swipe an item right to **Edit** it, or left to **Delete** it. Delete asks you to confirm first. An **Archive** button sits next to Delete: it moves a Not listed or List item to Not listed > Archive and shows a "View" link to open it. In the Archive section the same button reads **Unarchive** and puts the item back in Draft. Sold and shipped items can't be archived, so they only show Delete.
 - The **Not listed** step is split into **Draft** and **Archive**. It has no app filter, since nothing is listed on an app yet.
-- Search for an item by its name or its place (the search boxes have a small x to clear them in one tap; typing "clos" finds "Closed sign" and everything in Closet), and filter by one or more apps, inside a step (only apps you have actually used are listed; tap each app to select it, tap again to deselect it; the list updates as you tap). Apps is one row near the top that opens to show every app, so the page stays short; the search box sits right under it. On Not listed, the Draft/Archive buttons sit in that same spot, so the search box stays put when you switch steps.
+- Search for an item by its name or its place (the search boxes have a small x to clear them in one tap; typing "clos" finds "Closed sign" and everything in Closet), and filter by one or more apps, inside a step (only apps you have actually used are listed; tap each app to select it, tap again to deselect it; the list updates as you tap). The search box has a filter button beside it that opens the list of apps (a small badge shows how many are selected), so the page stays short. On Not listed there is no filter button, and the Draft/Archive buttons sit above the search box.
 
 **Add item** (one page; the same page edits an item)
 - Three blue tiles at the top for **Barcode scan**, **Screenshot** and **Bulk upload**. They are shown as coming soon and do not work yet.
@@ -57,3 +57,5 @@ The page loads its font from Google Fonts in the background, so the page appears
 
 
 **Big numbers**: money shows with commas (e.g. $1,234,567.89). Summary always shows exact amounts; Home abbreviates very large ones ($12.3k, $4.5M, $1.2B) so nothing runs off the screen.
+
+A soft fade sits under the bottom bar so items don't show sharply behind it.
