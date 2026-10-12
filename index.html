@@ -158,6 +158,7 @@
   .add-top .round { position: absolute; left: 0; top: 2px; }
   .stage-pick { position: relative; display: flex; align-items: center; gap: 6px; color: var(--blue); font-size: 18px; font-weight: 700; margin: 0; }
   .stage-pick { min-height: 44px; }
+  .stage-pick.edit svg, .stage-pick.edit select { display: none; }
   .stage-pick select {
     position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px;
     -webkit-appearance: none; appearance: none; border: 0; background: none;
@@ -184,7 +185,21 @@
   .primary { background: var(--blue); color: #0B1220; border: 0; border-radius: 28px; font-size: 17px; font-weight: 700; min-height: 56px; }
   .secondary { background: var(--card); color: #8FBBFF; border: 0; border-radius: 24px; font-size: 16px; font-weight: 700; min-height: 48px; }
   .actions { display: flex; gap: 12px; margin-top: 20px; }
-  .actions .primary, .actions .secondary { flex: 1; }
+  .actions .primary, .actions .secondary, .actions .danger { flex: 1; }
+  .danger { background: var(--red); color: #2A0A08; border: 0; border-radius: 28px; font-size: 17px; font-weight: 700; min-height: 56px; }
+  .hint { margin: 0 0 10px; }
+
+  /* Swipe actions: right reveals Edit, left reveals Delete */
+  .swipe { position: relative; margin-bottom: 8px; border-radius: 12px; overflow: hidden; }
+  .swipe .item { margin-bottom: 0; position: relative; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+  .swipe-actions { position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; }
+  .swipe-actions button {
+    width: 96px; border: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    font-size: 13px; font-weight: 700; opacity: 0; transition: opacity .15s;
+  }
+  .swipe-actions .act-edit { background: #243456; color: var(--blue-text); }
+  .swipe-actions .act-del { background: #4A1D22; color: var(--red); }
+  .swipe.edit-open .act-edit, .swipe.del-open .act-del, .swipe.drag .swipe-actions button, .swipe-actions button:focus-visible { opacity: 1; }
 
   /* Bottom sheets (place, sale) */
   .sheet-wrap {
@@ -251,6 +266,7 @@
     <input type="search" id="search" placeholder="Search this step" autocomplete="off">
   </div>
   <div class="filters" id="filters"></div>
+  <div class="meta hint" id="swipe-hint">Swipe an item right to edit it, left to delete it.</div>
   <div id="list"></div>
 </main>
 
@@ -271,6 +287,8 @@
       </div>
     </div>
 
+    <button type="button" class="link" id="photo-remove" hidden style="padding-left:0">Remove photo</button>
+
     <div class="group">
       <div class="label">Place (optional)</div>
       <div class="chips" id="place-chips"></div>
@@ -285,6 +303,11 @@
       <div class="chips" id="platform-chips"></div>
     </div>
 
+    <div id="edit-step" class="group" hidden>
+      <div class="label">Step</div>
+      <div class="chips" id="edit-step-chips"></div>
+    </div>
+
     <div id="add-sold" class="group" hidden>
       <label for="add-price">Sold for $</label>
       <input type="number" id="add-price" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
@@ -297,7 +320,7 @@
     <div class="note" id="saved-note" role="status" hidden></div>
     <div class="error" id="error" role="alert"></div>
     <div class="save-bar">
-      <button type="submit" class="primary">Save</button>
+      <button type="submit" class="primary" id="save-btn">Save</button>
       <button type="button" class="secondary" id="again-btn">Save and add another</button>
     </div>
   </form>
@@ -332,19 +355,16 @@
   <button class="fab" id="fab" type="button" aria-label="Add item"></button>
 </div>
 
-<datalist id="locations"></datalist>
-
-<div class="sheet-wrap" id="loc-sheet" hidden>
-  <form class="sheet" id="sheet-form" role="dialog" aria-modal="true" aria-labelledby="sheet-title" novalidate>
-    <h2 id="sheet-title">Where is it?</h2>
-    <div class="meta" id="sheet-item" style="margin-top:4px"></div>
-    <label for="sheet-loc">Place (leave empty for none)</label>
-    <input type="text" id="sheet-loc" list="locations" placeholder="e.g. Closet, Tub 3" autocomplete="off">
+<div class="sheet-wrap" id="del-sheet" hidden>
+  <div class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="del-title">
+    <h2 id="del-title">Delete this item?</h2>
+    <div class="sheet-name" id="del-name"></div>
+    <div class="meta">This can't be undone.</div>
     <div class="actions">
-      <button type="button" class="secondary" id="sheet-cancel">Cancel</button>
-      <button type="submit" class="primary">Save</button>
+      <button type="button" class="secondary" id="del-cancel">Cancel</button>
+      <button type="button" class="danger" id="del-confirm">Delete</button>
     </div>
-  </form>
+  </div>
 </div>
 
 <div class="sheet-wrap" id="sold-sheet" hidden>
@@ -399,7 +419,9 @@
     pin: '<path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>',
     bars: '<path d="M5 20V10"/><path d="M12 20V4"/><path d="M19 20v-7"/>',
     phone: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M10 7h4"/>',
-    down: '<path d="M6 9l6 6 6-6"/>'
+    down: '<path d="M6 9l6 6 6-6"/>',
+    pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
+    trash: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/>'
   };
   var STAGE_ICON = { import: 'inbox', list: 'tag', sold: 'sold', packed: 'box', shipped: 'truck' };
 
@@ -410,8 +432,9 @@
   var currentView = 'home-view';
   var addOrigin = 'home-view';
   var add = null;          // state of the add form
-  var editing = null;      // item whose place is being changed
-  var selling = null;      // item being marked as sold
+  var deleting = null;     // item waiting for delete confirmation
+  var openRow = null;      // the swiped-open item row, if any
+  var selling = null;     // item being marked as sold
   var soldOn = null;       // "sold on" app in the sale sheet
 
   function $(id) { return document.getElementById(id); }
@@ -567,41 +590,31 @@
     return found.length ? found[0] : t;
   }
 
-  function fillLocationOptions() {
-    var dl = $('locations');
-    dl.replaceChildren();
-    allLocations().forEach(function (l) {
-      var o = document.createElement('option');
-      o.value = l;
-      dl.appendChild(o);
-    });
+  // ---------- delete ----------
+
+  function openDelete(item) {
+    deleting = item;
+    $('del-name').textContent = item.name;
+    $('del-sheet').hidden = false;
+    $('del-cancel').focus();
   }
 
-  function openSheet(item) {
-    editing = item;
-    $('sheet-item').textContent = item.name;
-    $('sheet-loc').value = item.location || '';
-    fillLocationOptions();
-    $('loc-sheet').hidden = false;
-    $('sheet-loc').focus();
+  function closeDelete() {
+    deleting = null;
+    $('del-sheet').hidden = true;
   }
 
-  function closeSheet() {
-    editing = null;
-    $('loc-sheet').hidden = true;
-  }
-
-  function saveSheet(e) {
-    e.preventDefault();
-    if (!editing) return;
-    var before = editing.location;
-    editing.location = canonLocation($('sheet-loc').value);
+  function confirmDelete() {
+    if (!deleting) return;
+    var idx = items.indexOf(deleting);
+    if (idx === -1) { closeDelete(); return; }
+    var removed = items.splice(idx, 1)[0];
     if (!save()) {
-      editing.location = before;
+      items.splice(idx, 0, removed);
       alert('Could not save on this device. Is private browsing on?');
       return;
     }
-    closeSheet();
+    closeDelete();
     refresh();
   }
 
@@ -841,13 +854,7 @@
     }
     row.appendChild(thumb);
 
-    var canEditPlace = !opts.readOnly && i.stage !== 'shipped'; // shipped items have left, so no place
-    var main = canEditPlace ? el('button', 'item-main') : el('div', 'item-main');
-    if (canEditPlace) {
-      main.type = 'button';
-      main.setAttribute('aria-label', i.name + ': change place');
-      main.addEventListener('click', function () { openSheet(i); });
-    }
+    var main = el('div', 'item-main');
     main.appendChild(el('div', 'item-name', i.name));
     main.appendChild(metaLine(i, opts.pill));
     row.appendChild(main);
@@ -867,7 +874,115 @@
       nb.addEventListener('click', function () { moveForward(i); });
       row.appendChild(nb);
     }
-    return row;
+    return opts.readOnly ? row : swipeWrap(row, i);
+  }
+
+  // ---------- swipe: right to edit, left to delete ----------
+
+  var SWIPE = 96; // width of the revealed button, in pixels
+
+  function setSwipe(wrap, row, state) {
+    wrap.classList.toggle('edit-open', state === 'edit');
+    wrap.classList.toggle('del-open', state === 'del');
+    row.style.transition = 'transform .2s';
+    row.style.transform = state === 'edit' ? 'translateX(' + SWIPE + 'px)'
+      : state === 'del' ? 'translateX(-' + SWIPE + 'px)' : '';
+    wrap._state = state;
+    if (state === 'closed') {
+      if (openRow && openRow.wrap === wrap) openRow = null;
+    } else {
+      if (openRow && openRow.wrap !== wrap) closeOpen();
+      openRow = { wrap: wrap, row: row };
+    }
+  }
+
+  function closeOpen() {
+    if (openRow) setSwipe(openRow.wrap, openRow.row, 'closed');
+  }
+
+  function attachSwipe(wrap, row) {
+    var startX = 0, startY = 0, baseX = 0, pid = null;
+    var tracking = false, decided = false, horizontal = false, lastX = 0, justSwiped = false;
+
+    function base() { return wrap._state === 'edit' ? SWIPE : wrap._state === 'del' ? -SWIPE : 0; }
+
+    row.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      startX = e.clientX;
+      startY = e.clientY;
+      baseX = base();
+      lastX = baseX;
+      pid = e.pointerId;
+      tracking = true;
+      decided = false;
+      horizontal = false;
+    });
+
+    row.addEventListener('pointermove', function (e) {
+      if (!tracking || e.pointerId !== pid) return;
+      var dx = e.clientX - startX, dy = e.clientY - startY;
+      if (!decided) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        decided = true;
+        horizontal = Math.abs(dx) > Math.abs(dy) * 1.2;
+        if (!horizontal) { tracking = false; return; }
+        try { row.setPointerCapture(pid); } catch (err) { /* not needed on every browser */ }
+        row.style.transition = 'none';
+        wrap.classList.add('drag');
+      }
+      lastX = Math.max(-SWIPE, Math.min(SWIPE, baseX + dx));
+      row.style.transform = 'translateX(' + lastX + 'px)';
+    });
+
+    function finish(e) {
+      if (!tracking || e.pointerId !== pid) return;
+      tracking = false;
+      wrap.classList.remove('drag');
+      if (!horizontal) return;
+      justSwiped = true;
+      setTimeout(function () { justSwiped = false; }, 60);
+      setSwipe(wrap, row, lastX > SWIPE / 2 ? 'edit' : lastX < -SWIPE / 2 ? 'del' : 'closed');
+    }
+    row.addEventListener('pointerup', finish);
+    row.addEventListener('pointercancel', finish);
+
+    // A tap on an open row closes it; a swipe never counts as a tap.
+    row.addEventListener('click', function (e) {
+      if (justSwiped || wrap._state !== 'closed') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!justSwiped) closeOpen();
+      }
+    }, true);
+  }
+
+  function swipeWrap(row, item) {
+    var wrap = el('div', 'swipe');
+    wrap._state = 'closed';
+    var actions = el('div', 'swipe-actions');
+
+    var eb = el('button', 'act-edit');
+    eb.type = 'button';
+    eb.setAttribute('aria-label', 'Edit ' + item.name);
+    eb.appendChild(icon('pencil', 22));
+    eb.appendChild(el('span', '', 'Edit'));
+    eb.addEventListener('focus', function () { setSwipe(wrap, row, 'edit'); });
+    eb.addEventListener('click', function () { closeOpen(); showEdit(item); });
+
+    var db = el('button', 'act-del');
+    db.type = 'button';
+    db.setAttribute('aria-label', 'Delete ' + item.name);
+    db.appendChild(icon('trash', 22));
+    db.appendChild(el('span', '', 'Delete'));
+    db.addEventListener('focus', function () { setSwipe(wrap, row, 'del'); });
+    db.addEventListener('click', function () { closeOpen(); openDelete(item); });
+
+    actions.appendChild(eb);
+    actions.appendChild(db);
+    wrap.appendChild(actions);
+    wrap.appendChild(row);
+    attachSwipe(wrap, row);
+    return wrap;
   }
 
   function renderList() {
@@ -879,6 +994,8 @@
     });
     var box = $('list');
     box.replaceChildren();
+    openRow = null;
+    $('swipe-hint').hidden = visible.length === 0;
     if (visible.length === 0) {
       box.appendChild(el('div', 'empty',
         inView.length > 0 ? 'No items match your search or filter.'
@@ -1024,6 +1141,7 @@
       tile.appendChild(el('span', '', 'Add photo'));
       tile.setAttribute('aria-label', 'Add a photo');
     }
+    $('photo-remove').hidden = !add.photo;
   }
 
   function renderPlaceChips() {
@@ -1058,7 +1176,27 @@
   }
 
   function updateStageText() {
-    $('add-stage-text').textContent = 'Add to ' + stageLabel(add.stage);
+    $('add-stage-text').textContent = add.editing ? 'Edit item' : 'Add to ' + stageLabel(add.stage);
+  }
+
+  function renderEditSteps() {
+    var box = $('edit-step-chips');
+    box.replaceChildren();
+    STAGES.forEach(function (s) {
+      box.appendChild(chip(s.label, add.stage === s.id, function () {
+        add.stage = s.id;
+        renderEditSteps();
+        updateSoldFields();
+      }));
+    });
+  }
+
+  // The same form is used to add a new item and to edit an existing one.
+  function setFormMode(editing) {
+    $('add-stage').parentNode.classList.toggle('edit', editing);
+    $('edit-step').hidden = !editing;
+    $('save-btn').textContent = editing ? 'Save changes' : 'Save';
+    $('again-btn').hidden = editing;
   }
 
   function updateSoldFields() {
@@ -1072,6 +1210,7 @@
     addOrigin = currentView === 'add-view' ? addOrigin : currentView;
     var s = stageId || (currentView === 'list-view' && stage !== 'all' ? stage : 'import');
     add = { stage: s, selected: [], loc: '', newPlace: false, photo: null, soldOn: null };
+    setFormMode(false);
     $('add-stage').value = s;
     updateStageText();
     $('name').value = '';
@@ -1086,6 +1225,31 @@
     renderPhotoTile();
     renderPlaceChips();
     renderPlatformChips();
+    updateSoldFields();
+    showView('add-view');
+    $('name').focus();
+  }
+
+  // Open the form filled in with an existing item.
+  function showEdit(item) {
+    addOrigin = currentView === 'add-view' ? addOrigin : currentView;
+    add = {
+      editing: item, stage: item.stage, selected: item.platforms.slice(), loc: item.location || '',
+      newPlace: false, photo: item.photo || null, soldOn: item.sold ? (item.sold.platform || null) : null
+    };
+    setFormMode(true);
+    updateStageText();
+    $('name').value = item.name;
+    $('cost').value = item.cost === null ? '' : String(item.cost);
+    $('new-place').value = '';
+    $('new-place-row').hidden = true;
+    $('add-price').value = item.sold ? String(item.sold.price) : '';
+    $('error').textContent = '';
+    $('saved-note').hidden = true;
+    renderPhotoTile();
+    renderPlaceChips();
+    renderPlatformChips();
+    renderEditSteps();
     updateSoldFields();
     showView('add-view');
     $('name').focus();
@@ -1145,7 +1309,9 @@
     err.textContent = '';
 
     if (!name) { err.textContent = 'Enter what the item is.'; return false; }
-    if (costText === '' || !isFinite(cost) || cost < 0) {
+    // An older item saved without a cost can stay that way.
+    var noCostOk = add.editing && add.editing.cost === null && costText === '';
+    if (!noCostOk && (costText === '' || !isFinite(cost) || cost < 0)) {
       err.textContent = 'Enter what you paid, e.g. 12.50 (0 if it was free).';
       return false;
     }
@@ -1153,6 +1319,31 @@
     if (sold && !add.soldOn) { err.textContent = 'Pick the app it sold on.'; return false; }
 
     var typed = $('new-place').value.trim();
+
+    if (add.editing) {
+      var it = add.editing;
+      var idx = items.indexOf(it);
+      var before = JSON.parse(JSON.stringify(it));
+      it.name = name;
+      it.cost = noCostOk ? null : cost;
+      it.platforms = add.selected.slice();
+      it.location = canonLocation(typed || add.loc);
+      it.stage = add.stage;
+      if (add.photo) it.photo = add.photo; else delete it.photo;
+      if (sold) {
+        var prev = it.sold || {};
+        it.sold = { price: price, platform: add.soldOn, fees: prev.fees || 0, shipping: prev.shipping || 0, date: prev.date || Date.now() };
+      } else {
+        delete it.sold;
+      }
+      if (!save()) {
+        if (idx !== -1) items[idx] = before;
+        err.textContent = 'Could not save on this device. It may be out of space or private browsing may be on.';
+        return false;
+      }
+      return true;
+    }
+
     var item = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
       name: name,
@@ -1246,8 +1437,12 @@
     add.loc = '';
     renderPlaceChips();
   });
-  $('sheet-form').addEventListener('submit', saveSheet);
-  $('sheet-cancel').addEventListener('click', closeSheet);
+  $('del-cancel').addEventListener('click', closeDelete);
+  $('del-confirm').addEventListener('click', confirmDelete);
+  $('photo-remove').addEventListener('click', function () { add.photo = null; renderPhotoTile(); });
+  document.addEventListener('pointerdown', function (e) {
+    if (openRow && !openRow.wrap.contains(e.target)) closeOpen();
+  }, true);
   $('sold-form').addEventListener('submit', confirmSold);
   $('sold-cancel').addEventListener('click', closeSoldSheet);
   $('sold-price').addEventListener('input', updateSoldProfit);

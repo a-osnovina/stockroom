@@ -17,7 +17,7 @@ and a round **+** button to add an item from anywhere.
 - A step bar at the top: All > List > Sold > Packed > Shipped. "All" shows every item with a small tag for its step. Tap a step to see only the items in it; each step shows how many items it holds.
 - Slim cards: photo (or an icon), name, apps and place, and the price. Sold, Packed and Shipped items show the profit instead.
 - The arrow button moves an item to the next step. Moving an item to Sold asks what it sold for and which app it sold on, and shows the profit (sale price minus what you paid).
-- Tap an item's name to change its place.
+- Swipe an item right to **Edit** it, or left to **Delete** it. Delete asks you to confirm first.
 - Search and filter by app inside a step.
 
 **Add item**
@@ -27,6 +27,7 @@ and a round **+** button to add an item from anywhere.
 - The "Add to" step at the top decides where the item starts. Adding from Home or All starts it as "Not listed".
 - **Save and add another** keeps the place and apps and clears the name, cost and photo, which helps when you add a batch.
 - "Fill from a screenshot" is shown as coming soon. It does not work yet.
+- Editing an item uses the same form, filled in. You can also change its step there. If you move an item to Sold, Packed or Shipped, it asks for the sale price and the app it sold on.
 
 **Places**: every place with how many items are in it. Tap a place to see its items. Items that have shipped are not counted.
 
