@@ -18,6 +18,7 @@ and a round **+** button to add an item from anywhere.
 - Slim cards: photo (or an icon), name, apps and place, and the price. Sold and Shipped items show the profit instead.
 - The arrow button moves an item to the next step. Moving an item to Sold asks what it sold for and which app it sold on, and shows the profit (sale price minus what you paid). Moving an item to Shipped asks "Did you grab it?" and names its place, but only if the item has a place.
 - Swipe an item right to **Edit** it, or left to **Delete** it. Delete asks you to confirm first. An **Archive** button sits next to Delete; it is a placeholder and does nothing yet.
+- The **Not listed** step is split into **Draft** and **Archive**. It has no app filter, since nothing is listed on an app yet. Archive is still a placeholder: the swipe Archive button does nothing yet, so the Archive side stays empty for now.
 - Search for an item by its name or its place (the search boxes have a small x to clear them in one tap; typing "clos" finds "Closed sign" and everything in Closet), and filter by app, inside a step.
 
 **Add item** (one page; the same page edits an item)

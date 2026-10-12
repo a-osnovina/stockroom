@@ -113,6 +113,9 @@
 
   /* Step bar */
   .steps { display: flex; margin: 8px 0 0; }
+  .seg { display: flex; gap: 4px; background: var(--card); border-radius: 22px; padding: 4px; margin-top: 12px; }
+  .seg button { flex: 1; min-height: 40px; border: 0; border-radius: 18px; background: none; color: var(--muted); font-size: 15px; font-weight: 700; }
+  .seg button.on { background: var(--blue-bg); color: var(--blue-text); }
   .step {
     flex: 1; min-width: 0; min-height: 52px; border: 0; margin-left: -10px; padding: 0;
     background: var(--card2); color: var(--muted); font-size: 12px; font-weight: 700;
@@ -252,7 +255,7 @@
   .actions { display: flex; gap: 12px; margin-top: 20px; }
   .actions .primary, .actions .secondary, .actions .danger { flex: 1; }
   .danger { background: var(--red); color: #2A0A08; border: 0; border-radius: 28px; font-size: 17px; font-weight: 700; min-height: 56px; }
-  .hint { margin: 0 0 10px; }
+  .hint { margin: 10px 0; }
 
   /* Swipe actions: right reveals Edit, left reveals Delete */
   .swipe { position: relative; margin-bottom: 8px; border-radius: 12px; overflow: hidden; }
@@ -329,6 +332,7 @@
     <h1 id="list-title">All items</h1>
   </header>
   <nav class="steps" id="steps" aria-label="Steps"></nav>
+  <div class="seg" id="sub-tabs" role="group" aria-label="Not listed items" hidden></div>
   <div class="search-wrap">
     <label for="search" style="position:absolute;left:-9999px">Search for an item</label>
     <input type="search" id="search" placeholder="Search for an item" autocomplete="off"><button type="button" class="clear-x" id="search-x" aria-label="Clear search"></button>
@@ -610,6 +614,7 @@
   var stage = 'all';       // which bar step is open
   var query = '';
   var filter = null;
+  var subTab = 'draft';    // Not listed has two parts: draft and archive
   var currentView = 'home-view';
   var addOrigin = 'home-view';
   var add = null;          // state of the add form
@@ -664,6 +669,7 @@
       if (typeof i.name !== 'string' || !i.name) i.name = 'Untitled item';
       if (!Array.isArray(i.platforms)) i.platforms = [];
       if (typeof i.location !== 'string') i.location = '';
+      if (i.archived !== true || i.stage !== 'import') delete i.archived;
       if (!(Number.isInteger(i.slot) && i.slot > 0)) delete i.slot;
       if (typeof i.photo !== 'string') delete i.photo;
       if (!i.sold || typeof i.sold !== 'object' || !isFinite(Number(i.sold.price))) delete i.sold;
@@ -1154,6 +1160,7 @@
     var before = { stage: selling.stage, sold: selling.sold, platforms: selling.platforms };
     selling.sold = { price: price, platform: soldOn, fees: 0, shipping: 0, date: Date.now() };
     selling.stage = 'sold';
+    delete selling.archived;
     selling.platforms = [soldOn]; // a sold item is on one app: the one it sold on
     if (!save()) {
       selling.stage = before.stage;
@@ -1309,9 +1316,12 @@
 
   function setStage(item, id) {
     var before = item.stage;
+    var wasArchived = item.archived;
     item.stage = id;
+    delete item.archived;
     if (!save()) {
       item.stage = before;
+      if (wasArchived) item.archived = true;
       alert('Could not save on this device. Is private browsing on?');
       return false;
     }
@@ -1328,7 +1338,7 @@
       first = false;
     }
     if (showPill) {
-      var pill = el('span', 'pill', stageLabel(i.stage));
+      var pill = el('span', 'pill', i.archived && i.stage === 'import' ? 'Archived' : stageLabel(i.stage));
       line.appendChild(pill);
     }
     if (i.stage !== 'import' || i.platforms.length) {
@@ -1501,12 +1511,32 @@
     return wrap;
   }
 
+  function renderSubTabs() {
+    var box = $('sub-tabs');
+    box.hidden = stage !== 'import';
+    if (box.hidden) return;
+    var draft = items.filter(function (i) { return i.stage === 'import' && !i.archived; }).length;
+    var arch = items.filter(function (i) { return i.stage === 'import' && i.archived; }).length;
+    box.replaceChildren();
+    [['draft', 'Draft', draft], ['archive', 'Archive', arch]].forEach(function (t) {
+      var b = el('button', t[0] === subTab ? 'on' : '', t[1] + ' · ' + t[2]);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', t[0] === subTab ? 'true' : 'false');
+      b.addEventListener('click', function () { subTab = t[0]; renderList(); });
+      box.appendChild(b);
+    });
+  }
+
   function renderList() {
     var q = query.trim().toLowerCase();
     var inView = stage === 'all' ? items : items.filter(function (i) { return i.stage === stage; });
+    var notListed = stage === 'import';
+    if (notListed) inView = inView.filter(function (i) { return !!i.archived === (subTab === 'archive'); });
+    renderSubTabs();
+    $('filters').hidden = notListed; // nothing is listed on an app yet, so no app filter here
     var visible = inView.filter(function (i) {
       return (!q || i.name.toLowerCase().indexOf(q) !== -1 || (i.location || '').toLowerCase().indexOf(q) !== -1) &&
-        (!filter || i.platforms.indexOf(filter) !== -1 || (i.sold && i.sold.platform === filter));
+        (notListed || !filter || i.platforms.indexOf(filter) !== -1 || (i.sold && i.sold.platform === filter));
     });
     var box = $('list');
     box.replaceChildren();
@@ -1516,6 +1546,7 @@
       box.appendChild(el('div', 'empty',
         inView.length > 0 ? 'No items match your search or filter.'
           : stage === 'all' ? 'No items yet. Tap the + button to put your first one here.'
+          : notListed ? (subTab === 'archive' ? 'Nothing archived yet.' : 'No drafts yet. Tap the + button to add one.')
           : 'Nothing in ' + BAR[barIndex(stage)].label + ' yet. Tap the + button to put an item here.'));
       return;
     }
@@ -1970,6 +2001,7 @@
       it.location = loc;
       if (slot) it.slot = slot; else delete it.slot;
       it.stage = add.stage;
+      if (add.stage !== 'import') delete it.archived;
       if (add.photo) it.photo = add.photo; else delete it.photo;
       if (sold) {
         var prev = it.sold || {};
