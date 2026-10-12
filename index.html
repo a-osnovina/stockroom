@@ -174,6 +174,30 @@
   .item-meta .dim { color: var(--muted); }
   .pill { font-size: 12px; font-weight: 700; background: var(--bg); color: var(--fg); border-radius: 8px; padding: 1px 7px; margin-right: 6px; }
   .amt { font-size: 16px; font-weight: 700; flex: none; white-space: nowrap; margin-right: 4px; }
+  .parcel { background: var(--card); border-radius: 12px; padding: 8px; }
+  .swipe .parcel { margin-bottom: 0; position: relative; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+  .parcel-head { display: flex; align-items: center; gap: 12px; }
+  .parcel-names { margin: 8px 4px 0; overflow-wrap: anywhere; }
+  .gather { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .gather-line { display: flex; gap: 6px; align-items: stretch; }
+  .gather-row {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 12px;
+    border: 0; border-radius: 10px; background: var(--bg); color: var(--text); text-align: left; font: inherit; width: 100%;
+  }
+  .gather-row.none { color: var(--muted); }
+  .gbox { width: 28px; height: 28px; border-radius: 9px; border: 2px solid #4A5578; flex: none; display: flex; align-items: center; justify-content: center; }
+  .gather-row.on .gbox { background: var(--green); border-color: var(--green); color: #0B1220; }
+  .g-text { display: flex; flex-direction: column; min-width: 0; }
+  .g-name { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+  .g-sub { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+  .gather-row.on .g-name { color: var(--muted); }
+  .g-edit { flex: none; width: 48px; border: 0; border-radius: 10px; background: var(--bg); color: var(--muted); display: flex; align-items: center; justify-content: center; }
+  .parcel-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 0 2px; }
+  .ship-btn { min-height: 44px; padding: 0 20px; border: 0; border-radius: 22px; background: var(--solid); color: #0B1220; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; flex: none; }
+  .ship-btn:disabled { opacity: .35; }
+  .ship-btn.back-btn { background: var(--blue-bg); color: var(--blue-text); }
+  .clear-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+  .clear-btn { min-height: 44px; padding: 0 18px; border: 0; border-radius: 22px; background: var(--card); color: var(--blue-text); font-size: 15px; font-weight: 700; flex: none; }
   .next { width: 44px; height: 44px; border: 0; border-radius: 22px; background: var(--line); color: var(--fg); display: flex; align-items: center; justify-content: center; flex: none; }
 
   /* Places */
@@ -191,7 +215,6 @@
   .plat-name { font-size: 17px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .plat-profit { font-size: 17px; font-weight: 700; flex: none; }
 
-  #grab-place { font-size: 20px; font-weight: 700; }
   .place-h1 { margin: 8px 0 2px; overflow-wrap: anywhere; line-height: 1.15; }
   #place-slots-btn { flex: none; min-height: 44px; }
   .slot-row.tap { cursor: pointer; width: 100%; text-align: left; border: 1.5px solid transparent; color: var(--text); font: inherit; }
@@ -501,18 +524,13 @@
   </div>
 </div>
 
-<div class="sheet-wrap" id="grab-sheet" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="grab-title">
-    <h2 id="grab-title">Did you grab it?</h2>
-    <div class="sheet-name" id="grab-name"></div>
-    <div class="meta">Take it out of:</div>
-    <div class="profit-box" style="margin-top:8px">
-      <span id="grab-place"></span>
-      <strong id="grab-slot"></strong>
-    </div>
+<div class="sheet-wrap" id="clear-sheet" hidden>
+  <div class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="clear-title">
+    <h2 id="clear-title">Clear shipped?</h2>
+    <div class="meta" id="clear-text"></div>
     <div class="actions">
-      <button type="button" class="secondary" id="grab-no">Not yet</button>
-      <button type="button" class="primary" id="grab-yes">Yes, got it</button>
+      <button type="button" class="secondary" id="clear-cancel">Cancel</button>
+      <button type="button" class="primary" id="clear-confirm">Clear</button>
     </div>
   </div>
 </div>
@@ -585,10 +603,17 @@
     <h2 id="sold-title">Mark as sold</h2>
     <div class="sheet-name" id="sold-item"></div>
     <div class="meta" id="sold-paid"></div>
-    <label for="sold-price">Sold for $</label>
+    <label for="sold-price" id="sold-price-label">Sold for $</label>
     <input type="number" id="sold-price" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
     <div class="label" style="margin-top:16px">Sold on</div>
     <div class="chips" id="sold-chips"></div>
+    <div style="margin-top:16px">
+      <button type="button" class="chip new" id="sold-with-btn">+ Sold with another item</button>
+      <div id="sold-with" hidden>
+        <div class="meta" id="sold-with-note" style="margin:10px 0 8px"></div>
+        <div class="chips" id="sold-with-chips"></div>
+      </div>
+    </div>
     <div class="profit-box">
       <span>Profit</span>
       <strong id="sold-profit">&mdash;</strong>
@@ -633,6 +658,8 @@
     down: '<path d="M6 9l6 6 6-6"/>',
     archive: '<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11h14V8M10 12h4"/>',
     qr: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v1M14 20h1M18 18v3h3"/>',
+    undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     sliders: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
     x: '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
@@ -660,7 +687,9 @@
   var add = null;          // state of the add form
   var deleting = null;     // item waiting for delete confirmation
   var openRow = null;      // the swiped-open item row, if any
-  var grabbing = null;     // item waiting for the "did you grab it?" answer
+  var deletingGroup = null; // every item of the parcel being deleted
+  var bundle = [];         // other items in the sale sheet's bundle
+  var bundleOpen = false;
   var selling = null;     // item being marked as sold
   var soldOn = null;       // "sold on" app in the sale sheet
 
@@ -685,6 +714,12 @@
   }
 
   function stageLabel(id) { return STAGES[stageIndex(id)].label; }
+
+  // An item has left its place once it is gathered for a parcel or shipped.
+  function gone(i) { return i.stage === 'shipped' || !!i.gathered; }
+  // Items sold together share a parcel id. A lone item is a parcel of one.
+  function membersOf(i) { return i.parcel ? items.filter(function (x) { return x.parcel === i.parcel; }) : [i]; }
+  function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
   function load() {
     var list;
@@ -712,6 +747,9 @@
       if (i.archived !== true || i.stage !== 'import') delete i.archived;
       if (!(Number.isInteger(i.slot) && i.slot > 0)) delete i.slot;
       if (typeof i.photo !== 'string') delete i.photo;
+      if (typeof i.parcel !== 'string' || !i.parcel) delete i.parcel;
+      if (i.gathered !== true || stageIndex(i.stage) < SOLD_AT) delete i.gathered;
+      if (i.history !== true || i.stage !== 'shipped') delete i.history;
       if (!i.sold || typeof i.sold !== 'object' || !isFinite(Number(i.sold.price))) delete i.sold;
       return i;
     });
@@ -917,7 +955,7 @@
     var t = String(name || '').toLowerCase();
     for (var i = 0; i < items.length; i++) {
       var it = items[i];
-      if (it !== except && it.stage !== 'shipped' && it.slot === n && it.location.toLowerCase() === t) return it;
+      if (it !== except && !gone(it) && it.slot === n && it.location.toLowerCase() === t) return it;
     }
     return null;
   }
@@ -996,25 +1034,28 @@
 
   // ---------- delete ----------
 
-  function openDelete(item) {
+  function openDelete(item, group) {
     deleting = item;
-    $('del-name').textContent = item.name;
+    deletingGroup = group && group.length > 1 ? group : [item];
+    $('del-title').textContent = deletingGroup.length > 1 ? 'Delete this parcel?' : 'Delete this item?';
+    $('del-name').textContent = deletingGroup.map(function (x) { return x.name; }).join(', ');
     $('del-sheet').hidden = false;
     $('del-cancel').focus();
   }
 
   function closeDelete() {
     deleting = null;
+    deletingGroup = null;
     $('del-sheet').hidden = true;
   }
 
   function confirmDelete() {
     if (!deleting) return;
-    var idx = items.indexOf(deleting);
-    if (idx === -1) { closeDelete(); return; }
-    var removed = items.splice(idx, 1)[0];
+    var group = deletingGroup || [deleting];
+    var before = items.slice();
+    items = items.filter(function (x) { return group.indexOf(x) === -1; });
     if (!save()) {
-      items.splice(idx, 0, removed);
+      items = before;
       alert('Could not save on this device. Is private browsing on?');
       return;
     }
@@ -1101,7 +1142,7 @@
 
   function placeItems(name) {
     var t = name.toLowerCase();
-    return items.filter(function (i) { return i.stage !== 'shipped' && i.location.toLowerCase() === t; });
+    return items.filter(function (i) { return !gone(i) && i.location.toLowerCase() === t; });
   }
 
   function writeSlots(next, clearItems) {
@@ -1155,49 +1196,58 @@
     showPlace(currentPlace);
   }
 
-  // ---------- "did you grab it?" before shipping ----------
-
-  function openGrab(item) {
-    grabbing = item;
-    $('grab-name').textContent = item.name;
-    $('grab-place').textContent = item.location;
-    $('grab-slot').textContent = item.slot ? slotDisplay(item.location, item.slot) : '';
-    $('grab-sheet').hidden = false;
-    $('grab-yes').focus();
-  }
-
-  function closeGrab() {
-    grabbing = null;
-    $('grab-sheet').hidden = true;
-  }
-
-  function confirmGrab() {
-    if (!grabbing) return;
-    var item = grabbing;
-    if (setStage(item, 'shipped')) closeGrab();
-  }
-
   // ---------- sale sheet ----------
+
+  // Other items that can go in the same sale: in List, on the same app.
+  function bundleCandidates() {
+    if (!selling || !soldOn) return [];
+    return items.filter(function (x) { return x !== selling && x.stage === 'list' && !x.history && x.platforms.indexOf(soldOn) !== -1; });
+  }
+
+  function renderBundle() {
+    var cands = bundleCandidates();
+    bundle = bundle.filter(function (x) { return cands.indexOf(x) !== -1; });
+    $('sold-with-btn').textContent = bundle.length ? '+ Sold with another item · ' + bundle.length : '+ Sold with another item';
+    $('sold-with').hidden = !bundleOpen;
+    $('sold-price-label').textContent = bundle.length ? 'Total for all ' + (bundle.length + 1) + ' items $' : 'Sold for $';
+    var box = $('sold-with-chips');
+    box.replaceChildren();
+    $('sold-with-note').textContent = !soldOn ? 'Pick the app it sold on first.'
+      : cands.length ? 'Tap the items that were in the same sale (same app, in List).'
+      : 'No other items in List on ' + soldOn + '.';
+    cands.forEach(function (x) {
+      box.appendChild(chip(x.name, bundle.indexOf(x) !== -1, function () {
+        var k = bundle.indexOf(x);
+        if (k === -1) bundle.push(x); else bundle.splice(k, 1);
+        renderBundle();
+        updateSoldProfit();
+      }));
+    });
+  }
 
   function updateSoldProfit() {
     var out = $('sold-profit');
     var price = parseMoney($('sold-price').value);
     out.className = '';
     if (price === null || !selling) { out.textContent = '—'; return; }
-    if (selling.cost === null) { out.textContent = 'No cost saved'; return; }
-    var p = price - selling.cost;
+    var all = [selling].concat(bundle);
+    if (all.some(function (x) { return x.cost === null; })) { out.textContent = 'No cost saved'; return; }
+    var p = price - all.reduce(function (t, x) { return t + x.cost; }, 0);
     out.className = p < 0 ? 'neg' : 'good';
     out.textContent = profitText(p);
   }
 
   function openSoldSheet(item) {
     selling = item;
+    bundle = [];
+    bundleOpen = false;
     soldOn = item.platforms.length === 1 ? item.platforms[0] : null;
     $('sold-item').textContent = item.name;
     $('sold-paid').textContent = item.cost === null ? 'No cost saved for this item' : 'You paid ' + money(item.cost);
     $('sold-price').value = '';
     $('sold-error').textContent = '';
-    renderPickChips($('sold-chips'), item.platforms.length ? item.platforms : PLATFORMS, soldOn, function (p) { soldOn = p; });
+    renderPickChips($('sold-chips'), item.platforms.length ? item.platforms : PLATFORMS, soldOn, function (p) { soldOn = p; renderBundle(); });
+    renderBundle();
     updateSoldProfit();
     $('sold-sheet').hidden = false;
     $('sold-price').focus();
@@ -1205,6 +1255,7 @@
 
   function closeSoldSheet() {
     selling = null;
+    bundle = [];
     $('sold-sheet').hidden = true;
   }
 
@@ -1213,17 +1264,30 @@
     if (!selling) return;
     var price = parseMoney($('sold-price').value);
     var err = $('sold-error');
-    if (price === null) { err.textContent = 'Enter what it sold for, e.g. 40.00.'; return; }
+    if (price === null) { err.textContent = bundle.length ? 'Enter what the whole sale was for, e.g. 40.00.' : 'Enter what it sold for, e.g. 40.00.'; return; }
     if (!soldOn) { err.textContent = 'Pick the app it sold on.'; return; }
-    var before = { stage: selling.stage, sold: selling.sold, platforms: selling.platforms };
-    selling.sold = { price: price, platform: soldOn, fees: 0, shipping: 0, date: Date.now() };
-    selling.stage = 'sold';
-    delete selling.archived;
-    selling.platforms = [soldOn]; // a sold item is on one app: the one it sold on
+    var group = [selling].concat(bundle);
+    var before = group.map(function (x) { return { it: x, stage: x.stage, sold: x.sold, platforms: x.platforms, parcel: x.parcel, archived: x.archived }; });
+    // One price for the parcel, shared out evenly in cents so the total stays exact.
+    var cents = Math.round(price * 100), base = Math.floor(cents / group.length), extra = cents - base * group.length;
+    var pid = group.length > 1 ? newId() : null;
+    var when = Date.now();
+    group.forEach(function (x, k) {
+      x.sold = { price: (base + (k === 0 ? extra : 0)) / 100, platform: soldOn, fees: 0, shipping: 0, date: when };
+      x.stage = 'sold';
+      delete x.archived;
+      delete x.gathered;
+      if (pid) x.parcel = pid; else delete x.parcel;
+      x.platforms = [soldOn]; // a sold item is on one app: the one it sold on
+    });
     if (!save()) {
-      selling.stage = before.stage;
-      selling.platforms = before.platforms;
-      if (before.sold) selling.sold = before.sold; else delete selling.sold;
+      before.forEach(function (b) {
+        b.it.stage = b.stage;
+        b.it.platforms = b.platforms;
+        if (b.sold) b.it.sold = b.sold; else delete b.it.sold;
+        if (b.parcel) b.it.parcel = b.parcel; else delete b.it.parcel;
+        if (b.archived) b.it.archived = true;
+      });
       err.textContent = 'Could not save on this device. Is private browsing on?';
       return;
     }
@@ -1305,7 +1369,7 @@
     var steps = $('home-steps');
     steps.replaceChildren();
     HOME_STEPS.forEach(function (id) {
-      var inStage = items.filter(function (i) { return i.stage === id; });
+      var inStage = items.filter(function (i) { return i.stage === id && !i.history; });
       var c = el('div', 'step-card s-' + id);
       var open = el('button', 'step-open');
       open.type = 'button';
@@ -1335,10 +1399,11 @@
 
   function renderSteps() {
     var box = $('steps');
+    box.hidden = stage === 'history';
     box.replaceChildren();
     var current = barIndex(stage);
     BAR.forEach(function (s, idx) {
-      var count = s.id === 'all' ? items.length : items.filter(function (i) { return i.stage === s.id; }).length;
+      var count = items.filter(function (i) { return !i.history && (s.id === 'all' || i.stage === s.id); }).length;
       var b = el('button', 'step s-' + s.id + (idx === current ? ' on' : ''));
       b.type = 'button';
       b.appendChild(el('span', 'count', compact(count)));
@@ -1412,7 +1477,6 @@
     var next = STAGES[stageIndex(item.stage) + 1];
     if (!next) return;
     if (next.id === 'sold') { openSoldSheet(item); return; }
-    if (next.id === 'shipped' && item.location) { openGrab(item, next.id); return; }
     setStage(item, next.id);
   }
 
@@ -1548,7 +1612,7 @@
         row.style.transition = 'none';
         wrap.classList.add('drag');
       }
-      lastX = Math.max(-(wrap._left || SWIPE_L), Math.min(SWIPE_R, baseX + dx));
+      lastX = Math.max(-(wrap._left || SWIPE_L), Math.min(wrap._noEdit ? 0 : SWIPE_R, baseX + dx));
       row.style.transform = 'translateX(' + lastX + 'px)';
     });
 
@@ -1559,7 +1623,7 @@
       if (!horizontal) return;
       justSwiped = true;
       setTimeout(function () { justSwiped = false; }, 60);
-      setSwipe(wrap, row, lastX > SWIPE_R / 2 ? 'edit' : lastX < -(wrap._left || SWIPE_L) / 2 ? 'del' : 'closed');
+      setSwipe(wrap, row, lastX > SWIPE_R / 2 && !wrap._noEdit ? 'edit' : lastX < -(wrap._left || SWIPE_L) / 2 ? 'del' : 'closed');
     }
     row.addEventListener('pointerup', finish);
     row.addEventListener('pointercancel', finish);
@@ -1574,9 +1638,10 @@
     }, true);
   }
 
-  function swipeWrap(row, item) {
+  function swipeWrap(row, item, group) {
     var wrap = el('div', 'swipe');
     wrap._state = 'closed';
+    wrap._noEdit = !!(group && group.length > 1);
     var actions = el('div', 'swipe-actions');
 
     var eb = el('button', 'act-edit');
@@ -1593,7 +1658,7 @@
     db.appendChild(icon('trash', 22));
     db.appendChild(el('span', '', 'Delete'));
     db.addEventListener('focus', function () { setSwipe(wrap, row, 'del'); });
-    db.addEventListener('click', function () { closeOpen(); openDelete(item); });
+    db.addEventListener('click', function () { closeOpen(); openDelete(item, group); });
 
     // Archive sends an item to Not listed, Archive (and Unarchive brings it back to Draft).
     // Sold and shipped items can't be archived: that would lose their sale.
@@ -1615,7 +1680,7 @@
     var right = el('div', 'swipe-right');
     if (ab) right.appendChild(ab);
     right.appendChild(db);
-    actions.appendChild(eb);
+    if (!wrap._noEdit) actions.appendChild(eb);
     actions.appendChild(right);
     wrap.appendChild(actions);
     wrap.appendChild(row);
@@ -1658,9 +1723,178 @@
     });
   }
 
+  // The money for a parcel: what it sold for, minus what its items cost.
+  function parcelTotals(members) {
+    var total = 0, cost = 0, missing = false, extra = 0;
+    members.forEach(function (i) {
+      total += Number(i.sold ? i.sold.price : 0);
+      extra += Number(i.sold ? (i.sold.fees || 0) + (i.sold.shipping || 0) : 0);
+      if (i.cost === null) missing = true; else cost += i.cost;
+    });
+    return { total: total, profit: missing ? null : total - cost - extra };
+  }
+
+  function setGathered(i, on) {
+    var note = '';
+    if (on) i.gathered = true;
+    else {
+      delete i.gathered;
+      // Its old slot may have been used while it was out: then it has no slot until you pick one.
+      if (i.slot && slotTaken(i.location, i.slot, i)) { delete i.slot; note = 'Its old slot was taken, so it has no slot now.'; }
+    }
+    if (!save()) { alert('Could not save on this device. Is private browsing on?'); return; }
+    refresh();
+    if (note) showToast(note);
+  }
+
+  function shipParcel(members) {
+    var before = members.map(function (i) { return i.stage; });
+    members.forEach(function (i) { i.stage = 'shipped'; });
+    if (!save()) {
+      members.forEach(function (i, k) { i.stage = before[k]; });
+      alert('Could not save on this device. Is private browsing on?');
+      return;
+    }
+    refresh();
+  }
+
+  function restoreParcel(members) {
+    var saved = JSON.parse(JSON.stringify(members));
+    members.forEach(function (i) {
+      i.stage = 'list';
+      delete i.sold; delete i.parcel; delete i.gathered; delete i.history;
+      if (i.slot && slotTaken(i.location, i.slot, i)) delete i.slot;
+    });
+    if (!save()) {
+      members.forEach(function (i, k) { for (var key in i) delete i[key]; Object.assign(i, saved[k]); });
+      alert('Could not save on this device. Is private browsing on?');
+      return;
+    }
+    refresh();
+    showToast(members.length > 1 ? 'Moved ' + members.length + ' items back to List' : 'Moved back to List', 'View', function () { stage = 'list'; showList(); });
+  }
+
+  // One card per sale: the items in it, what to gather, and the Ship button.
+  // mode is 'sold' (waiting to be gathered), 'shipped' or 'history'.
+  function parcelCard(members, mode) {
+    var lead = members[0];
+    var multi = members.length > 1;
+    var card = el('div', 'parcel s-' + (mode === 'sold' ? 'sold' : 'shipped'));
+
+    var head = el('div', 'parcel-head');
+    var thumb = el('div', 'thumb');
+    if (lead.photo) {
+      var img = document.createElement('img');
+      img.src = lead.photo;
+      img.alt = '';
+      thumb.appendChild(img);
+    } else thumb.appendChild(icon('camera', 20));
+    head.appendChild(thumb);
+    var main = el('div', 'item-main');
+    main.appendChild(el('div', 'item-name', multi ? lead.name + ' + ' + (members.length - 1) + ' more' : lead.name));
+    var meta = el('div', 'item-meta');
+    meta.appendChild(el('span', 'pill', mode === 'sold' ? 'Sold' : 'Shipped'));
+    meta.appendChild(document.createTextNode((lead.sold && lead.sold.platform) || 'App not saved'));
+    if (multi) meta.appendChild(document.createTextNode(' · ' + members.length + ' items, one parcel'));
+    main.appendChild(meta);
+    head.appendChild(main);
+    var t = parcelTotals(members);
+    head.appendChild(el('div', 'amt ' + (t.profit === null ? '' : t.profit < 0 ? 'neg' : 'good'), t.profit === null ? money(t.total) : signedText(t.profit)));
+    card.appendChild(head);
+
+    if (mode === 'sold') {
+      var list = el('div', 'gather');
+      var need = members.filter(function (i) { return !!i.location; });
+      members.forEach(function (i) {
+        var label = multi ? i.name : (i.location ? where(i) : 'No place, nothing to gather');
+        var sub = !i.location ? (multi ? 'No place, nothing to gather' : '') : multi ? where(i) + (i.gathered ? ' · gathered' : '') : (i.gathered ? 'Gathered' : 'Tap when you have it');
+        var rowEl = el(i.location ? 'button' : 'div', 'gather-row' + (i.gathered ? ' on' : '') + (i.location ? '' : ' none'));
+        if (i.location) {
+          rowEl.type = 'button';
+          rowEl.setAttribute('aria-pressed', i.gathered ? 'true' : 'false');
+          rowEl.setAttribute('aria-label', (i.gathered ? 'Gathered: ' : 'Gather ') + i.name + ' from ' + where(i));
+          rowEl.addEventListener('click', function () { setGathered(i, !i.gathered); });
+          var box = el('span', 'gbox');
+          if (i.gathered) box.appendChild(icon('check', 16, 3));
+          rowEl.appendChild(box);
+        }
+        var txt = el('span', 'g-text');
+        txt.appendChild(el('span', 'g-name', label));
+        if (sub) txt.appendChild(el('span', 'g-sub', sub));
+        rowEl.appendChild(txt);
+        if (multi) {
+          var wrapRow = el('div', 'gather-line');
+          wrapRow.appendChild(rowEl);
+          var eb = el('button', 'g-edit');
+          eb.type = 'button';
+          eb.setAttribute('aria-label', 'Edit ' + i.name);
+          eb.appendChild(icon('pencil', 18));
+          eb.addEventListener('click', function () { showEdit(i); });
+          wrapRow.appendChild(eb);
+          list.appendChild(wrapRow);
+        } else list.appendChild(rowEl);
+      });
+      card.appendChild(list);
+      var done = need.filter(function (i) { return i.gathered; }).length;
+      var foot = el('div', 'parcel-foot');
+      foot.appendChild(el('div', 'meta', need.length ? done + ' of ' + need.length + ' gathered' : 'Nothing to gather'));
+      var ship = el('button', 'ship-btn s-shipped', 'Ship');
+      ship.type = 'button';
+      ship.disabled = done < need.length;
+      ship.setAttribute('aria-label', ship.disabled ? 'Ship (gather everything first)' : 'Ship ' + (multi ? 'this parcel' : lead.name));
+      ship.insertBefore(icon('truck', 20), ship.firstChild);
+      ship.addEventListener('click', function () { shipParcel(members); });
+      foot.appendChild(ship);
+      card.appendChild(foot);
+    } else {
+      if (multi) {
+        var names = el('div', 'item-meta parcel-names');
+        names.textContent = members.map(function (i) { return i.name; }).join(' · ');
+        card.appendChild(names);
+      }
+      if (mode === 'history') {
+        var back = el('button', 'ship-btn back-btn');
+        back.type = 'button';
+        back.appendChild(icon('undo', 18));
+        back.appendChild(document.createTextNode('Back to List'));
+        back.addEventListener('click', function () { restoreParcel(members); });
+        var f = el('div', 'parcel-foot');
+        f.appendChild(el('div', 'meta', countText(members.length)));
+        f.appendChild(back);
+        card.appendChild(f);
+      }
+    }
+    return swipeWrap(card, lead, members);
+  }
+
+  var clearing = null;
+  function openClear() {
+    clearing = items.filter(function (i) { return i.stage === 'shipped' && !i.history; });
+    if (!clearing.length) return;
+    $('clear-text').textContent = 'Moves ' + countText(clearing.length) + ' to History. They stay in your profit, and you can bring any back to List from History.';
+    $('clear-sheet').hidden = false;
+    $('clear-cancel').focus();
+  }
+  function closeClear() { clearing = null; $('clear-sheet').hidden = true; }
+  function confirmClear() {
+    if (!clearing) return;
+    var list = clearing;
+    list.forEach(function (i) { i.history = true; });
+    if (!save()) {
+      list.forEach(function (i) { delete i.history; });
+      alert('Could not save on this device. Is private browsing on?');
+      return;
+    }
+    closeClear();
+    refresh();
+    showToast('Moved ' + countText(list.length) + ' to History', 'View', showHistory);
+  }
+
   function renderList() {
     var q = query.trim().toLowerCase();
-    var inView = stage === 'all' ? items : items.filter(function (i) { return i.stage === stage; });
+    var history = stage === 'history';
+    var pool = items.filter(function (i) { return history ? !!i.history : !i.history; });
+    var inView = (stage === 'all' || history) ? pool : pool.filter(function (i) { return i.stage === stage; });
     var notListed = stage === 'import';
     if (notListed) inView = inView.filter(function (i) { return !!i.archived === (subTab === 'archive'); });
     renderFilters();
@@ -1671,21 +1905,34 @@
     var box = $('list');
     box.replaceChildren();
     openRow = null;
+    if (stage === 'shipped' && pool.length) {
+      var bar = el('div', 'clear-bar');
+      bar.appendChild(el('div', 'meta', 'Done shipping? Move them out of the way.'));
+      bar.appendChild(button('clear-btn', 'Clear shipped', openClear));
+      box.appendChild(bar);
+    }
     if (visible.length === 0) {
       box.appendChild(el('div', 'empty',
         inView.length > 0 ? 'No items match your search or filter.'
+          : history ? 'Nothing in History yet. Clear shipped items from the Shipped step and they go here.'
           : stage === 'all' ? 'No items yet. Tap the + button to put your first one here.'
           : notListed ? (subTab === 'archive' ? 'Nothing archived yet.' : 'No drafts yet. Tap the + button to add one.')
           : 'Nothing in ' + BAR[barIndex(stage)].label + ' yet. Tap the + button to put an item here.'));
       return;
     }
+    var seen = {};
     visible.forEach(function (i) {
-      box.appendChild(itemRow(i, { pill: stage === 'all' }));
+      if (i.parcel) { if (seen[i.parcel]) return; seen[i.parcel] = true; }
+      var members = membersOf(i);
+      if (history) box.appendChild(parcelCard(members, 'history'));
+      else if (i.stage === 'sold') box.appendChild(parcelCard(members, 'sold'));
+      else if (i.stage === 'shipped' && members.length > 1) box.appendChild(parcelCard(members, 'shipped'));
+      else box.appendChild(itemRow(i, { pill: stage === 'all' }));
     });
   }
 
   function showList() {
-    $('list-title').textContent = stage === 'all' ? 'All items' : stageLabel(stage);
+    $('list-title').textContent = stage === 'all' ? 'All items' : stage === 'history' ? 'History' : stageLabel(stage);
     renderSteps();
     renderList();
     showView('list-view');
@@ -1701,12 +1948,12 @@
 
   // ---------- places ----------
 
-  // Items still physically here (everything except Shipped), grouped by place.
+  // Items still physically here (not gathered or shipped), grouped by place.
   function groupByPlace() {
     var map = new Map();
     var none = [];
     items.forEach(function (i) {
-      if (i.stage === 'shipped') return;
+      if (gone(i)) return;
       if (!i.location) { none.push(i); return; }
       if (!map.has(i.location)) map.set(i.location, []);
       map.get(i.location).push(i);
@@ -1878,6 +2125,15 @@
     if (s.skipped) {
       box.appendChild(el('div', 'meta', countText(s.skipped) + ' sold but not counted: the sale price or the cost is missing.'));
     }
+    var hist = items.filter(function (i) { return i.history; }).length;
+    box.appendChild(el('div', 'section-label', 'Shipped and cleared'));
+    box.appendChild(placeRow('History', hist, showHistory));
+  }
+
+  function showHistory() {
+    stage = 'history';
+    appsOpen = false;
+    showList();
   }
 
   function showSummary() {
@@ -2004,9 +2260,11 @@
   // Open the form. A new item goes in the given step (or "Not listed" when none is given).
   function showAdd(stageId, preset) {
     addOrigin = currentView === 'add-view' ? addOrigin : currentView;
-    var s = stageId || (currentView === 'list-view' && stage !== 'all' ? stage : 'import');
+    var s = stageId || (currentView === 'list-view' && stage !== 'all' && stage !== 'history' ? stage : 'import');
     add = { stage: s, selected: [], loc: (preset && preset.loc) || '', slot: (preset && preset.slot) || null, newPlace: false, photo: null, soldOn: null };
     setFormMode(false);
+    $('add-stage').disabled = false;
+    $('add-price').readOnly = false;
     $('add-stage').value = s;
     updateStageText();
     $('name').value = '';
@@ -2033,6 +2291,8 @@
     };
     setFormMode(true);
     updateStageText();
+    $('add-stage').disabled = !!item.parcel;
+    $('add-price').readOnly = !!item.parcel;
     $('name').value = item.name;
     $('cost').value = item.cost === null ? '' : String(item.cost);
     $('new-place').value = '';
@@ -2092,6 +2352,12 @@
 
   // Returns true when the item was saved.
   function submit() {
+    // An item sold in a bundle keeps its step and its share of the sale; use the parcel buttons to change those.
+    if (add.editing && add.editing.parcel && add.editing.sold) {
+      add.stage = add.editing.stage;
+      add.soldOn = add.editing.sold.platform;
+      $('add-price').value = String(add.editing.sold.price);
+    }
     var name = $('name').value.trim();
     var costText = $('cost').value.trim();
     var cost = Number(costText);
@@ -2130,6 +2396,8 @@
       it.location = loc;
       if (slot) it.slot = slot; else delete it.slot;
       it.stage = add.stage;
+      if (add.stage !== 'sold' && add.stage !== 'shipped') delete it.gathered;
+      if (add.stage !== 'shipped') delete it.history;
       if (add.stage !== 'import') delete it.archived;
       if (add.photo) it.photo = add.photo; else delete it.photo;
       if (sold) {
@@ -2137,6 +2405,7 @@
         it.sold = { price: price, platform: add.soldOn, fees: prev.fees || 0, shipping: prev.shipping || 0, date: prev.date || Date.now() };
       } else {
         delete it.sold;
+        delete it.parcel;
       }
       if (!save()) {
         if (idx !== -1) items[idx] = before;
@@ -2223,7 +2492,7 @@
   }
 
   $('view-all').addEventListener('click', function () { stage = 'all'; showList(); });
-  $('list-back').addEventListener('click', showHome);
+  $('list-back').addEventListener('click', function () { if (stage === 'history') showSummary(); else showHome(); });
   $('tab-home').addEventListener('click', showHome);
   $('tab-places').addEventListener('click', showPlaces);
   $('tab-summary').addEventListener('click', showSummary);
@@ -2289,8 +2558,14 @@
   $('slots-rename').addEventListener('click', openNames);
   $('names-form').addEventListener('submit', confirmNames);
   $('names-cancel').addEventListener('click', closeNames);
-  $('grab-no').addEventListener('click', closeGrab);
-  $('grab-yes').addEventListener('click', confirmGrab);
+  $('clear-cancel').addEventListener('click', closeClear);
+  $('clear-confirm').addEventListener('click', confirmClear);
+  $('sold-with-btn').addEventListener('click', function () {
+    if (!soldOn) { $('sold-error').textContent = 'Pick the app it sold on first.'; return; }
+    $('sold-error').textContent = '';
+    bundleOpen = !bundleOpen;
+    renderBundle();
+  });
   $('del-cancel').addEventListener('click', closeDelete);
   $('del-confirm').addEventListener('click', confirmDelete);
   $('photo-remove').addEventListener('click', function () { add.photo = null; renderPhotoTile(); });
