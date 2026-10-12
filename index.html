@@ -90,13 +90,15 @@
   .card-label { font-size: 13px; color: var(--muted); }
   .big { font-size: 34px; font-weight: 700; line-height: 1.15; margin-top: 2px; }
   .two { display: flex; justify-content: space-between; gap: 12px; }
+  .two > div { min-width: 0; }
+  .two .big { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .two > div:last-child { text-align: right; }
   .good { color: var(--green); }
   .neg { color: var(--red); }
   .apps { display: flex; gap: 12px; margin-top: 8px; }
   .app { flex: 1; min-width: 0; }
   .app-name { font-size: 13px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .app-val { font-size: 16px; font-weight: 700; white-space: nowrap; }
+  .app-val { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bar { height: 6px; border-radius: 3px; background: var(--line); margin-top: 6px; overflow: hidden; }
   .bar > span { display: block; height: 6px; border-radius: 3px; background: var(--blue); }
   .section { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 6px; }
@@ -180,11 +182,12 @@
 
   .plat-row { background: var(--card); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; }
   .plat-top { display: flex; justify-content: space-between; align-items: baseline; }
-  .plat-name { font-size: 17px; font-weight: 700; }
-  .plat-profit { font-size: 17px; font-weight: 700; }
+  .plat-top { gap: 12px; }
+  .plat-name { font-size: 17px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .plat-profit { font-size: 17px; font-weight: 700; flex: none; }
 
   #grab-place { font-size: 20px; font-weight: 700; }
-  .place-h1 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .place-h1 { margin: 8px 0 2px; overflow-wrap: anywhere; line-height: 1.15; }
   #place-slots-btn { flex: none; min-height: 44px; }
   .slot-row.tap { cursor: pointer; width: 100%; text-align: left; border: 1.5px solid transparent; color: var(--text); font: inherit; }
   .slot-row.empty.tap { border-style: dashed; border-color: #2A3144; }
@@ -450,10 +453,11 @@
 <main id="place-view" class="has-dock" hidden>
   <header>
     <button class="round" id="place-back" type="button" aria-label="Back to places"></button>
-    <h1 id="place-title" class="place-h1"></h1>
+    <span style="flex:1"></span>
     <button class="round" id="place-search-btn" type="button" aria-label="Search this place"></button>
     <button type="button" class="chip new" id="place-slots-btn" hidden></button>
   </header>
+  <h1 id="place-title" class="place-h1"></h1>
   <div class="meta" id="place-sub" style="margin-bottom:12px"></div>
   <div class="search-wrap" id="place-search-wrap" hidden style="margin:0 0 12px">
     <label for="place-search" style="position:absolute;left:-9999px">Search for an item</label>
@@ -712,15 +716,25 @@
     }
   }
 
-  function money(n) { return '$' + Number(n).toFixed(2); }
+  // 1234567.5 -> "1,234,567.50"
+  function fmt(n) {
+    var parts = Math.abs(Math.round(n * 100) / 100).toFixed(2).split('.');
+    return parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '.' + parts[1];
+  }
+  function money(n) { return '$' + fmt(Number(n)); }
   function costText(i) { return i.cost === null ? 'No cost yet' : money(i.cost); }
   function profitText(n) {
-    var r = Math.round(n * 100) / 100;
-    return (r < 0 ? '-' : '') + '$' + Math.abs(r).toFixed(2);
+    return (Math.round(n * 100) / 100 < 0 ? '-' : '') + '$' + fmt(n);
   }
   function signedText(n) {
-    var r = Math.round(n * 100) / 100;
-    return (r < 0 ? '-' : '+') + '$' + Math.abs(r).toFixed(2);
+    return (Math.round(n * 100) / 100 < 0 ? '-' : '+') + '$' + fmt(n);
+  }
+  // Short money for tight spots (the Home cards): $12.3k, $4.5M, $1.2B. Small amounts stay exact.
+  function shortMoney(n, from) {
+    var a = Math.abs(n), sign = n < 0 ? '-' : '';
+    if (a < (from || 100000)) return sign + '$' + fmt(a);
+    var div = a >= 1e9 ? 1e9 : a >= 1e6 ? 1e6 : 1e3, suf = a >= 1e9 ? 'B' : a >= 1e6 ? 'M' : 'k';
+    return sign + '$' + String(Math.floor(a / div * 10) / 10).replace(/\.0$/, '') + suf;
   }
   // Short form for big counts so they always fit: 999, 1.2k, 12k, 1.2M.
   function compact(n) {
@@ -1238,10 +1252,10 @@
     var card = el('div', 'card two');
     var a = el('div');
     a.appendChild(el('div', 'card-label', 'Total profit'));
-    a.appendChild(el('div', 'big ' + (s.total < 0 ? 'neg' : 'good'), profitText(s.total)));
+    a.appendChild(el('div', 'big ' + (s.total < 0 ? 'neg' : 'good'), shortMoney(s.total)));
     var b = el('div');
     b.appendChild(el('div', 'card-label', 'Tied up in unsold'));
-    b.appendChild(el('div', 'big', money(s.tied)));
+    b.appendChild(el('div', 'big', shortMoney(s.tied)));
     card.appendChild(a);
     card.appendChild(b);
     return card;
@@ -1266,7 +1280,7 @@
       s.apps.slice(0, 4).forEach(function (a) {
         var c = el('div', 'app');
         c.appendChild(el('div', 'app-name', a.name));
-        c.appendChild(el('div', 'app-val', profitText(a.profit)));
+        c.appendChild(el('div', 'app-val', shortMoney(a.profit, 10000)));
         var bar = el('div', 'bar');
         var fill = el('span');
         fill.style.width = barWidth(a.profit, max);
