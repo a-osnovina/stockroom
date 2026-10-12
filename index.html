@@ -146,6 +146,7 @@
     background: var(--card); color: var(--muted); display: flex; align-items: center; justify-content: center;
   }
   .apps-btn.set { background: #2A3350; color: var(--blue-text); }
+  .apps-btn.archive { color: #F5C46E; background: #3B3320; }
   .apps-btn[aria-expanded="true"] { box-shadow: inset 0 0 0 1.5px var(--blue); }
   .apps-btn .badge {
     position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
@@ -364,7 +365,6 @@
     <h1 id="list-title">All items</h1>
   </header>
   <nav class="steps" id="steps" aria-label="Steps"></nav>
-  <div class="seg" id="sub-tabs" role="group" aria-label="Not listed items" hidden></div>
   <div class="searchrow">
     <div class="search-wrap">
       <label for="search" style="position:absolute;left:-9999px">Search for an item</label>
@@ -630,6 +630,7 @@
     bars: '<path d="M5 20V10"/><path d="M12 20V4"/><path d="M19 20v-7"/>',
     phone: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M10 7h4"/>',
     down: '<path d="M6 9l6 6 6-6"/>',
+    archive: '<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11h14V8M10 12h4"/>',
     sliders: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
     x: '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
@@ -1343,6 +1344,7 @@
       if (idx === current) b.setAttribute('aria-current', 'step');
       b.addEventListener('click', function () {
         stage = s.id;
+        appsOpen = false;
         showList();
       });
       box.appendChild(b);
@@ -1362,18 +1364,34 @@
   }
 
   function renderFilters() {
+    var notListed = stage === 'import';
     var used = usedApps();
     filter = filter.filter(function (f) { return used.indexOf(f) !== -1; });
     var btn = $('apps-btn');
     btn.replaceChildren();
     btn.setAttribute('aria-expanded', appsOpen ? 'true' : 'false');
+    var box = $('filters');
+    box.hidden = !appsOpen;
+    box.replaceChildren();
+    if (notListed) {
+      // On Not listed the same button chooses Draft or Archive, so the search box stays where it is on every step.
+      btn.className = 'apps-btn' + (subTab === 'archive' ? ' set archive' : '');
+      btn.setAttribute('aria-label', 'Show ' + (subTab === 'archive' ? 'archive (change to draft)' : 'draft (change to archive)'));
+      btn.appendChild(icon('archive', 20, 2.2));
+      [['draft', 'Draft', function (i) { return !i.archived; }], ['archive', 'Archive', function (i) { return i.archived; }]].forEach(function (t) {
+        var n = items.filter(function (i) { return i.stage === 'import' && t[2](i); }).length;
+        box.appendChild(chip(t[1] + ' · ' + compact(n), subTab === t[0], function () {
+          subTab = t[0];
+          appsOpen = false;
+          renderList();
+        }));
+      });
+      return;
+    }
     btn.className = 'apps-btn' + (filter.length ? ' set' : '');
     btn.setAttribute('aria-label', filter.length ? 'Filter by app, ' + filter.length + ' selected' : 'Filter by app');
     btn.appendChild(icon('sliders', 20, 2.2));
     if (filter.length) btn.appendChild(el('span', 'badge', String(filter.length)));
-    var box = $('filters');
-    box.hidden = !appsOpen;
-    box.replaceChildren();
     [null].concat(used).forEach(function (p) {
       var on = p === null ? filter.length === 0 : filter.indexOf(p) !== -1;
       box.appendChild(chip(p === null ? 'All apps' : p, on, function () {
@@ -1636,33 +1654,12 @@
     });
   }
 
-  function renderSubTabs() {
-    var box = $('sub-tabs');
-    box.hidden = stage !== 'import';
-    if (box.hidden) return;
-    var draft = items.filter(function (i) { return i.stage === 'import' && !i.archived; }).length;
-    var arch = items.filter(function (i) { return i.stage === 'import' && i.archived; }).length;
-    box.replaceChildren();
-    [['draft', 'Draft', draft], ['archive', 'Archive', arch]].forEach(function (t) {
-      var b = el('button', t[0] === subTab ? 'on' : '', t[1] + ' · ' + compact(t[2]));
-      b.type = 'button';
-      b.setAttribute('aria-pressed', t[0] === subTab ? 'true' : 'false');
-      b.addEventListener('click', function () { subTab = t[0]; renderList(); });
-      box.appendChild(b);
-    });
-  }
-
   function renderList() {
     var q = query.trim().toLowerCase();
     var inView = stage === 'all' ? items : items.filter(function (i) { return i.stage === stage; });
     var notListed = stage === 'import';
     if (notListed) inView = inView.filter(function (i) { return !!i.archived === (subTab === 'archive'); });
-    renderSubTabs();
-    // Nothing is listed on an app yet in Not listed, so Draft and Archive take the place of the Apps row.
-    // Keep the button's space on Not listed so the search box is the same length on every step.
-    $('apps-btn').style.visibility = notListed ? 'hidden' : '';
-    $('apps-btn').disabled = notListed;
-    $('filters').hidden = notListed || !appsOpen;
+    renderFilters();
     var visible = inView.filter(function (i) {
       return (!q || i.name.toLowerCase().indexOf(q) !== -1 || (i.location || '').toLowerCase().indexOf(q) !== -1) &&
         (notListed || !filter.length || filter.some(function (f) { return i.platforms.indexOf(f) !== -1 || (i.sold && i.sold.platform === f); }));
