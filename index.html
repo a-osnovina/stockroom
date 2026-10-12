@@ -207,6 +207,11 @@
     min-height: 60px; padding: 8px 16px; margin-bottom: 8px;
   }
   .place-name { font-size: 16px; font-weight: 700; }
+  .add-place { opacity: .5; border: 1.5px dashed #3A4460; background: none; color: #8FBBFF; justify-content: center; margin-top: 4px; }
+  .nospot { background: #3B3320; }
+  .nospot .place-name, .nospot .chev { color: #F5C46E; }
+  .app.tap { background: none; border: 0; padding: 0; text-align: left; color: inherit; font: inherit; }
+  .app.nospot-t .app-val { color: #F5C46E; }
   .chev { color: var(--blue); font-size: 24px; line-height: 1; }
 
   .plat-row { background: var(--card); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; }
@@ -476,8 +481,9 @@
 </main>
 
 <main id="places-view" class="has-dock" hidden>
-  <header><h1 style="flex:1">Places</h1><button type="button" class="chip new" id="new-place-btn" style="flex:none">+ New place</button></header>
+  <header><h1 style="flex:1">Places</h1></header>
   <div id="places-list"></div>
+  <button type="button" class="place-row add-place" id="new-place-btn"><span class="place-name">+ New place</span></button>
 </main>
 
 <main id="place-view" class="has-dock" hidden>
@@ -1355,24 +1361,26 @@
     box.appendChild(bigCard(s));
 
     var card = el('div', 'card');
-    card.appendChild(el('div', 'card-label', 'Profit by app'));
-    if (s.apps.length === 0) {
-      card.appendChild(el('div', 'meta', 'No sales yet.'));
+    card.appendChild(el('div', 'card-label', 'Items by place'));
+    var g = groupByPlace();
+    var shown = g.names.filter(function (n) { return g.map.get(n).length; });
+    if (!shown.length && !g.none.length) {
+      card.appendChild(el('div', 'meta', 'No items stored yet.'));
       card.lastChild.style.marginTop = '8px';
     } else {
       var row = el('div', 'apps');
-      var max = s.apps[0].profit;
-      s.apps.slice(0, 4).forEach(function (a) {
-        var c = el('div', 'app');
-        c.appendChild(el('div', 'app-name', a.name));
-        c.appendChild(el('div', 'app-val', shortMoney(a.profit, 10000)));
-        var bar = el('div', 'bar');
-        var fill = el('span');
-        fill.style.width = barWidth(a.profit, max);
-        bar.appendChild(fill);
-        c.appendChild(bar);
+      function tile(name, n, cls, fn) {
+        var c = el('button', 'app tap ' + (cls || ''));
+        c.type = 'button';
+        c.appendChild(el('div', 'app-name', name));
+        c.appendChild(el('div', 'app-val', String(n)));
+        c.addEventListener('click', fn);
         row.appendChild(c);
+      }
+      shown.slice(0, g.none.length ? 3 : 4).forEach(function (n) {
+        tile(n, g.map.get(n).length, '', function () { showPlace(n); });
       });
+      if (g.none.length) tile('No spot', g.none.length, 'nospot-t', function () { showPlace(''); });
       card.appendChild(row);
     }
     box.appendChild(card);
@@ -1929,7 +1937,7 @@
         var list = el('div', 'gather');
         members.forEach(function (i) {
           var label = multi ? i.name : where(i);
-          var sub = !i.location ? 'No place' : multi ? where(i) + (i.gathered ? ' · gathered' : '') : (i.gathered ? 'Gathered' : 'Tap when you have it');
+          var sub = !i.location ? 'No spot' : multi ? where(i) + (i.gathered ? ' · gathered' : '') : (i.gathered ? 'Gathered' : 'Tap when you have it');
           var rowEl = el(i.location ? 'button' : 'div', 'gather-row' + (i.gathered ? ' on' : '') + (i.location ? '' : ' none'));
           if (i.location) {
             rowEl.type = 'button';
@@ -2091,17 +2099,14 @@
     var g = groupByPlace();
     var box = $('places-list');
     box.replaceChildren();
-    if (g.names.length === 0 && g.none.length === 0) {
-      box.appendChild(el('div', 'empty', 'Nothing is stored anywhere yet. Tap + New place to add your first one.'));
+    if (g.names.length === 0) {
+      box.appendChild(el('div', 'empty', 'No places yet. Tap + New place below to add your first one.'));
       return;
     }
     g.names.forEach(function (n) {
       var sc = slotCount(n);
       box.appendChild(placeRow(n, g.map.get(n).length, function () { showPlace(n); }, sc ? ' · ' + sc + (sc === 1 ? ' slot' : ' slots') : ''));
     });
-    if (g.none.length) {
-      box.appendChild(placeRow('No place', g.none.length, function () { showPlace(''); }));
-    }
   }
 
   function showPlaces() {
@@ -2124,7 +2129,7 @@
     var here = name === '' ? g.none : (g.map.get(name) || []);
     var sc = name === '' ? 0 : slotCount(name);
     var q = placeQuery.trim().toLowerCase();
-    $('place-title').textContent = name === '' ? 'No place' : name;
+    $('place-title').textContent = name === '' ? 'No spot' : name;
     $('place-sub').textContent = countText(here.length) + (sc ? ' · ' + sc + (sc === 1 ? ' slot' : ' slots') + ', ' + (sc - here.filter(function (i) { return i.slot && i.slot <= sc; }).length) + ' free' : '');
     var sb = $('place-slots-btn');
     sb.hidden = name === '';
@@ -2210,26 +2215,18 @@
     box.replaceChildren();
     box.appendChild(bigCard(s));
 
-    box.appendChild(el('div', 'section-label', 'Profit by app'));
-    if (s.apps.length === 0) {
-      box.appendChild(el('div', 'empty', 'No sales yet. Move an item to Sold to see profit for each app.'));
-    }
-    var max = s.apps.length ? s.apps[0].profit : 0;
-    s.apps.forEach(function (a) {
-      var row = el('div', 'plat-row');
-      var top = el('div', 'plat-top');
-      top.appendChild(el('div', 'plat-name', a.name));
-      top.appendChild(el('div', 'plat-profit ' + (a.profit < 0 ? 'neg' : 'good'), profitText(a.profit)));
-      row.appendChild(top);
-      var bar = el('div', 'bar');
-      bar.style.height = '8px';
-      var fill = el('span');
-      fill.style.height = '8px';
-      fill.style.width = barWidth(a.profit, max);
-      bar.appendChild(fill);
-      row.appendChild(bar);
-      box.appendChild(row);
+    var g = groupByPlace();
+    box.appendChild(el('div', 'section-label', 'Items by place'));
+    var shown = g.names.filter(function (n) { return g.map.get(n).length; });
+    if (!shown.length && !g.none.length) box.appendChild(el('div', 'empty', 'No items are stored yet.'));
+    shown.forEach(function (n) {
+      box.appendChild(placeRow(n, g.map.get(n).length, function () { showPlace(n); }));
     });
+    if (g.none.length) {
+      var ns = placeRow('No spot', g.none.length, function () { showPlace(''); });
+      ns.classList.add('nospot');
+      box.appendChild(ns);
+    }
     if (s.skipped) {
       box.appendChild(el('div', 'meta', countText(s.skipped) + ' sold but not counted: the sale price or the cost is missing.'));
     }
