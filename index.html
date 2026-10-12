@@ -1802,7 +1802,9 @@
     var done = need.filter(function (i) { return i.gathered; }).length;
 
     var head = el('div', 'parcel-head');
-    if (!multi) head.appendChild(itemThumb(lead));
+    // The photo goes in the item rows when there are rows; otherwise (one item, nothing to tick) it stays in the header.
+    var hasRows = multi || (mode === 'sold' && need.length > 0);
+    if (!hasRows) head.appendChild(itemThumb(lead));
     var main = el('div', 'item-main');
     main.appendChild(el('div', 'item-name', multi ? lead.name + ' + ' + (members.length - 1) + ' more' : lead.name));
     if (mode !== 'shipped') {
@@ -1853,7 +1855,7 @@
             rowEl.setAttribute('aria-label', (i.gathered ? 'Gathered: ' : 'Gather ') + i.name + ' from ' + where(i));
             rowEl.addEventListener('click', function () { setGathered(i, !i.gathered); });
           }
-          if (multi) rowEl.appendChild(itemThumb(i, true));
+          rowEl.appendChild(itemThumb(i, true));
           var txt = el('span', 'g-text');
           txt.appendChild(el('span', 'g-name', label));
           if (sub) txt.appendChild(el('span', 'g-sub', sub));
