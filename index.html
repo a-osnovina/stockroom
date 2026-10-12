@@ -80,7 +80,7 @@
 
   /* Stage colors: --fg text/icon, --bg tint, --solid filled */
   .s-all { --fg: #C3CADB; --bg: #2B3040; --solid: #9AA4B8; }
-  .s-import { --fg: #F5C46E; --bg: #3B3320; --solid: #F5C46E; } /* amber = drafts: Not listed and Archive. Slate gray is used for the Places warning (No spot) */
+  .s-import { --fg: #F5C46E; --bg: #3B3320; --solid: #F5C46E; } /* amber = drafts: Unlisted and Archive. Slate gray is used for the Places warning (No spot) */
   .s-list { --fg: #6EA8FF; --bg: #243456; --solid: #6EA8FF; }
   .s-sold { --fg: #4FD1B5; --bg: #1D3A37; --solid: #4FD1B5; }
   .s-shipped { --fg: #C79BFF; --bg: #35294B; --solid: #C79BFF; }
@@ -138,6 +138,8 @@
   .step .count { font-size: 17px; line-height: 1; color: var(--fg); max-width: 100%; padding: 0 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .step.on { background: var(--solid); color: #0B1220; }
   .step.on .count { color: #0B1220; }
+  .step.zero:not(.on) .count { opacity: .4; }
+  .step.zero:not(.on) span:not(.count) { opacity: .6; }
 
   .search-wrap { margin-top: 12px; margin-bottom: 12px; position: relative; }
   .searchrow { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
@@ -188,6 +190,13 @@
     border: 0; border-radius: 10px; background: var(--bg); color: var(--text); text-align: left; font: inherit; width: 100%;
   }
   .gather-row.none { color: var(--muted); }
+  .gather-row.plain { color: var(--soft); }
+  .thumb.bundle { position: relative; }
+  .thumb-count { position: absolute; right: 3px; bottom: 3px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: var(--fg); color: #0B1220; font-size: 12px; font-weight: 700; line-height: 18px; text-align: center; }
+  .amt-inline { font-weight: 700; margin-left: 8px; white-space: nowrap; }
+  .item-name.wrap { white-space: normal; overflow-wrap: anywhere; }
+  .amt-inline.good { color: var(--green); }
+  .amt-inline.neg { color: var(--red); }
   .gbox { width: 28px; height: 28px; border-radius: 9px; border: 2px solid #4A5578; flex: none; display: flex; align-items: center; justify-content: center; }
   .gather-row.on .gbox { background: var(--green); border-color: var(--green); color: #0B1220; }
   .g-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
@@ -195,7 +204,7 @@
   .g-sub { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
   .gather-row.on .g-name { color: var(--muted); }
   .parcel-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 0 2px; }
-  .ship-btn { min-height: 44px; padding: 0 20px; border: 0; border-radius: 22px; background: var(--solid); color: #0B1220; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; flex: none; }
+  .ship-btn { min-height: 44px; min-width: 88px; justify-content: center; padding: 0 14px; border: 0; border-radius: 22px; background: var(--solid); color: #0B1220; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex: none; }
   .ship-btn:disabled { opacity: .35; }
   .ship-all { width: 100%; min-height: 52px; margin: 0 0 12px; border: 0; border-radius: 26px; background: #C79BFF; color: #0B1220; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
   .ship-btn.back-btn { background: var(--blue-bg); color: var(--blue-text); }
@@ -645,10 +654,10 @@
 <script>
 (function () {
   var STAGES = [
-    { id: 'import', label: 'Not listed' },
+    { id: 'import', label: 'Unlisted' },
     { id: 'list', label: 'List' },
     { id: 'sold', label: 'Sold' },
-    { id: 'shipped', label: 'Parcels' }
+    { id: 'shipped', label: 'Packed' }
   ];
   var SOLD_AT = 2; // index of the Sold step: this step and later have a sale price
   // The bar at the top: "All" shows every item, each other step shows the items in that step.
@@ -675,6 +684,7 @@
     archive: '<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11h14V8M10 12h4"/>',
     qr: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v1M14 20h1M18 18v3h3"/>',
     box: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+    layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
     undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     sliders: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
@@ -684,7 +694,7 @@
     archive: '<path d="M3 5h18v4H3z"/><path d="M5 9v10h14V9"/><path d="M10 13h4"/>',
     trash: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/>'
   };
-  var STAGE_ICON = { import: 'inbox', list: 'tag', sold: 'sold', shipped: 'truck' };
+  var STAGE_ICON = { import: 'inbox', list: 'tag', sold: 'sold', shipped: 'box' };
 
   var SLOTS_KEY = 'stockroom.places.v1'; // { placeName: number of slots }
   var placeSlots = loadSlots();
@@ -698,7 +708,7 @@
   var stage = 'all';       // which bar step is open
   var query = '';
   var filter = [];
-  var subTab = 'draft';    // Not listed has two parts: draft and archive
+  var subTab = 'draft';    // Unlisted has two parts: draft and archive
   var currentView = 'home-view';
   var addOrigin = 'home-view';
   var add = null;          // state of the add form
@@ -1421,7 +1431,7 @@
     var current = barIndex(stage);
     BAR.forEach(function (s, idx) {
       var count = items.filter(function (i) { return !i.history && (s.id === 'all' || i.stage === s.id); }).length;
-      var b = el('button', 'step s-' + s.id + (idx === current ? ' on' : ''));
+      var b = el('button', 'step s-' + s.id + (idx === current ? ' on' : '') + (count === 0 ? ' zero' : ''));
       b.type = 'button';
       b.appendChild(el('span', 'count', compact(count)));
       b.appendChild(el('span', '', s.label));
@@ -1458,7 +1468,7 @@
     box.hidden = !appsOpen;
     box.replaceChildren();
     if (notListed) {
-      // On Not listed the same button chooses Draft or Archive, so the search box stays where it is on every step.
+      // On Unlisted the same button chooses Draft or Archive, so the search box stays where it is on every step.
       btn.className = 'apps-btn' + (subTab === 'archive' ? ' set archive' : '');
       btn.setAttribute('aria-label', 'Show ' + (subTab === 'archive' ? 'archive (change to draft)' : 'draft (change to archive)'));
       btn.appendChild(icon('archive', 20, 2.2));
@@ -1512,7 +1522,7 @@
     return true;
   }
 
-  function metaLine(i, showPill, hidePlace) {
+  function metaLine(i, showPill, hidePlace, showCost) {
     var line = el('div', 'item-meta');
     var first = true;
     function part(node) {
@@ -1531,6 +1541,8 @@
         part(el('span', i.platforms.length ? '' : 'dim', i.platforms.length ? i.platforms.join(', ') : 'No app yet'));
       }
     }
+    // What you paid shows only once it is more than $0.
+    if (showCost && i.cost > 0) part(el('span', '', 'Paid ' + money(i.cost)));
     // The place gets its own third line, and only when the item has one.
     if (hidePlace || !i.location || i.stage === 'shipped') return line;
     var box = el('div', 'item-meta-wrap');
@@ -1554,21 +1566,26 @@
 
     var main = el('div', 'item-main');
     main.appendChild(el('div', 'item-name', i.name));
-    main.appendChild(metaLine(i, opts.pill));
+    main.appendChild(metaLine(i, opts.pill, false, !opts.readOnly));
     row.appendChild(main);
 
-    var p = profitOf(i);
-    var amt = i.sold
-      ? el('div', 'amt ' + (p === null ? '' : p < 0 ? 'neg' : 'good'), p === null ? money(i.sold.price) : signedText(p))
-      : el('div', 'amt', i.cost === null ? 'No cost' : money(i.cost));
-    row.appendChild(amt);
+    // The list rows keep the price tidy inside the meta line; the read-only rows (a place) still show the amount on the right.
+    if (opts.readOnly) {
+      var p = profitOf(i);
+      var amt = i.sold
+        ? el('div', 'amt ' + (p === null ? '' : p < 0 ? 'neg' : 'good'), p === null ? money(i.sold.price) : signedText(p))
+        : el('div', 'amt', i.cost === null ? 'No cost' : money(i.cost));
+      row.appendChild(amt);
+    }
 
+    // The button is named after the step the item moves to, and takes that step's color.
     var next = STAGES[stageIndex(i.stage) + 1];
     if (next && !opts.readOnly) {
-      var nb = el('button', 'next s-' + next.id);
+      var nb = el('button', 'ship-btn s-' + next.id);
       nb.type = 'button';
       nb.setAttribute('aria-label', 'Move ' + i.name + ' to ' + next.label);
-      nb.appendChild(icon('arrow', 22));
+      nb.appendChild(icon(STAGE_ICON[next.id], 18));
+      nb.appendChild(document.createTextNode(next.label));
       nb.addEventListener('click', function () { moveForward(i); });
       row.appendChild(nb);
     }
@@ -1677,7 +1694,7 @@
     db.addEventListener('focus', function () { setSwipe(wrap, row, 'del'); });
     db.addEventListener('click', function () { closeOpen(); openDelete(item, group); });
 
-    // Archive sends an item to Not listed, Archive (and Unarchive brings it back to Draft).
+    // Archive sends an item to Unlisted, Archive (and Unarchive brings it back to Draft).
     // Sold and shipped items can't be archived: that would lose their sale.
     var canArchive = item.stage === 'import' || item.stage === 'list';
     var isArch = item.stage === 'import' && item.archived;
@@ -1733,7 +1750,7 @@
       return;
     }
     refresh();
-    showToast(archive ? 'Moved to Not listed › Archive' : 'Moved back to Not listed › Draft', 'View', function () {
+    showToast(archive ? 'Moved to Unlisted › Archive' : 'Moved back to Unlisted › Draft', 'View', function () {
       stage = 'import';
       subTab = archive ? 'archive' : 'draft';
       showList();
@@ -1825,7 +1842,7 @@
     if (note) showToast(note);
   }
 
-  // Packed: the parcel is boxed up and waits in Parcels.
+  // Packed: the parcel is boxed up and waits in the Packed step.
   function packParcel(members) {
     var before = members.map(function (i) { return i.stage; });
     members.forEach(function (i) { i.stage = 'shipped'; });
@@ -1837,7 +1854,7 @@
     refresh();
   }
 
-  // Ship: the parcel has gone. It moves to History and still counts in your profit.
+  // Ship: the parcel has gone. It moves to Shipped and still counts in your profit.
   function shipParcel(members) {
     members.forEach(function (i) { i.history = true; });
     if (!save()) {
@@ -1880,7 +1897,7 @@
     return thumb;
   }
 
-  // One card per sale. The button on the right changes with the step: Packed (Sold), Ship (Parcels), Back to List (History).
+  // One card per sale. The button on the right changes with the step: Packed (Sold), Ship (Packed), Back to List (Shipped).
   // The total sits at the bottom right. A bundle has no photo in its header; each item shows its own.
   function parcelCard(members, mode) {
     var lead = members[0];
@@ -1890,18 +1907,25 @@
     var done = need.filter(function (i) { return i.gathered; }).length;
 
     var head = el('div', 'parcel-head');
-    // The photo goes in the item rows when there are rows; otherwise (one item, nothing to tick) it stays in the header.
-    var hasRows = multi || (mode === 'sold' && need.length > 0);
-    if (!hasRows) head.appendChild(itemThumb(lead));
+    // A bundle gets one tile that shows how many items are in it. One item keeps its photo here,
+    // unless it has a place to tick off below (then the photo goes in that row).
+    var hasRows = mode === 'sold' && need.length > 0;
+    if (multi) {
+      var bundleTile = el('div', 'thumb bundle');
+      bundleTile.appendChild(icon('layers', 22));
+      bundleTile.appendChild(el('span', 'thumb-count', String(members.length)));
+      head.appendChild(bundleTile);
+    } else if (!hasRows) head.appendChild(itemThumb(lead));
     var main = el('div', 'item-main');
-    main.appendChild(el('div', 'item-name', multi ? lead.name + ' + ' + (members.length - 1) + ' more' : lead.name));
-    if (mode !== 'shipped') {
-      var meta = el('div', 'item-meta');
-      meta.appendChild(el('span', 'pill', mode === 'sold' ? 'Sold' : 'Shipped'));
-      meta.appendChild(document.createTextNode((lead.sold && lead.sold.platform) || 'App not saved'));
-      if (multi) meta.appendChild(document.createTextNode(' · ' + members.length + ' items, one parcel'));
-      main.appendChild(meta);
-    }
+    main.appendChild(el('div', 'item-name' + (multi ? ' wrap' : ''), multi ? lead.name + ' + ' + (members.length - 1) + ' more' : lead.name));
+    // Step tag, then the app, then the profit.
+    var meta = el('div', 'item-meta');
+    meta.appendChild(el('span', 'pill', mode === 'sold' ? 'Sold' : mode === 'shipped' ? 'Packed' : 'Shipped'));
+    meta.appendChild(document.createTextNode((lead.sold && lead.sold.platform) || 'App not saved'));
+    var pt = parcelTotals(members);
+    meta.appendChild(el('span', 'amt-inline ' + (pt.profit === null ? '' : pt.profit < 0 ? 'neg' : 'good'),
+      pt.profit === null ? 'Total ' + money(pt.total) : signedText(pt.profit)));
+    main.appendChild(meta);
     head.appendChild(main);
 
     var action = null;
@@ -1960,7 +1984,7 @@
     } else if (multi) {
       var items = el('div', 'gather');
       members.forEach(function (i) {
-        var r = el('div', 'gather-row none');
+        var r = el('div', 'gather-row plain');
         r.appendChild(itemThumb(i, true));
         var txt = el('span', 'g-text');
         txt.appendChild(el('span', 'g-name', i.name));
@@ -1970,17 +1994,13 @@
       card.appendChild(items);
     }
 
-    // Bottom row: progress (or item count) on the left, the total on the right.
-    var foot = el('div', 'parcel-foot');
-    foot.appendChild(el('div', 'meta', mode === 'sold' ? (multi && done < need.length ? done + ' of ' + need.length + ' gathered' : '')
-      : mode === 'history' ? countText(members.length) : ''));
-    var t = parcelTotals(members);
-    var total = el('div', 'p-total ' + (t.profit === null ? '' : t.profit < 0 ? 'neg' : 'good'));
-    total.appendChild(el('small', '', t.profit === null ? 'Total' : 'Profit'));
-    total.appendChild(document.createTextNode(t.profit === null ? money(t.total) : signedText(t.profit)));
-    foot.appendChild(total);
-    card.appendChild(foot);
-    // Parcels edit the sale (price and app). Only a lone item still waiting in Sold opens its full details.
+    // Only a bundle that is still being gathered has anything to say down here.
+    if (mode === 'sold' && multi && done < need.length) {
+      var foot = el('div', 'parcel-foot');
+      foot.appendChild(el('div', 'meta', done + ' of ' + need.length + ' gathered'));
+      card.appendChild(foot);
+    }
+    // Packed parcels edit the sale (price and app). Only a lone item still waiting in Sold opens its full details.
     return swipeWrap(card, lead, members, (mode === 'sold' && !multi) ? null : function () { openSaleEdit(members); });
   }
 
@@ -2013,6 +2033,12 @@
       return (!q || i.name.toLowerCase().indexOf(q) !== -1 || (i.location || '').toLowerCase().indexOf(q) !== -1) &&
         (notListed || !filter.length || filter.some(function (f) { return i.platforms.indexOf(f) !== -1 || (i.sold && i.sold.platform === f); }));
     });
+    // In All, items follow the order of the step bar (Unlisted, List, Sold, Packed). Within a step the order is unchanged.
+    if (stage === 'all') {
+      visible = visible.map(function (x, n) { return { x: x, n: n }; })
+        .sort(function (a, b) { return (stageIndex(a.x.stage) - stageIndex(b.x.stage)) || (a.n - b.n); })
+        .map(function (o) { return o.x; });
+    }
     var box = $('list');
     box.replaceChildren();
     openRow = null;
@@ -2027,9 +2053,9 @@
     if (visible.length === 0) {
       box.appendChild(el('div', 'empty',
         inView.length > 0 ? 'No items match your search or filter.'
-          : history ? 'Nothing in History yet. Parcels you ship go here.'
+          : history ? 'Nothing in Shipped yet. Parcels you ship go here.'
           : stage === 'all' ? 'No items yet. Tap the + button to put your first one here.'
-          : stage === 'shipped' ? 'No parcels yet. Tap Packed on a sold item and it lands here.'
+          : stage === 'shipped' ? 'Nothing packed yet. Tap Packed on a sold item and it lands here.'
           : notListed ? (subTab === 'archive' ? 'Nothing archived yet.' : 'No drafts yet. Tap the + button to add one.')
           : 'Nothing in ' + BAR[barIndex(stage)].label + ' yet. Tap the + button to put an item here.'));
       return;
@@ -2046,7 +2072,7 @@
   }
 
   function showList() {
-    $('list-title').textContent = stage === 'all' ? 'All items' : stage === 'history' ? 'History' : stageLabel(stage);
+    $('list-title').textContent = stage === 'all' ? 'All items' : stage === 'history' ? 'Shipped' : stageLabel(stage);
     renderSteps();
     renderList();
     showView('list-view');
@@ -2258,7 +2284,7 @@
     }
     var hist = items.filter(function (i) { return i.history; }).length;
     box.appendChild(el('div', 'section-label', 'Already shipped'));
-    box.appendChild(placeRow('History', hist, showHistory));
+    box.appendChild(placeRow('Shipped', hist, showHistory));
   }
 
   function showHistory() {
@@ -2388,7 +2414,7 @@
     updateSummary();
   }
 
-  // Open the form. A new item goes in the given step (or "Not listed" when none is given).
+  // Open the form. A new item goes in the given step (or "Unlisted" when none is given).
   function showAdd(stageId, preset) {
     addOrigin = currentView === 'add-view' ? addOrigin : currentView;
     var s = stageId || (currentView === 'list-view' && stage !== 'all' && stage !== 'history' ? stage : 'import');
