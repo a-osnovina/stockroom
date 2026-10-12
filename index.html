@@ -331,6 +331,9 @@
   .actions .primary, .actions .secondary, .actions .danger { flex: 1; }
   .danger { background: var(--red); color: #2A0A08; border: 0; border-radius: 28px; font-size: 17px; font-weight: 700; min-height: 56px; }
   .hint { margin: 10px 0; }
+  /* The field an error message is about */
+  .vbox.bad { border-color: var(--red); }
+  .big-name.bad { border-bottom-color: var(--red) !important; }
 
   /* Swipe actions: right reveals Edit, left reveals Delete */
   .swipe { position: relative; margin-bottom: 8px; border-radius: 12px; overflow: hidden; }
@@ -447,7 +450,7 @@
       <input type="file" id="photo-input" accept="image/*" hidden>
       <div class="add-head-text">
         <label for="name" style="position:absolute;left:-9999px">Item name</label>
-        <input type="text" id="name" class="big-name" placeholder="Item name" autocomplete="off">
+        <input type="text" id="name" class="big-name" placeholder="Item name" autocomplete="off" enterkeyhint="next">
         <div class="add-sub" id="add-sub"></div>
       </div>
     </div>
@@ -456,7 +459,7 @@
     <div class="details">
       <div class="drow">
         <label for="cost">What you paid</label>
-        <div class="vbox"><span class="pre">$</span><input type="number" id="cost" placeholder="0.00" inputmode="decimal" step="0.01" min="0"></div>
+        <div class="vbox"><span class="pre">$</span><input type="number" id="cost" placeholder="0.00" inputmode="decimal" step="0.01" min="0" enterkeyhint="done"></div>
       </div>
       <div class="drow">
         <label for="add-stage">Step</label>
@@ -468,7 +471,7 @@
       </div>
       <div class="drow" id="new-place-row" hidden>
         <label for="new-place">New place</label>
-        <div class="vbox"><input type="text" id="new-place" placeholder="e.g. Garage shelf" autocomplete="off"></div>
+        <div class="vbox"><input type="text" id="new-place" placeholder="e.g. Garage shelf" autocomplete="off" enterkeyhint="done"></div>
       </div>
       <div class="drow" id="slot-group" hidden>
         <label for="add-slot">Slot</label>
@@ -481,7 +484,7 @@
       <div id="add-sold" hidden>
         <div class="drow">
           <label for="add-price">Sold for</label>
-          <div class="vbox"><span class="pre">$</span><input type="number" id="add-price" placeholder="0.00" inputmode="decimal" step="0.01" min="0"></div>
+          <div class="vbox"><span class="pre">$</span><input type="number" id="add-price" placeholder="0.00" inputmode="decimal" step="0.01" min="0" enterkeyhint="done"></div>
         </div>
         <div class="dgroup">
           <div class="label">Sold on</div>
@@ -490,7 +493,7 @@
       </div>
     </div>
 
-    <div class="sumbar" aria-live="polite">
+    <div class="sumbar" id="sumbar" hidden>
       <div><b id="sum-paid">$0.00</b><span>Paid</span></div>
       <div><b id="sum-sold">&mdash;</b><span>Sold for</span></div>
       <div><b id="sum-profit">&mdash;</b><span>Profit</span></div>
@@ -2509,6 +2512,8 @@
     var paidOk = isFinite(paid) && paid >= 0;
     $('sum-paid').textContent = paidOk ? money(paid) : '—';
     var sold = stageIndex(add.stage) >= SOLD_AT;
+    // Paid / Sold for / Profit only matter once there is a sale; before that the bar was two dashes.
+    $('sumbar').hidden = !sold;
     var price = parseMoney($('add-price').value);
     $('sum-sold').textContent = sold && price !== null ? money(price) : '—';
     var pe = $('sum-profit');
@@ -2558,6 +2563,11 @@
     updateSummary();
   }
 
+  // Put the cursor in the name box (new items only) without scrolling the page.
+  function focusName() {
+    try { $('name').focus({ preventScroll: true }); } catch (e) { /* not needed on every browser */ }
+  }
+
   // Open the form. A new item goes in the given step (or "Unlisted" when none is given).
   function showAdd(stageId, preset) {
     addOrigin = currentView === 'add-view' ? addOrigin : currentView;
@@ -2581,6 +2591,7 @@
     renderPlatformChips();
     updateSoldFields();
     showView('add-view');
+    focusName();
   }
 
   // Open the form filled in with an existing item.
@@ -2639,6 +2650,10 @@
     });
   }
 
+  function clearBad() {
+    Array.prototype.forEach.call(document.querySelectorAll('#add-form .bad'), function (n) { n.classList.remove('bad'); });
+  }
+
   function onPhotoPicked(e) {
     var file = e.target.files && e.target.files[0];
     e.target.value = '';
@@ -2667,25 +2682,38 @@
     var price = parseMoney($('add-price').value);
     var err = $('error');
     err.textContent = '';
+    clearBad();
+    // Show the message, outline the field it is about and bring that field into view.
+    function fail(msg, fieldId) {
+      err.textContent = msg;
+      if (fieldId) {
+        var f = $(fieldId);
+        (f.closest('.vbox') || f).classList.add('bad');
+        try { f.focus({ preventScroll: true }); } catch (e) { /* not needed on every browser */ }
+        f.scrollIntoView({ block: 'center' });
+      } else {
+        err.scrollIntoView({ block: 'nearest' });
+      }
+      return false;
+    }
 
-    if (!name) { err.textContent = 'Enter what the item is.'; return false; }
+    if (!name) return fail('Enter what the item is.', 'name');
     // An older item saved without a cost can stay that way.
     // Leaving the cost blank just saves $0 (an older item saved without a cost stays without one).
     var noCostOk = add.editing && add.editing.cost === null && costText === '';
     if (costText !== '' && (!isFinite(cost) || cost < 0)) {
-      err.textContent = 'Enter what you paid, e.g. 12.50.';
-      return false;
+      return fail('Enter what you paid, e.g. 12.50.', 'cost');
     }
     if (costText === '') cost = 0;
-    if (sold && price === null) { err.textContent = 'Enter what it sold for, e.g. 40.00.'; return false; }
-    if (sold && !add.soldOn) { err.textContent = 'Pick the app it sold on.'; return false; }
+    if (sold && price === null) return fail('Enter what it sold for, e.g. 40.00.', 'add-price');
+    if (sold && !add.soldOn) return fail('Pick the app it sold on.');
 
     var typed = $('new-place').value.trim();
     var loc = canonLocation(typed || add.loc);
     var slot = (loc && add.slot && add.slot <= slotCount(loc)) ? add.slot : null;
     if (slot && add.stage !== 'shipped') {
       var other = slotTaken(loc, slot, add.editing);
-      if (other) { err.textContent = slotDisplay(loc, slot) + ' in ' + loc + ' is taken by ' + other.name + '.'; return false; }
+      if (other) return fail(slotDisplay(loc, slot) + ' in ' + loc + ' is taken by ' + other.name + '.', 'add-slot');
     }
 
     if (add.editing) {
@@ -2740,7 +2768,12 @@
 
   function saveAndLeave(e) {
     e.preventDefault();
-    if (submit()) leaveAdd();
+    var editing = !!add.editing, name = $('name').value.trim(), where = add.stage;
+    if (!submit()) return;
+    leaveAdd();
+    // Without this you could not tell it saved, or where it went (for example when you came from Home).
+    showToast(editing ? 'Saved changes to ' + name : 'Saved ' + name + ' in ' + stageLabel(where),
+      editing ? null : 'View', function () { stage = where; showList(); });
   }
 
   // Keeps the place and apps (handy when adding a batch), clears the name, cost and photo.
@@ -2762,6 +2795,9 @@
     var note = $('saved-note');
     note.textContent = 'Saved ' + name;
     note.hidden = false;
+    clearBad();
+    window.scrollTo(0, 0);
+    focusName();
   }
 
   // ---------- start ----------
@@ -2804,6 +2840,13 @@
   $('receipt-back').addEventListener('click', showSummary);
   $('add-back').addEventListener('click', leaveAdd);
   $('add-form').addEventListener('submit', saveAndLeave);
+  // Return in a text box used to save the item and leave the screen. Now it moves to the next box
+  // (name -> what you paid) or just closes the keyboard; only the Save buttons save.
+  $('add-form').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+    e.preventDefault();
+    if (e.target.id === 'name') $('cost').focus(); else e.target.blur();
+  });
   $('again-btn').addEventListener('click', saveAndAnother);
   $('add-stage').addEventListener('change', function (e) {
     add.stage = e.target.value;
@@ -2822,7 +2865,7 @@
     add.slot = e.target.value ? Number(e.target.value) : null;
   });
   ['name', 'cost', 'add-price'].forEach(function (id) {
-    $(id).addEventListener('input', function () { $('error').textContent = ''; updateSummary(); });
+    $(id).addEventListener('input', function () { $('error').textContent = ''; clearBad(); updateSummary(); });
   });
   $('photo-tile').addEventListener('click', function () { $('photo-input').click(); });
   $('photo-input').addEventListener('change', onPhotoPicked);
