@@ -376,7 +376,7 @@
         <label for="add-slot">Slot</label>
         <div class="vbox sel"><select id="add-slot"></select></div>
       </div>
-      <div class="dgroup">
+      <div class="dgroup" id="listed-group">
         <div class="label">Listed on</div>
         <div class="chips" id="platform-chips"></div>
       </div>
@@ -1142,11 +1142,13 @@
     var err = $('sold-error');
     if (price === null) { err.textContent = 'Enter what it sold for, e.g. 40.00.'; return; }
     if (!soldOn) { err.textContent = 'Pick the app it sold on.'; return; }
-    var before = { stage: selling.stage, sold: selling.sold };
+    var before = { stage: selling.stage, sold: selling.sold, platforms: selling.platforms };
     selling.sold = { price: price, platform: soldOn, fees: 0, shipping: 0, date: Date.now() };
     selling.stage = 'sold';
+    selling.platforms = [soldOn]; // a sold item is on one app: the one it sold on
     if (!save()) {
       selling.stage = before.stage;
+      selling.platforms = before.platforms;
       if (before.sold) selling.sold = before.sold; else delete selling.sold;
       err.textContent = 'Could not save on this device. Is private browsing on?';
       return;
@@ -1821,7 +1823,12 @@
   function updateSoldFields() {
     var sold = stageIndex(add.stage) >= SOLD_AT;
     $('add-sold').hidden = !sold;
-    if (sold) renderPickChips($('add-sold-chips'), PLATFORMS, add.soldOn, function (p) { add.soldOn = p; });
+    // Once sold, the apps collapse into one choice: the app it sold on.
+    $('listed-group').hidden = sold;
+    if (sold) {
+      if (!add.soldOn && add.selected.length === 1) add.soldOn = add.selected[0];
+      renderPickChips($('add-sold-chips'), PLATFORMS, add.soldOn, function (p) { add.soldOn = p; });
+    }
     updateSummary();
   }
 
@@ -1950,7 +1957,7 @@
       var before = JSON.parse(JSON.stringify(it));
       it.name = name;
       it.cost = noCostOk ? null : cost;
-      it.platforms = add.selected.slice();
+      it.platforms = sold ? [add.soldOn] : add.selected.slice();
       it.location = loc;
       if (slot) it.slot = slot; else delete it.slot;
       it.stage = add.stage;
@@ -1973,7 +1980,7 @@
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
       name: name,
       cost: cost,
-      platforms: add.selected.slice(),
+      platforms: sold ? [add.soldOn] : add.selected.slice(),
       location: loc,
       stage: add.stage,
       createdAt: Date.now()
