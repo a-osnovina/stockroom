@@ -524,6 +524,27 @@
   </div>
 </div>
 
+<div class="sheet-wrap" id="es-sheet" hidden>
+  <form class="sheet" id="es-form" role="dialog" aria-modal="true" aria-labelledby="es-title" novalidate>
+    <h2 id="es-title">Edit sale</h2>
+    <div class="sheet-name" id="es-names"></div>
+    <div class="meta" id="es-paid"></div>
+    <label for="es-price" id="es-price-label">Sold for $</label>
+    <input type="number" id="es-price" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
+    <div class="label" style="margin-top:16px">Sold on</div>
+    <div class="chips" id="es-chips"></div>
+    <div class="profit-box">
+      <span>Profit</span>
+      <strong id="es-profit">&mdash;</strong>
+    </div>
+    <div class="error" id="es-error" role="alert"></div>
+    <div class="actions">
+      <button type="button" class="secondary" id="es-cancel">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</div>
+
 <div class="sheet-wrap" id="np-sheet" hidden>
   <form class="sheet" id="np-form" role="dialog" aria-modal="true" aria-labelledby="np-title" novalidate>
     <h2 id="np-title">New storage place</h2>
@@ -1628,10 +1649,10 @@
     }, true);
   }
 
-  function swipeWrap(row, item, group) {
+  function swipeWrap(row, item, group, onEdit) {
     var wrap = el('div', 'swipe');
     wrap._state = 'closed';
-    wrap._noEdit = !!(group && group.length > 1);
+    wrap._noEdit = false;
     var actions = el('div', 'swipe-actions');
 
     var eb = el('button', 'act-edit');
@@ -1640,7 +1661,7 @@
     eb.appendChild(icon('pencil', 22));
     eb.appendChild(el('span', '', 'Edit'));
     eb.addEventListener('focus', function () { setSwipe(wrap, row, 'edit'); });
-    eb.addEventListener('click', function () { closeOpen(); showEdit(item); });
+    eb.addEventListener('click', function () { closeOpen(); if (onEdit) onEdit(); else showEdit(item); });
 
     var db = el('button', 'act-del');
     db.type = 'button';
@@ -1722,6 +1743,67 @@
       if (i.cost === null) missing = true; else cost += i.cost;
     });
     return { total: total, profit: missing ? null : total - cost - extra };
+  }
+
+  // ---------- edit a sale (price and app of a parcel) ----------
+
+  var editingSale = null;
+  var saleApp = null;
+
+  function updateSaleProfit() {
+    var out = $('es-profit');
+    var price = parseMoney($('es-price').value);
+    out.className = '';
+    if (price === null || !editingSale) { out.textContent = '—'; return; }
+    if (editingSale.some(function (x) { return x.cost === null; })) { out.textContent = 'No cost saved'; return; }
+    var extra = editingSale.reduce(function (t, x) { return t + Number(x.sold.fees || 0) + Number(x.sold.shipping || 0); }, 0);
+    var p = price - extra - editingSale.reduce(function (t, x) { return t + x.cost; }, 0);
+    out.className = p < 0 ? 'neg' : 'good';
+    out.textContent = profitText(p);
+  }
+
+  function openSaleEdit(members) {
+    editingSale = members;
+    saleApp = members[0].sold ? members[0].sold.platform : null;
+    $('es-names').textContent = members.map(function (x) { return x.name; }).join(', ');
+    var costs = members.every(function (x) { return x.cost !== null; });
+    $('es-paid').textContent = costs ? 'You paid ' + money(members.reduce(function (t, x) { return t + x.cost; }, 0)) + (members.length > 1 ? ' for all ' + members.length : '') : 'No cost saved for some items';
+    $('es-price-label').textContent = members.length > 1 ? 'Total for all ' + members.length + ' items $' : 'Sold for $';
+    $('es-price').value = String(parcelTotals(members).total);
+    $('es-error').textContent = '';
+    renderPickChips($('es-chips'), PLATFORMS, saleApp, function (p) { saleApp = p; });
+    updateSaleProfit();
+    $('es-sheet').hidden = false;
+    $('es-price').focus();
+  }
+
+  function closeSaleEdit() {
+    editingSale = null;
+    $('es-sheet').hidden = true;
+  }
+
+  function confirmSaleEdit(e) {
+    e.preventDefault();
+    if (!editingSale) return;
+    var price = parseMoney($('es-price').value);
+    var err = $('es-error');
+    if (price === null) { err.textContent = 'Enter what it sold for, e.g. 40.00.'; return; }
+    if (!saleApp) { err.textContent = 'Pick the app it sold on.'; return; }
+    var group = editingSale;
+    var before = group.map(function (x) { return JSON.parse(JSON.stringify({ sold: x.sold, platforms: x.platforms })); });
+    var cents = Math.round(price * 100), base = Math.floor(cents / group.length), extra = cents - base * group.length;
+    group.forEach(function (x, k) {
+      x.sold.price = (base + (k === 0 ? extra : 0)) / 100;
+      x.sold.platform = saleApp;
+      x.platforms = [saleApp];
+    });
+    if (!save()) {
+      group.forEach(function (x, k) { x.sold = before[k].sold; x.platforms = before[k].platforms; });
+      err.textContent = 'Could not save on this device. Is private browsing on?';
+      return;
+    }
+    closeSaleEdit();
+    refresh();
   }
 
   function setGathered(i, on) {
@@ -1892,7 +1974,8 @@
     total.appendChild(document.createTextNode(t.profit === null ? money(t.total) : signedText(t.profit)));
     foot.appendChild(total);
     card.appendChild(foot);
-    return swipeWrap(card, lead, members);
+    // Parcels edit the sale (price and app). Only a lone item still waiting in Sold opens its full details.
+    return swipeWrap(card, lead, members, (mode === 'sold' && !multi) ? null : function () { openSaleEdit(members); });
   }
 
   function shipAll() {
@@ -2589,6 +2672,9 @@
     bundleOpen = !bundleOpen;
     renderBundle();
   });
+  $('es-form').addEventListener('submit', confirmSaleEdit);
+  $('es-cancel').addEventListener('click', closeSaleEdit);
+  $('es-price').addEventListener('input', updateSaleProfit);
   $('del-cancel').addEventListener('click', closeDelete);
   $('del-confirm').addEventListener('click', confirmDelete);
   $('photo-remove').addEventListener('click', function () { add.photo = null; renderPhotoTile(); });
