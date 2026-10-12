@@ -154,7 +154,13 @@
   .plat-profit { font-size: 17px; font-weight: 700; }
 
   #grab-place { font-size: 20px; font-weight: 700; }
-  .place-actions { margin: 0 0 12px; }
+  .place-h1 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #place-slots-btn { flex: none; min-height: 44px; }
+  .slot-row.tap { cursor: pointer; width: 100%; text-align: left; border: 1.5px solid transparent; color: var(--text); font: inherit; }
+  .slot-row.empty.tap { border-style: dashed; border-color: #2A3144; }
+  .pick-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; max-height: 40vh; overflow-y: auto; }
+  .pick-item .thumb { background: var(--card); color: var(--muted); }
+  .pick-item { display: flex; align-items: center; gap: 12px; background: var(--bg); border: 0; border-radius: 12px; padding: 8px 12px 8px 8px; min-height: 56px; color: var(--text); text-align: left; font: inherit; width: 100%; }
   .slot-row { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 12px; padding: 8px 12px 8px 8px; margin-bottom: 8px; min-height: 56px; }
   .slot-row.empty { background: none; border: 1.5px dashed #2A3144; }
   .slot-num { width: 40px; height: 40px; border-radius: 10px; background: var(--blue-bg); color: var(--blue-text); font-weight: 700; font-size: 17px; display: flex; align-items: center; justify-content: center; flex: none; }
@@ -277,8 +283,8 @@
   </header>
   <nav class="steps" id="steps" aria-label="Steps"></nav>
   <div class="search-wrap">
-    <label for="search" style="position:absolute;left:-9999px">Search this step</label>
-    <input type="search" id="search" placeholder="Search this step" autocomplete="off">
+    <label for="search" style="position:absolute;left:-9999px">Search for an item</label>
+    <input type="search" id="search" placeholder="Search for an item" autocomplete="off">
   </div>
   <div class="filters" id="filters"></div>
   <div class="meta hint" id="swipe-hint">Swipe an item right to edit it, left to delete or archive it.</div>
@@ -355,10 +361,15 @@
 <main id="place-view" class="has-dock" hidden>
   <header>
     <button class="round" id="place-back" type="button" aria-label="Back to places"></button>
-    <h1 id="place-title"></h1>
+    <h1 id="place-title" class="place-h1"></h1>
+    <button class="round" id="place-search-btn" type="button" aria-label="Search this place"></button>
+    <button type="button" class="chip new" id="place-slots-btn" hidden></button>
   </header>
   <div class="meta" id="place-sub" style="margin-bottom:12px"></div>
-  <div class="place-actions"><button type="button" class="chip new" id="place-slots-btn" hidden></button></div>
+  <div class="search-wrap" id="place-search-wrap" hidden style="margin:0 0 12px">
+    <label for="place-search" style="position:absolute;left:-9999px">Search for an item</label>
+    <input type="search" id="place-search" placeholder="Search for an item" autocomplete="off">
+  </div>
   <div id="place-items"></div>
 </main>
 
@@ -400,6 +411,18 @@
     <div class="actions">
       <button type="button" class="secondary" id="grab-no">Not yet</button>
       <button type="button" class="primary" id="grab-yes">Yes, got it</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet-wrap" id="pick-sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pick-title">
+    <h2 id="pick-title">Slot</h2>
+    <div class="meta" id="pick-sub"></div>
+    <div class="pick-list" id="pick-list"></div>
+    <div class="actions">
+      <button type="button" class="secondary" id="pick-cancel">Cancel</button>
+      <button type="button" class="primary" id="pick-new">Add a new item</button>
     </div>
   </div>
 </div>
@@ -471,6 +494,7 @@
     bars: '<path d="M5 20V10"/><path d="M12 20V4"/><path d="M19 20v-7"/>',
     phone: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M10 7h4"/>',
     down: '<path d="M6 9l6 6 6-6"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
     pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
     archive: '<path d="M3 5h18v4H3z"/><path d="M5 9v10h14V9"/><path d="M10 13h4"/>',
     trash: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/>'
@@ -480,6 +504,7 @@
   var SLOTS_KEY = 'stockroom.places.v1'; // { placeName: number of slots }
   var placeSlots = loadSlots();
   var currentPlace = null; // place open in the place view
+  var placeQuery = '';
   var items = load();
   var stage = 'all';       // which bar step is open
   var query = '';
@@ -1202,7 +1227,7 @@
     var q = query.trim().toLowerCase();
     var inView = stage === 'all' ? items : items.filter(function (i) { return i.stage === stage; });
     var visible = inView.filter(function (i) {
-      return (!q || i.name.toLowerCase().indexOf(q) !== -1) &&
+      return (!q || i.name.toLowerCase().indexOf(q) !== -1 || (i.location || '').toLowerCase().indexOf(q) !== -1) &&
         (!filter || i.platforms.indexOf(filter) !== -1 || (i.sold && i.sold.platform === filter));
     });
     var box = $('list');
@@ -1292,41 +1317,97 @@
   }
 
   function showPlace(name) {
+    currentPlace = name;
+    placeQuery = '';
+    $('place-search').value = '';
+    $('place-search-wrap').hidden = true;
+    renderPlace();
+    showView('place-view');
+  }
+
+  function renderPlace() {
+    var name = currentPlace;
     var g = groupByPlace();
     var here = name === '' ? g.none : (g.map.get(name) || []);
-    currentPlace = name;
     var sc = name === '' ? 0 : slotCount(name);
+    var q = placeQuery.trim().toLowerCase();
     $('place-title').textContent = name === '' ? 'No place' : name;
     $('place-sub').textContent = countText(here.length) + (sc ? ' · ' + sc + (sc === 1 ? ' slot' : ' slots') + ', ' + (sc - here.filter(function (i) { return i.slot && i.slot <= sc; }).length) + ' free' : '');
     var sb = $('place-slots-btn');
     sb.hidden = name === '';
-    sb.textContent = sc ? 'Change slots' : '+ Add slots';
+    sb.textContent = sc ? 'Edit slots' : '+ Slots';
     var box = $('place-items');
     box.replaceChildren();
+    function match(i) { return !q || i.name.toLowerCase().indexOf(q) !== -1 || (i.slot && ('#' + i.slot) === q); }
     if (sc) {
-      for (var n = 1; n <= sc; n++) {
+      for (var n = 1; n <= sc; n++) (function (n) {
         var occ = here.filter(function (i) { return i.slot === n; })[0];
-        var row = el('div', 'slot-row' + (occ ? '' : ' empty'));
+        if (q && !(occ && match(occ))) return; // searching shows only matching items
+        var row = el('button', 'slot-row tap' + (occ ? '' : ' empty'));
+        row.type = 'button';
         row.appendChild(el('div', 'slot-num', String(n)));
         if (occ) {
+          row.setAttribute('aria-label', 'Slot ' + n + ': ' + occ.name + '. Edit');
           var main = el('div', 'item-main');
           main.appendChild(el('div', 'item-name', occ.name));
           main.appendChild(metaLine(occ, true));
           row.appendChild(main);
+          row.addEventListener('click', function () { showEdit(occ); });
         } else {
-          row.appendChild(el('div', 'dim', 'Empty'));
+          row.setAttribute('aria-label', 'Slot ' + n + ' is empty. Put an item here');
+          row.appendChild(el('div', 'dim', 'Empty · tap to add an item'));
+          row.addEventListener('click', function () { openPick(n); });
         }
         box.appendChild(row);
-      }
+      })(n);
     }
-    var loose = here.filter(function (i) { return !(sc && i.slot && i.slot <= sc); });
+    var loose = here.filter(function (i) { return !(sc && i.slot && i.slot <= sc) && match(i); });
     if (sc && loose.length) box.appendChild(el('div', 'section-label', 'No slot yet'));
-    if (here.length === 0 && !sc) box.appendChild(el('div', 'empty', 'Nothing here right now.'));
+    if (q && !box.children.length) box.appendChild(el('div', 'empty', 'No item here matches your search.'));
+    else if (here.length === 0 && !sc) box.appendChild(el('div', 'empty', 'Nothing here right now.'));
     loose.forEach(function (i) {
-      box.appendChild(itemRow(i, { pill: true, readOnly: true }));
+      var r = itemRow(i, { pill: true, readOnly: true });
+      r.classList.add('tap');
+      r.style.cursor = 'pointer';
+      r.addEventListener('click', function () { showEdit(i); });
+      box.appendChild(r);
     });
-    showView('place-view');
   }
+
+  // ---------- put an item into an empty slot ----------
+
+  var pickSlot = null;
+
+  function openPick(n) {
+    pickSlot = n;
+    $('pick-title').textContent = 'Slot ' + n + ' in ' + currentPlace;
+    var loose = placeItems(currentPlace).filter(function (i) { return !i.slot || i.slot > slotCount(currentPlace); });
+    $('pick-sub').textContent = loose.length ? 'Pick an item already in ' + currentPlace + ', or add a new one.' : 'Every item in ' + currentPlace + ' already has a slot. Add a new one here.';
+    var list = $('pick-list');
+    list.replaceChildren();
+    loose.forEach(function (i) {
+      var b = el('button', 'pick-item');
+      b.type = 'button';
+      var th = el('div', 'thumb');
+      if (i.photo) { var im = document.createElement('img'); im.src = i.photo; im.alt = ''; th.appendChild(im); } else th.appendChild(icon('camera', 20));
+      b.appendChild(th);
+      var m = el('div', 'item-main');
+      m.appendChild(el('div', 'item-name', i.name));
+      m.appendChild(metaLine(i, true));
+      b.appendChild(m);
+      b.addEventListener('click', function () {
+        var prev = i.slot;
+        i.slot = n;
+        if (!save()) { if (prev === undefined) delete i.slot; else i.slot = prev; alert('Could not save on this device. Is private browsing on?'); return; }
+        closePick();
+        renderPlace();
+      });
+      list.appendChild(b);
+    });
+    $('pick-sheet').hidden = false;
+  }
+
+  function closePick() { pickSlot = null; $('pick-sheet').hidden = true; }
 
   // ---------- summary ----------
 
@@ -1467,10 +1548,10 @@
   }
 
   // Open the form. A new item goes in the given step (or "Not listed" when none is given).
-  function showAdd(stageId) {
+  function showAdd(stageId, preset) {
     addOrigin = currentView === 'add-view' ? addOrigin : currentView;
     var s = stageId || (currentView === 'list-view' && stage !== 'all' ? stage : 'import');
-    add = { stage: s, selected: [], loc: '', slot: null, newPlace: false, photo: null, soldOn: null };
+    add = { stage: s, selected: [], loc: (preset && preset.loc) || '', slot: (preset && preset.slot) || null, newPlace: false, photo: null, soldOn: null };
     setFormMode(false);
     $('add-stage').value = s;
     updateStageText();
@@ -1517,6 +1598,7 @@
   function leaveAdd() {
     add = null;
     if (addOrigin === 'list-view') showList();
+    else if (addOrigin === 'place-view' && currentPlace !== null) showPlace(currentPlace);
     else if (addOrigin === 'places-view' || addOrigin === 'place-view') showPlaces();
     else if (addOrigin === 'summary-view') showSummary();
     else showHome();
@@ -1665,6 +1747,7 @@
     $('list-back').appendChild(icon('back', 22));
     $('add-back').appendChild(icon('back', 22));
     $('place-back').appendChild(icon('back', 22));
+    $('place-search-btn').appendChild(icon('search', 22));
     [['tab-home', 'home', 'Home'], ['tab-places', 'pin', 'Places'], ['tab-summary', 'bars', 'Summary']].forEach(function (t) {
       var b = $(t[0]);
       b.appendChild(icon(t[1], 24));
@@ -1708,6 +1791,19 @@
     renderPlaceChips();
   });
   $('place-slots-btn').addEventListener('click', openSlots);
+  $('place-search-btn').addEventListener('click', function () {
+    var w = $('place-search-wrap');
+    w.hidden = !w.hidden;
+    if (w.hidden) { placeQuery = ''; $('place-search').value = ''; renderPlace(); }
+    else $('place-search').focus();
+  });
+  $('place-search').addEventListener('input', function (e) { placeQuery = e.target.value; renderPlace(); });
+  $('pick-cancel').addEventListener('click', closePick);
+  $('pick-new').addEventListener('click', function () {
+    var n = pickSlot, loc = currentPlace;
+    closePick();
+    showAdd(null, { loc: loc, slot: n });
+  });
   $('slots-form').addEventListener('submit', confirmSlots);
   $('slots-cancel').addEventListener('click', closeSlots);
   $('slots-remove').addEventListener('click', removeSlots);

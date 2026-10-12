@@ -18,7 +18,7 @@ and a round **+** button to add an item from anywhere.
 - Slim cards: photo (or an icon), name, apps and place, and the price. Sold and Shipped items show the profit instead.
 - The arrow button moves an item to the next step. Moving an item to Sold asks what it sold for and which app it sold on, and shows the profit (sale price minus what you paid). Moving an item to Shipped asks "Did you grab it?" and names its place, but only if the item has a place.
 - Swipe an item right to **Edit** it, or left to **Delete** it. Delete asks you to confirm first. An **Archive** button sits next to Delete; it is a placeholder and does nothing yet.
-- Search and filter by app inside a step.
+- Search for an item by its name or its place (typing "clos" finds "Closed sign" and everything in Closet), and filter by app, inside a step.
 
 **Add item**
 - Add a photo (optional), then the item name and what you paid. If you leave the cost blank it saves as $0, with no warning. The form no longer pops the keyboard open by itself, so the screen does not jump when it opens.
@@ -29,7 +29,7 @@ and a round **+** button to add an item from anywhere.
 - "Fill from a screenshot" is shown as coming soon. It does not work yet.
 - Editing an item uses the same form, filled in. You can also change its step there. If you move an item to Sold or Shipped, it asks for the sale price and the app it sold on.
 
-**Places**: every place with how many items are in it. Tap a place to see its items. Tap **+ Add slots** inside a place (like Closet) and enter how many spaces it has. The place then shows slots 1, 2, 3... in order, with the item in each one or "Empty". When you add or edit an item in that place, pick its slot number (the lowest free one is chosen for you; taken ones are greyed out). Items show as "Closet #4", and the "Did you grab it?" window shows the place and "Slot 4". Slot counts can be changed or removed later. Items that have shipped are not counted.
+**Places**: every place with how many items are in it. Tap a place to see its items. Tap **+ Add slots** inside a place (like Closet) and enter how many spaces it has. The place then shows slots 1, 2, 3... in order, with the item in each one or "Empty". When you add or edit an item in that place, pick its slot number (the lowest free one is chosen for you; taken ones are greyed out). Items show as "Closet #4", and the "Did you grab it?" window shows the place and "Slot 4". Slot counts can be changed or removed later. Tap an empty slot to put an item already in that place into it, or add a new item straight into that slot. Tap a filled slot to edit its item. The slots button and a search button sit at the top right of the place, and the search finds items in that place. Items that have shipped are not counted.
 
 **Summary**: total profit, money tied up in unsold items, and profit for each app.
 
