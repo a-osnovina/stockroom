@@ -11,7 +11,12 @@
 <title>Stockroom</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- The font loads in the background so the page shows at once, then the font swaps in. -->
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"></noscript>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <style>
   :root {
     --bg: #12151C;
@@ -29,6 +34,7 @@
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
+  html { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
   html { background: var(--bg); }
   body {
     margin: 0;
@@ -2138,6 +2144,11 @@
   build();
   renderFilters();
   showHome();
+
+  // Lets the app open instantly and work offline once it has been opened online.
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () { /* app still works without it */ }); });
+  }
 })();
 </script>
 </body>

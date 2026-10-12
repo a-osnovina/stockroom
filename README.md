@@ -41,7 +41,7 @@ Fees and shipping costs are not counted yet. The sale record already has room fo
 3. After a minute or two the page is at https://a-osnovina.github.io/stockroom/
 
 To use it like an app, open that link on your phone, then use "Add to Home Screen"
-(iPhone: Share button in Safari. Android: the browser menu).
+(iPhone: Share button in Safari. Android: the browser menu). It has its own icon, opens full screen without the browser bars, and is made for phones held upright. After the first time it is opened online, it also opens with no connection. It always checks for a newer version first, so updates show up as soon as you are online.
 
 ## Good to know
 
@@ -52,5 +52,4 @@ A backup option is planned.
 Photos are shrunk before they are saved so many of them fit, but a lot of photos can still
 fill the space the browser gives the page. If saving ever fails, that is the likely reason.
 
-The page loads its font from Google Fonts. Without a connection it falls back to the phone's
-normal font and everything else still works.
+The page loads its font from Google Fonts in the background, so the page appears right away and the font swaps in a moment later. Without a connection it uses the phone's normal font and everything else still works.
