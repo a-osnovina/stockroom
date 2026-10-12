@@ -136,13 +136,22 @@
   .step.on .count { color: #0B1220; }
 
   .search-wrap { margin-top: 12px; position: relative; }
-  .filters { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 14px; }
+  .appfilter { margin-top: 12px; }
+  .apps-btn {
+    width: 100%; min-height: 48px; border: 0; border-radius: 24px; background: var(--card); color: var(--text);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 18px; font-size: 15px; font-weight: 700;
+  }
+  .apps-btn .val { color: var(--muted); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .apps-btn .val.set { color: var(--blue-text); font-weight: 700; }
+  .apps-btn svg { transition: transform .15s; }
+  .apps-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+  .apps-panel { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip {
     min-height: 44px; padding: 0 16px; border: 1.5px solid transparent; border-radius: 22px;
     background: var(--card); color: var(--soft); font-size: 15px; font-weight: 500; white-space: nowrap;
   }
-  .filters .chip { min-height: 40px; padding: 0 14px; font-size: 14px; flex: none; }
+  .apps-panel .chip { min-height: 40px; padding: 0 14px; font-size: 14px; }
   .chip.on { border-color: var(--blue); background: var(--blue-bg); color: var(--blue-text); font-weight: 700; }
   .chip.new { border: 1.5px dashed #3A4460; background: none; color: #8FBBFF; font-weight: 700; }
 
@@ -344,11 +353,14 @@
   </header>
   <nav class="steps" id="steps" aria-label="Steps"></nav>
   <div class="seg" id="sub-tabs" role="group" aria-label="Not listed items" hidden></div>
+  <div class="appfilter" id="apps-row">
+    <button type="button" class="apps-btn" id="apps-btn" aria-expanded="false" aria-controls="filters"></button>
+    <div class="apps-panel" id="filters" hidden></div>
+  </div>
   <div class="search-wrap">
     <label for="search" style="position:absolute;left:-9999px">Search for an item</label>
     <input type="search" id="search" placeholder="Search for an item" autocomplete="off"><button type="button" class="clear-x" id="search-x" aria-label="Clear search"></button>
   </div>
-  <div class="filters" id="filters"></div>
   <div class="meta hint" id="swipe-hint">Swipe an item right to edit it, left to delete or archive it.</div>
   <div id="list"></div>
 </main>
@@ -1307,12 +1319,25 @@
     });
   }
 
+  // One "Apps" row that opens to show every app, instead of a long row of app buttons.
+  var appsOpen = false;
+
   function renderFilters() {
+    var btn = $('apps-btn');
+    btn.replaceChildren();
+    btn.setAttribute('aria-expanded', appsOpen ? 'true' : 'false');
+    btn.appendChild(el('span', '', 'Apps'));
+    var val = el('span', 'val' + (filter ? ' set' : ''));
+    val.appendChild(el('span', '', filter || 'All'));
+    val.appendChild(icon('down', 16, 2.4));
+    btn.appendChild(val);
     var box = $('filters');
+    box.hidden = !appsOpen;
     box.replaceChildren();
     [null].concat(PLATFORMS).forEach(function (p) {
       box.appendChild(chip(p === null ? 'All apps' : p, filter === p, function () {
         filter = p;
+        appsOpen = false;
         renderFilters();
         renderList();
       }));
@@ -1589,7 +1614,8 @@
     var notListed = stage === 'import';
     if (notListed) inView = inView.filter(function (i) { return !!i.archived === (subTab === 'archive'); });
     renderSubTabs();
-    $('filters').hidden = notListed; // nothing is listed on an app yet, so no app filter here
+    // Nothing is listed on an app yet in Not listed, so Draft and Archive take the place of the Apps row.
+    $('apps-row').hidden = notListed;
     var visible = inView.filter(function (i) {
       return (!q || i.name.toLowerCase().indexOf(q) !== -1 || (i.location || '').toLowerCase().indexOf(q) !== -1) &&
         (notListed || !filter || i.platforms.indexOf(filter) !== -1 || (i.sold && i.sold.platform === filter));
@@ -2233,6 +2259,7 @@
   });
 
   build();
+  $('apps-btn').addEventListener('click', function () { appsOpen = !appsOpen; renderFilters(); });
   renderFilters();
   showHome();
 
