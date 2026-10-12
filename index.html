@@ -194,6 +194,7 @@
   .thumb.bundle { position: relative; }
   .thumb-count { position: absolute; right: 3px; bottom: 3px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: var(--fg); color: #0B1220; font-size: 12px; font-weight: 700; line-height: 18px; text-align: center; }
   .amt-inline { font-weight: 700; margin-left: 8px; white-space: nowrap; }
+  .nw { white-space: nowrap; }
   .item-name.wrap { white-space: normal; overflow-wrap: anywhere; }
   .amt-inline.good { color: var(--green); }
   .amt-inline.neg { color: var(--red); }
@@ -621,6 +622,18 @@
     </div>
     <button type="button" class="link" id="slots-remove" hidden style="padding-left:0;margin-top:8px;color:var(--red)">Remove slots</button>
   </form>
+</div>
+
+<div class="sheet-wrap" id="app-sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="app-title">
+    <h2 id="app-title">Which app?</h2>
+    <div class="sheet-name" id="app-item"></div>
+    <div class="meta" style="margin-top:4px">Pick the app you are listing it on.</div>
+    <div class="chips" id="app-chips" style="margin-top:16px"></div>
+    <div class="actions">
+      <button type="button" class="secondary" id="app-cancel">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <div class="sheet-wrap" id="sold-sheet" hidden>
@@ -1504,7 +1517,36 @@
     var next = STAGES[stageIndex(item.stage) + 1];
     if (!next) return;
     if (next.id === 'sold') { openSoldSheet(item); return; }
+    // An item with no app yet has to pick one before it can be listed.
+    if (next.id === 'list' && item.platforms.length === 0) { openAppSheet(item); return; }
     setStage(item, next.id);
+  }
+
+  // Asks which app an item is being listed on, then moves it to List.
+  var listing = null;
+
+  function openAppSheet(item) {
+    listing = item;
+    $('app-item').textContent = item.name;
+    var box = $('app-chips');
+    box.replaceChildren();
+    PLATFORMS.forEach(function (p) { box.appendChild(chip(p, false, function () { chooseListApp(p); })); });
+    $('app-sheet').hidden = false;
+    if (box.firstChild) box.firstChild.focus();
+  }
+
+  function closeAppSheet() {
+    listing = null;
+    $('app-sheet').hidden = true;
+  }
+
+  function chooseListApp(p) {
+    var item = listing;
+    if (!item) return;
+    var before = item.platforms;
+    item.platforms = [p];
+    closeAppSheet();
+    if (!setStage(item, 'list')) item.platforms = before;
   }
 
   function setStage(item, id) {
@@ -1542,7 +1584,7 @@
       }
     }
     // What you paid shows only once it is more than $0.
-    if (showCost && i.cost > 0) part(el('span', '', 'Paid ' + money(i.cost)));
+    if (showCost && i.cost > 0) part(el('span', 'nw', 'Paid ' + money(i.cost)));
     // The place gets its own third line, and only when the item has one.
     if (hidePlace || !i.location || i.stage === 'shipped') return line;
     var box = el('div', 'item-meta-wrap');
@@ -1586,6 +1628,7 @@
       nb.setAttribute('aria-label', 'Move ' + i.name + ' to ' + next.label);
       nb.appendChild(icon(STAGE_ICON[next.id], 18));
       nb.appendChild(document.createTextNode(next.label));
+      nb.appendChild(icon('arrow', 16));
       nb.addEventListener('click', function () { moveForward(i); });
       row.appendChild(nb);
     }
@@ -1897,7 +1940,7 @@
     return thumb;
   }
 
-  // One card per sale. The button on the right changes with the step: Packed (Sold), Ship (Packed), Back to List (Shipped).
+  // One card per sale. The button on the right changes with the step: Pack (Sold), Ship (Packed), Back to List (Shipped).
   // The total sits at the bottom right. A bundle has no photo in its header; each item shows its own.
   function parcelCard(members, mode) {
     var lead = members[0];
@@ -1932,16 +1975,18 @@
     if (mode === 'sold' && done >= need.length) {
       action = el('button', 'ship-btn s-shipped');
       action.type = 'button';
-      action.setAttribute('aria-label', 'Packed: ' + (multi ? 'this parcel' : lead.name));
-      action.appendChild(icon('box', 20));
-      action.appendChild(document.createTextNode('Packed'));
+      action.setAttribute('aria-label', 'Pack ' + (multi ? 'this parcel' : lead.name));
+      action.appendChild(icon('box', 18));
+      action.appendChild(document.createTextNode('Pack'));
+      action.appendChild(icon('arrow', 16));
       action.addEventListener('click', function () { packParcel(members); });
     } else if (mode === 'shipped') {
       action = el('button', 'ship-btn s-shipped');
       action.type = 'button';
       action.setAttribute('aria-label', 'Ship ' + (multi ? 'this parcel' : lead.name));
-      action.appendChild(icon('truck', 20));
+      action.appendChild(icon('truck', 18));
       action.appendChild(document.createTextNode('Ship'));
+      action.appendChild(icon('arrow', 16));
       action.addEventListener('click', function () { shipParcel(members); });
     } else if (mode === 'history') {
       action = el('button', 'ship-btn back-btn');
@@ -2055,7 +2100,7 @@
         inView.length > 0 ? 'No items match your search or filter.'
           : history ? 'Nothing in Shipped yet. Parcels you ship go here.'
           : stage === 'all' ? 'No items yet. Tap the + button to put your first one here.'
-          : stage === 'shipped' ? 'Nothing packed yet. Tap Packed on a sold item and it lands here.'
+          : stage === 'shipped' ? 'Nothing packed yet. Tap Pack on a sold item and it lands here.'
           : notListed ? (subTab === 'archive' ? 'Nothing archived yet.' : 'No drafts yet. Tap the + button to add one.')
           : 'Nothing in ' + BAR[barIndex(stage)].label + ' yet. Tap the + button to put an item here.'));
       return;
@@ -2732,6 +2777,7 @@
   }, true);
   $('sold-form').addEventListener('submit', confirmSold);
   $('sold-cancel').addEventListener('click', closeSoldSheet);
+  $('app-cancel').addEventListener('click', closeAppSheet);
   $('sold-price').addEventListener('input', updateSoldProfit);
   $('search').addEventListener('input', function (e) {
     query = e.target.value;
