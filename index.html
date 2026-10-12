@@ -178,8 +178,10 @@
   .swipe .parcel { margin-bottom: 0; position: relative; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
   .parcel-head { display: flex; align-items: center; gap: 12px; }
   .parcel-names { margin: 8px 4px 0; overflow-wrap: anywhere; }
+  .thumb.sm { width: 44px; height: 44px; }
+  .p-total { font-size: 17px; font-weight: 700; }
+  .p-total small { font-size: 13px; font-weight: 500; color: var(--muted); margin-right: 8px; }
   .gather { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
-  .gather-line { display: flex; gap: 6px; align-items: stretch; }
   .gather-row {
     flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 12px;
     border: 0; border-radius: 10px; background: var(--bg); color: var(--text); text-align: left; font: inherit; width: 100%;
@@ -187,11 +189,10 @@
   .gather-row.none { color: var(--muted); }
   .gbox { width: 28px; height: 28px; border-radius: 9px; border: 2px solid #4A5578; flex: none; display: flex; align-items: center; justify-content: center; }
   .gather-row.on .gbox { background: var(--green); border-color: var(--green); color: #0B1220; }
-  .g-text { display: flex; flex-direction: column; min-width: 0; }
+  .g-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
   .g-name { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
   .g-sub { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
   .gather-row.on .g-name { color: var(--muted); }
-  .g-edit { flex: none; width: 48px; border: 0; border-radius: 10px; background: var(--bg); color: var(--muted); display: flex; align-items: center; justify-content: center; }
   .parcel-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 0 2px; }
   .ship-btn { min-height: 44px; padding: 0 20px; border: 0; border-radius: 22px; background: var(--solid); color: #0B1220; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; flex: none; }
   .ship-btn:disabled { opacity: .35; }
@@ -1780,8 +1781,19 @@
     showToast(members.length > 1 ? 'Moved ' + members.length + ' items back to List' : 'Moved back to List', 'View', function () { stage = 'list'; showList(); });
   }
 
-  // One card per sale: the items in it, what to gather, and one button on the right.
-  // mode is 'sold' (waiting to be gathered, then Packed), 'shipped' (a packed parcel, Ship) or 'history'.
+  function itemThumb(i, small) {
+    var thumb = el('div', 'thumb' + (small ? ' sm' : ''));
+    if (i.photo) {
+      var img = document.createElement('img');
+      img.src = i.photo;
+      img.alt = '';
+      thumb.appendChild(img);
+    } else thumb.appendChild(icon('camera', small ? 18 : 20));
+    return thumb;
+  }
+
+  // One card per sale. The button on the right changes with the step: Packed (Sold), Ship (Parcels), Back to List (History).
+  // The total sits at the bottom right. A bundle has no photo in its header; each item shows its own.
   function parcelCard(members, mode) {
     var lead = members[0];
     var multi = members.length > 1;
@@ -1790,14 +1802,7 @@
     var done = need.filter(function (i) { return i.gathered; }).length;
 
     var head = el('div', 'parcel-head');
-    var thumb = el('div', 'thumb');
-    if (lead.photo) {
-      var img = document.createElement('img');
-      img.src = lead.photo;
-      img.alt = '';
-      thumb.appendChild(img);
-    } else thumb.appendChild(icon('camera', 20));
-    head.appendChild(thumb);
+    if (!multi) head.appendChild(itemThumb(lead));
     var main = el('div', 'item-main');
     main.appendChild(el('div', 'item-name', multi ? lead.name + ' + ' + (members.length - 1) + ' more' : lead.name));
     if (mode !== 'shipped') {
@@ -1809,7 +1814,6 @@
     }
     head.appendChild(main);
 
-    // The button takes the place of the amount, so the card stays short.
     var action = null;
     if (mode === 'sold' && done >= need.length) {
       action = el('button', 'ship-btn s-shipped');
@@ -1825,12 +1829,14 @@
       action.appendChild(icon('truck', 20));
       action.appendChild(document.createTextNode('Ship'));
       action.addEventListener('click', function () { shipParcel(members); });
+    } else if (mode === 'history') {
+      action = el('button', 'ship-btn back-btn');
+      action.type = 'button';
+      action.appendChild(icon('undo', 18));
+      action.appendChild(document.createTextNode('Back to List'));
+      action.addEventListener('click', function () { restoreParcel(members); });
     }
-    if (!action) {
-      var t = parcelTotals(members);
-      action = el('div', 'amt ' + (t.profit === null ? '' : t.profit < 0 ? 'neg' : 'good'), t.profit === null ? money(t.total) : signedText(t.profit));
-    }
-    head.appendChild(action);
+    if (action) head.appendChild(action);
     card.appendChild(head);
 
     if (mode === 'sold') {
@@ -1846,41 +1852,44 @@
             rowEl.setAttribute('aria-pressed', i.gathered ? 'true' : 'false');
             rowEl.setAttribute('aria-label', (i.gathered ? 'Gathered: ' : 'Gather ') + i.name + ' from ' + where(i));
             rowEl.addEventListener('click', function () { setGathered(i, !i.gathered); });
-            var box = el('span', 'gbox');
-            if (i.gathered) box.appendChild(icon('check', 16, 3));
-            rowEl.appendChild(box);
           }
+          if (multi) rowEl.appendChild(itemThumb(i, true));
           var txt = el('span', 'g-text');
           txt.appendChild(el('span', 'g-name', label));
           if (sub) txt.appendChild(el('span', 'g-sub', sub));
           rowEl.appendChild(txt);
+          if (i.location) {
+            var box = el('span', 'gbox');
+            if (i.gathered) box.appendChild(icon('check', 16, 3));
+            rowEl.appendChild(box);
+          }
           list.appendChild(rowEl);
         });
         card.appendChild(list);
       }
-      if (multi && done < need.length) {
-        var foot = el('div', 'parcel-foot');
-        foot.appendChild(el('div', 'meta', done + ' of ' + need.length + ' gathered'));
-        card.appendChild(foot);
-      }
-    } else {
-      if (multi) {
-        var names = el('div', 'item-meta parcel-names');
-        names.textContent = members.map(function (i) { return i.name; }).join(' · ');
-        card.appendChild(names);
-      }
-      if (mode === 'history') {
-        var back = el('button', 'ship-btn back-btn');
-        back.type = 'button';
-        back.appendChild(icon('undo', 18));
-        back.appendChild(document.createTextNode('Back to List'));
-        back.addEventListener('click', function () { restoreParcel(members); });
-        var f = el('div', 'parcel-foot');
-        f.appendChild(el('div', 'meta', countText(members.length)));
-        f.appendChild(back);
-        card.appendChild(f);
-      }
+    } else if (multi) {
+      var items = el('div', 'gather');
+      members.forEach(function (i) {
+        var r = el('div', 'gather-row none');
+        r.appendChild(itemThumb(i, true));
+        var txt = el('span', 'g-text');
+        txt.appendChild(el('span', 'g-name', i.name));
+        r.appendChild(txt);
+        items.appendChild(r);
+      });
+      card.appendChild(items);
     }
+
+    // Bottom row: progress (or item count) on the left, the total on the right.
+    var foot = el('div', 'parcel-foot');
+    foot.appendChild(el('div', 'meta', mode === 'sold' ? (multi && done < need.length ? done + ' of ' + need.length + ' gathered' : '')
+      : mode === 'history' ? countText(members.length) : ''));
+    var t = parcelTotals(members);
+    var total = el('div', 'p-total ' + (t.profit === null ? '' : t.profit < 0 ? 'neg' : 'good'));
+    total.appendChild(el('small', '', t.profit === null ? 'Total' : 'Profit'));
+    total.appendChild(document.createTextNode(t.profit === null ? money(t.total) : signedText(t.profit)));
+    foot.appendChild(total);
+    card.appendChild(foot);
     return swipeWrap(card, lead, members);
   }
 
