@@ -353,7 +353,7 @@
 </main>
 
 <main id="places-view" class="has-dock" hidden>
-  <header><h1>Places</h1></header>
+  <header><h1 style="flex:1">Places</h1><button type="button" class="chip new" id="new-place-btn" style="flex:none">+ New place</button></header>
   <div class="meta" style="margin-bottom:12px">Items that have shipped are not counted.</div>
   <div id="places-list"></div>
 </main>
@@ -413,6 +413,21 @@
       <button type="button" class="primary" id="grab-yes">Yes, got it</button>
     </div>
   </div>
+</div>
+
+<div class="sheet-wrap" id="np-sheet" hidden>
+  <form class="sheet" id="np-form" role="dialog" aria-modal="true" aria-labelledby="np-title" novalidate>
+    <h2 id="np-title">New storage place</h2>
+    <label for="np-name">Name</label>
+    <input type="text" id="np-name" placeholder="e.g. Closet, Tub 4, Garage shelf" autocomplete="off">
+    <label for="np-slots">Number of slots (optional)</label>
+    <input type="number" id="np-slots" placeholder="Leave blank for none" inputmode="numeric" step="1" min="1" max="500">
+    <div class="error" id="np-error" role="alert"></div>
+    <div class="actions">
+      <button type="button" class="secondary" id="np-cancel">Cancel</button>
+      <button type="submit" class="primary">Create</button>
+    </div>
+  </form>
 </div>
 
 <div class="sheet-wrap" id="pick-sheet" hidden>
@@ -505,6 +520,8 @@
   var placeSlots = loadSlots();
   var currentPlace = null; // place open in the place view
   var placeQuery = '';
+  var EXTRA_KEY = 'stockroom.placelist.v1'; // places created without any item yet
+  var extraPlaces = loadExtra();
   var items = load();
   var stage = 'all';       // which bar step is open
   var query = '';
@@ -662,7 +679,7 @@
     items.forEach(function (i) {
       if (i.location && !m.has(i.location.toLowerCase())) m.set(i.location.toLowerCase(), i.location);
     });
-    Object.keys(placeSlots).forEach(function (k) {
+    Object.keys(placeSlots).concat(extraPlaces).forEach(function (k) {
       if (!m.has(k.toLowerCase())) m.set(k.toLowerCase(), k);
     });
     return Array.from(m.values()).sort(byName);
@@ -688,6 +705,46 @@
       });
     } catch (e) { /* start without slots */ }
     return out;
+  }
+
+  function loadExtra() {
+    try {
+      var a = JSON.parse(localStorage.getItem(EXTRA_KEY) || '[]');
+      return Array.isArray(a) ? a.filter(function (x) { return typeof x === 'string' && x; }) : [];
+    } catch (e) { return []; }
+  }
+
+  function saveExtra() {
+    try { localStorage.setItem(EXTRA_KEY, JSON.stringify(extraPlaces)); return true; } catch (e) { return false; }
+  }
+
+  function openNewPlace() {
+    $('np-name').value = '';
+    $('np-slots').value = '';
+    $('np-error').textContent = '';
+    $('np-sheet').hidden = false;
+  }
+
+  function closeNewPlace() { $('np-sheet').hidden = true; }
+
+  function confirmNewPlace(e) {
+    e.preventDefault();
+    var err = $('np-error');
+    var name = $('np-name').value.trim().replace(/\s+/g, ' ');
+    var raw = $('np-slots').value.trim();
+    var n = raw === '' ? 0 : Number(raw);
+    if (!name) { err.textContent = 'Enter a name for the place.'; return; }
+    if (allLocations().some(function (l) { return l.toLowerCase() === name.toLowerCase(); })) { err.textContent = name + ' already exists.'; return; }
+    if (raw !== '' && (!Number.isInteger(n) || n < 1 || n > 500)) { err.textContent = 'Slots must be a whole number from 1 to 500, or blank.'; return; }
+    extraPlaces.push(name);
+    if (n) placeSlots[name] = n;
+    if (!saveExtra() || (n && !saveSlots())) {
+      extraPlaces.pop(); delete placeSlots[name];
+      err.textContent = 'Could not save on this device. Is private browsing on?';
+      return;
+    }
+    closeNewPlace();
+    showPlace(name);
   }
 
   function saveSlots() {
@@ -1274,7 +1331,7 @@
       map.get(i.location).push(i);
     });
     // A place with slots stays listed even when it is empty.
-    Object.keys(placeSlots).forEach(function (k) {
+    Object.keys(placeSlots).concat(extraPlaces).forEach(function (k) {
       var has = false;
       map.forEach(function (_, n) { if (n.toLowerCase() === k.toLowerCase()) has = true; });
       if (!has) map.set(k, []);
@@ -1299,7 +1356,7 @@
     var box = $('places-list');
     box.replaceChildren();
     if (g.names.length === 0 && g.none.length === 0) {
-      box.appendChild(el('div', 'empty', 'Nothing is stored anywhere yet. Add a place when you add an item.'));
+      box.appendChild(el('div', 'empty', 'Nothing is stored anywhere yet. Tap + New place to add your first one.'));
       return;
     }
     g.names.forEach(function (n) {
@@ -1790,6 +1847,9 @@
     add.slot = null;
     renderPlaceChips();
   });
+  $('new-place-btn').addEventListener('click', openNewPlace);
+  $('np-form').addEventListener('submit', confirmNewPlace);
+  $('np-cancel').addEventListener('click', closeNewPlace);
   $('place-slots-btn').addEventListener('click', openSlots);
   $('place-search-btn').addEventListener('click', function () {
     var w = $('place-search-wrap');
