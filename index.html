@@ -743,6 +743,7 @@
   // ---------- views and tabs ----------
 
   function showView(id) {
+    var changed = id !== currentView;
     currentView = id;
     VIEWS.forEach(function (v) { $(v).hidden = (v !== id); });
     $('dock').hidden = (id === 'add-view');
@@ -752,7 +753,9 @@
       b.classList.toggle('on', t === active);
       if (t === active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
-    window.scrollTo(0, 0);
+    // Only jump to the top when moving to a different page. Tapping a step on the same page
+    // used to reset any tiny scroll, which made the screen and bottom bar shift a few pixels.
+    if (changed) window.scrollTo(0, 0);
   }
 
   // ---------- places (names) ----------
