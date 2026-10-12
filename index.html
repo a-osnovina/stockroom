@@ -723,6 +723,9 @@
   var query = '';
   var filter = [];
   var subTab = 'draft';    // Unlisted has two parts: draft and archive
+  var HIDE_KEY = 'stockroom.hideShipped.v1';
+  var hideShipped = false; // All shows shipped items unless this is on
+  try { hideShipped = localStorage.getItem(HIDE_KEY) === '1'; } catch (e) {}
   var currentView = 'home-view';
   var addOrigin = 'home-view';
   var add = null;          // state of the add form
@@ -1444,7 +1447,7 @@
     box.replaceChildren();
     var current = barIndex(stage);
     BAR.forEach(function (s, idx) {
-      var count = items.filter(function (i) { return !i.history && (s.id === 'all' || i.stage === s.id); }).length;
+      var count = items.filter(function (i) { return s.id === 'all' ? (!i.history || !hideShipped) : (!i.history && i.stage === s.id); }).length;
       var b = el('button', 'step s-' + s.id + (idx === current ? ' on' : '') + (count === 0 ? ' zero' : ''));
       b.type = 'button';
       b.appendChild(el('span', 'count', compact(count)));
@@ -1496,10 +1499,13 @@
       });
       return;
     }
-    btn.className = 'apps-btn' + (filter.length ? ' set' : '');
-    btn.setAttribute('aria-label', filter.length ? 'Filter by app, ' + filter.length + ' selected' : 'Filter by app');
+    // In All the same button also chooses whether shipped items show; hiding them counts as one filter.
+    var active = filter.length + (stage === 'all' && hideShipped ? 1 : 0);
+    var what = stage === 'all' ? 'Filter by app or shipped items' : 'Filter by app';
+    btn.className = 'apps-btn' + (active ? ' set' : '');
+    btn.setAttribute('aria-label', active ? what + ', ' + active + ' selected' : what);
     btn.appendChild(icon('sliders', 20, 2.2));
-    if (filter.length) btn.appendChild(el('span', 'badge', String(filter.length)));
+    if (active) btn.appendChild(el('span', 'badge', String(active)));
     [null].concat(used).forEach(function (p) {
       var on = p === null ? filter.length === 0 : filter.indexOf(p) !== -1;
       box.appendChild(chip(p === null ? 'All apps' : p, on, function () {
@@ -1512,6 +1518,15 @@
         renderList();
       }));
     });
+    if (stage === 'all') {
+      box.appendChild(chip('Show shipped', !hideShipped, function () {
+        hideShipped = !hideShipped;
+        try { localStorage.setItem(HIDE_KEY, hideShipped ? '1' : '0'); } catch (e) {}
+        renderFilters();
+        renderSteps();
+        renderList();
+      }));
+    }
   }
 
   function moveForward(item) {
@@ -2071,7 +2086,8 @@
   function renderList() {
     var q = query.trim().toLowerCase();
     var history = stage === 'history';
-    var pool = items.filter(function (i) { return history ? !!i.history : !i.history; });
+    // All also lists shipped items, unless they are hidden with the filter button.
+    var pool = items.filter(function (i) { return history ? !!i.history : (!i.history || (stage === 'all' && !hideShipped)); });
     var inView = (stage === 'all' || history) ? pool : pool.filter(function (i) { return i.stage === stage; });
     var notListed = stage === 'import';
     if (notListed) inView = inView.filter(function (i) { return !!i.archived === (subTab === 'archive'); });
@@ -2082,8 +2098,9 @@
     });
     // In All, items follow the order of the step bar (Unlisted, List, Sold, Packed). Within a step the order is unchanged.
     if (stage === 'all') {
+      var rank = function (i) { return stageIndex(i.stage) + (i.history ? 0.5 : 0); }; // shipped items come last
       visible = visible.map(function (x, n) { return { x: x, n: n }; })
-        .sort(function (a, b) { return (stageIndex(a.x.stage) - stageIndex(b.x.stage)) || (a.n - b.n); })
+        .sort(function (a, b) { return (rank(a.x) - rank(b.x)) || (a.n - b.n); })
         .map(function (o) { return o.x; });
     }
     var box = $('list');
@@ -2101,6 +2118,7 @@
       box.appendChild(el('div', 'empty',
         inView.length > 0 ? 'No items match your search or filter.'
           : history ? 'Nothing in Shipped yet. Parcels you ship go here.'
+          : stage === 'all' && hideShipped && items.length > 0 ? 'Everything so far is shipped and hidden. Tap the filter button to show shipped items.'
           : stage === 'all' ? 'No items yet. Tap the + button to put your first one here.'
           : stage === 'shipped' ? 'Nothing packed yet. Tap Pack on a sold item and it lands here.'
           : notListed ? (subTab === 'archive' ? 'Nothing archived yet.' : 'No drafts yet. Tap the + button to add one.')
@@ -2111,7 +2129,7 @@
     visible.forEach(function (i) {
       if (i.parcel) { if (seen[i.parcel]) return; seen[i.parcel] = true; }
       var members = membersOf(i);
-      if (history) box.appendChild(parcelCard(members, 'history'));
+      if (history || i.history) box.appendChild(parcelCard(members, 'history'));
       else if (i.stage === 'sold') box.appendChild(parcelCard(members, 'sold'));
       else if (i.stage === 'shipped') box.appendChild(parcelCard(members, 'shipped'));
       else box.appendChild(itemRow(i, { pill: stage === 'all' }));
