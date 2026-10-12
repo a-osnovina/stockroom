@@ -95,6 +95,7 @@
   .two > div:last-child { text-align: right; }
   .good { color: var(--green); }
   .neg { color: var(--red); }
+  .amber { color: #F5C46E; }
   .apps { display: flex; gap: 12px; margin-top: 8px; }
   .app { flex: 1; min-width: 0; }
   .app-name { font-size: 13px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -480,6 +481,7 @@
 
 <main id="places-view" class="has-dock" hidden>
   <header><h1 style="flex:1">Places</h1></header>
+  <div id="places-card"></div>
   <div id="places-list"></div>
   <button type="button" class="place-row add-place" id="new-place-btn"><span class="place-name">+ New place</span></button>
 </main>
@@ -2093,6 +2095,21 @@
 
   function renderPlaces() {
     var g = groupByPlace();
+    var inPlaces = 0;
+    g.names.forEach(function (n) { inPlaces += g.map.get(n).length; });
+    var top = $('places-card');
+    top.replaceChildren();
+    var tc = el('div', 'card two');
+    tc.style.marginBottom = '14px';
+    var ta = el('div');
+    ta.appendChild(el('div', 'card-label', 'Items in a place'));
+    ta.appendChild(el('div', 'big', String(inPlaces)));
+    var tb = el('div');
+    tb.appendChild(el('div', 'card-label', 'Not in a place'));
+    tb.appendChild(el('div', 'big' + (g.none.length ? ' amber' : ''), String(g.none.length)));
+    tc.appendChild(ta);
+    tc.appendChild(tb);
+    top.appendChild(tc);
     var box = $('places-list');
     box.replaceChildren();
     if (g.names.length === 0 && g.none.length === 0) {
