@@ -80,7 +80,7 @@
 
   /* Stage colors: --fg text/icon, --bg tint, --solid filled */
   .s-all { --fg: #C3CADB; --bg: #2B3040; --solid: #9AA4B8; }
-  .s-import { --fg: #F5C46E; --bg: #3B3320; --solid: #F5C46E; } /* same amber as the Archive swipe button */
+  .s-import { --fg: #9AA4B8; --bg: #2B3040; --solid: #9AA4B8; } /* calm slate, shared with Archive; amber is kept for warnings (No spot) */
   .s-list { --fg: #6EA8FF; --bg: #243456; --solid: #6EA8FF; }
   .s-sold { --fg: #4FD1B5; --bg: #1D3A37; --solid: #4FD1B5; }
   .s-shipped { --fg: #C79BFF; --bg: #35294B; --solid: #C79BFF; }
@@ -101,7 +101,7 @@
   .app-name { font-size: 13px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .app-val { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bar { height: 6px; border-radius: 3px; background: var(--line); margin-top: 6px; overflow: hidden; }
-  .bar > span { display: block; height: 6px; border-radius: 3px; background: var(--blue); }
+  .bar > span { display: block; height: 6px; border-radius: 3px; background: var(--soft); }
   .section { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 6px; }
   .section-label { font-size: 13px; color: var(--muted); margin: 22px 0 10px; font-weight: 700; }
   .meta { font-size: 13px; color: var(--muted); }
@@ -123,7 +123,7 @@
   .steps { display: flex; margin: 8px 0 0; }
   .seg { display: flex; gap: 4px; background: var(--card); border-radius: 22px; padding: 4px; margin-top: 12px; }
   .seg button { flex: 1; min-height: 40px; border: 0; border-radius: 18px; background: none; color: var(--muted); font-size: 15px; font-weight: 700; }
-  .seg button.on { background: #3B3320; color: #F5C46E; }
+  .seg button.on { background: #2B3040; color: var(--text); }
   .step {
     flex: 1; min-width: 0; min-height: 52px; border: 0; margin-left: -10px; padding: 0;
     background: var(--card2); color: var(--muted); font-size: 12px; font-weight: 700;
@@ -147,7 +147,7 @@
     background: var(--card); color: var(--muted); display: flex; align-items: center; justify-content: center;
   }
   .apps-btn.set { background: #2A3350; color: var(--blue-text); }
-  .apps-btn.archive { color: #F5C46E; background: #3B3320; }
+  .apps-btn.archive { color: var(--soft); background: #2B3040; }
   .apps-btn[aria-expanded="true"] { box-shadow: inset 0 0 0 1.5px var(--blue); }
   .apps-btn .badge {
     position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
@@ -170,8 +170,8 @@
   .item-main { flex: 1; min-width: 0; min-height: 48px; text-align: left; background: none; border: 0; color: var(--text); padding: 0; display: block; font: inherit; }
   .item-name { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .item-meta { font-size: 13px; color: var(--soft); margin-top: 1px; line-height: 1.5; }
-  .item-meta .loc { color: var(--blue-text); }
-  .item-meta.loc { color: var(--blue-text); margin-top: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-meta .loc { color: var(--soft); }
+  .item-meta.loc { color: var(--soft); margin-top: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .item-meta .dim { color: var(--muted); }
   .pill { font-size: 12px; font-weight: 700; background: var(--bg); color: var(--fg); border-radius: 8px; padding: 1px 7px; margin-right: 6px; }
   .amt { font-size: 16px; font-weight: 700; flex: none; white-space: nowrap; margin-right: 4px; }
@@ -316,7 +316,7 @@
   }
   .swipe-actions .act-edit { background: #243456; color: var(--blue-text); }
   .swipe-actions .act-del { background: #4A1D22; color: var(--red); }
-  .swipe-actions .act-arch { background: #3B3320; color: #F5C46E; }
+  .swipe-actions .act-arch { background: #2B3040; color: var(--soft); }
   .swipe-actions .act-arch small { font-size: 10px; font-weight: 500; margin-top: -3px; }
   .swipe-right { display: flex; }
   .swipe.edit-open .act-edit, .swipe.del-open .act-del, .swipe.del-open .act-arch, .swipe.drag .swipe-actions button, .swipe-actions button:focus-visible { opacity: 1; }
