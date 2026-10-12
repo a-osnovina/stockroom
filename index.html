@@ -1345,7 +1345,18 @@
   // One "Apps" row that opens to show every app, instead of a long row of app buttons.
   var appsOpen = false;
 
+  function usedApps() {
+    var seen = {};
+    items.forEach(function (i) {
+      (i.platforms || []).forEach(function (p) { seen[p] = true; });
+      if (i.sold && i.sold.platform) seen[i.sold.platform] = true;
+    });
+    return PLATFORMS.filter(function (p) { return seen[p]; });
+  }
+
   function renderFilters() {
+    var used = usedApps();
+    filter = filter.filter(function (f) { return used.indexOf(f) !== -1; });
     var btn = $('apps-btn');
     btn.replaceChildren();
     btn.setAttribute('aria-expanded', appsOpen ? 'true' : 'false');
@@ -1357,7 +1368,7 @@
     var box = $('filters');
     box.hidden = !appsOpen;
     box.replaceChildren();
-    [null].concat(PLATFORMS).forEach(function (p) {
+    [null].concat(used).forEach(function (p) {
       var on = p === null ? filter.length === 0 : filter.indexOf(p) !== -1;
       box.appendChild(chip(p === null ? 'All apps' : p, on, function () {
         if (p === null) filter = [];
@@ -1673,7 +1684,7 @@
 
   // Redraw whatever screen is open (after a move or a place change).
   function refresh() {
-    if (currentView === 'list-view') { renderSteps(); renderList(); }
+    if (currentView === 'list-view') { renderSteps(); renderFilters(); renderList(); }
     else if (currentView === 'home-view') renderHome();
     else if (currentView === 'places-view') renderPlaces();
     else if (currentView === 'summary-view') renderSummary();
