@@ -1854,17 +1854,7 @@
           txt.appendChild(el('span', 'g-name', label));
           if (sub) txt.appendChild(el('span', 'g-sub', sub));
           rowEl.appendChild(txt);
-          if (multi) {
-            var wrapRow = el('div', 'gather-line');
-            wrapRow.appendChild(rowEl);
-            var eb = el('button', 'g-edit');
-            eb.type = 'button';
-            eb.setAttribute('aria-label', 'Edit ' + i.name);
-            eb.appendChild(icon('pencil', 18));
-            eb.addEventListener('click', function () { showEdit(i); });
-            wrapRow.appendChild(eb);
-            list.appendChild(wrapRow);
-          } else list.appendChild(rowEl);
+          list.appendChild(rowEl);
         });
         card.appendChild(list);
       }
