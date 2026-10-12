@@ -58,7 +58,14 @@
     -webkit-appearance: none; appearance: none;
   }
   input::placeholder { color: #7D879F; }
-  input[type=search] { border-radius: 24px; padding: 0 18px; }
+  input[type=search] { border-radius: 24px; padding: 0 44px 0 18px; }
+  input[type=search]::-webkit-search-cancel-button, input[type=search]::-webkit-search-decoration { -webkit-appearance: none; display: none; }
+  .search-wrap { position: relative; }
+  .clear-x {
+    position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border: 0; border-radius: 20px;
+    background: none; color: var(--muted); display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  input:placeholder-shown + .clear-x { display: none; }
   label, .label { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
 
   /* Stage colors: --fg text/icon, --bg tint, --solid filled */
@@ -115,7 +122,7 @@
   .step.on { background: var(--solid); color: #0B1220; }
   .step.on .count { color: #0B1220; }
 
-  .search-wrap { margin-top: 12px; }
+  .search-wrap { margin-top: 12px; position: relative; }
   .filters { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 14px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip {
@@ -163,11 +170,14 @@
   .pick-item { display: flex; align-items: center; gap: 12px; background: var(--bg); border: 0; border-radius: 12px; padding: 8px 12px 8px 8px; min-height: 56px; color: var(--text); text-align: left; font: inherit; width: 100%; }
   .slot-row { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 12px; padding: 8px 12px 8px 8px; margin-bottom: 8px; min-height: 56px; }
   .slot-row.empty { background: none; border: 1.5px dashed #2A3144; }
-  .slot-num { width: 40px; height: 40px; border-radius: 10px; background: var(--blue-bg); color: var(--blue-text); font-weight: 700; font-size: 17px; display: flex; align-items: center; justify-content: center; flex: none; }
+  .slot-num { min-width: 40px; max-width: 45%; height: 40px; padding: 0 10px; box-sizing: border-box; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: 10px; background: var(--blue-bg); color: var(--blue-text); font-weight: 700; font-size: 17px; display: flex; align-items: center; justify-content: center; flex: none; }
   .slot-row.empty .slot-num { background: var(--card); color: var(--muted); }
   .slot-row .item-main { min-height: 0; }
   .slot-row .dim { color: var(--muted); font-size: 15px; }
-  .chip.slot { min-width: 48px; padding: 0 10px; text-align: center; }
+  .chip.slot { min-width: 48px; padding: 0 12px; text-align: center; }
+  #names-sheet { z-index: 25; }
+  .names-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .names-row .slot-num { flex: none; width: 64px; min-width: 64px; max-width: 64px; font-size: 14px; background: var(--bg); color: var(--muted); }
   .chip.slot:disabled { opacity: 0.3; cursor: default; }
   .chip.slot.on { border-color: var(--blue); }
 
@@ -284,7 +294,7 @@
   <nav class="steps" id="steps" aria-label="Steps"></nav>
   <div class="search-wrap">
     <label for="search" style="position:absolute;left:-9999px">Search for an item</label>
-    <input type="search" id="search" placeholder="Search for an item" autocomplete="off">
+    <input type="search" id="search" placeholder="Search for an item" autocomplete="off"><button type="button" class="clear-x" id="search-x" aria-label="Clear search"></button>
   </div>
   <div class="filters" id="filters"></div>
   <div class="meta hint" id="swipe-hint">Swipe an item right to edit it, left to delete or archive it.</div>
@@ -368,7 +378,7 @@
   <div class="meta" id="place-sub" style="margin-bottom:12px"></div>
   <div class="search-wrap" id="place-search-wrap" hidden style="margin:0 0 12px">
     <label for="place-search" style="position:absolute;left:-9999px">Search for an item</label>
-    <input type="search" id="place-search" placeholder="Search for an item" autocomplete="off">
+    <input type="search" id="place-search" placeholder="Search for an item" autocomplete="off"><button type="button" class="clear-x" id="place-search-x" aria-label="Clear search"></button>
   </div>
   <div id="place-items"></div>
 </main>
@@ -442,6 +452,18 @@
   </div>
 </div>
 
+<div class="sheet-wrap" id="names-sheet" hidden>
+  <form class="sheet" id="names-form" role="dialog" aria-modal="true" aria-labelledby="names-title" novalidate>
+    <h2 id="names-title">Name each slot</h2>
+    <div class="meta">Type your own name for a slot, like "Top shelf". Leave a box empty to keep its automatic name.</div>
+    <div id="names-list"></div>
+    <div class="actions">
+      <button type="button" class="secondary" id="names-cancel">Cancel</button>
+      <button type="submit" class="primary">Save names</button>
+    </div>
+  </form>
+</div>
+
 <div class="sheet-wrap" id="slots-sheet" hidden>
   <form class="sheet" id="slots-form" role="dialog" aria-modal="true" aria-labelledby="slots-title" novalidate>
     <h2 id="slots-title">Slots</h2>
@@ -449,6 +471,14 @@
     <div class="meta">How many spaces does it have? Each item gets a number from 1 to this, so you can find it in order.</div>
     <label for="slots-count">Number of slots</label>
     <input type="number" id="slots-count" placeholder="e.g. 20" inputmode="numeric" step="1" min="1" max="500">
+    <div class="label" style="margin-top:16px">Slot names</div>
+    <div class="chips" id="slots-style"></div>
+    <div id="slots-prefix-row" hidden style="margin-top:8px">
+      <label for="slots-prefix" style="position:absolute;left:-9999px">Code prefix</label>
+      <input type="text" id="slots-prefix" placeholder="Prefix, e.g. CL-" autocomplete="off" maxlength="12">
+    </div>
+    <div class="meta" id="slots-preview" style="margin-top:8px"></div>
+    <button type="button" class="link" id="slots-rename" hidden style="padding-left:0">Name slots one by one</button>
     <div class="error" id="slots-error" role="alert"></div>
     <div class="actions">
       <button type="button" class="secondary" id="slots-cancel">Cancel</button>
@@ -510,6 +540,7 @@
     phone: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M10 7h4"/>',
     down: '<path d="M6 9l6 6 6-6"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+    x: '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
     pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
     archive: '<path d="M3 5h18v4H3z"/><path d="M5 9v10h14V9"/><path d="M10 13h4"/>',
     trash: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/>'
@@ -520,6 +551,8 @@
   var placeSlots = loadSlots();
   var currentPlace = null; // place open in the place view
   var placeQuery = '';
+  var NAMES_KEY = 'stockroom.slotnames.v1'; // { place: { style, prefix, custom } }
+  var slotNames = loadNames();
   var EXTRA_KEY = 'stockroom.placelist.v1'; // places created without any item yet
   var extraPlaces = loadExtra();
   var items = load();
@@ -777,7 +810,71 @@
     return null;
   }
 
-  function where(i) { return i.location + (i.slot ? ' #' + i.slot : ''); }
+  // ---- slot names: numbers, letters, a SKU-style code, or your own name for each slot ----
+
+  function loadNames() {
+    var out = {};
+    try {
+      var o = JSON.parse(localStorage.getItem(NAMES_KEY) || '{}');
+      Object.keys(o || {}).forEach(function (k) {
+        var c = o[k];
+        if (!c || typeof c !== 'object') return;
+        out[k] = {
+          style: c.style === 'letter' || c.style === 'sku' ? c.style : 'number',
+          prefix: typeof c.prefix === 'string' ? c.prefix : '',
+          custom: c.custom && typeof c.custom === 'object' ? c.custom : {}
+        };
+      });
+    } catch (e) { /* default names */ }
+    return out;
+  }
+
+  function saveNames() {
+    try { localStorage.setItem(NAMES_KEY, JSON.stringify(slotNames)); return true; } catch (e) { return false; }
+  }
+
+  function namesKey(place) {
+    var t = String(place || '').toLowerCase();
+    var keys = Object.keys(slotNames);
+    for (var i = 0; i < keys.length; i++) if (keys[i].toLowerCase() === t) return keys[i];
+    return null;
+  }
+
+  function nameCfg(place) { var k = namesKey(place); return k ? slotNames[k] : null; }
+
+  function letters(n) {
+    var out = '';
+    while (n > 0) { n--; out = String.fromCharCode(65 + n % 26) + out; n = Math.floor(n / 26); }
+    return out;
+  }
+
+  function autoLabel(cfg, n) {
+    var st = cfg ? cfg.style : 'number';
+    if (st === 'letter') return letters(n);
+    if (st === 'sku') { var d = String(n); while (d.length < 3) d = '0' + d; return (cfg.prefix || '') + d; }
+    return String(n);
+  }
+
+  // Short name shown on a slot: its own name if it has one, else the number, letter or code.
+  function slotLabel(place, n) {
+    var c = nameCfg(place);
+    var custom = c && c.custom[n];
+    return custom ? custom : autoLabel(c, n);
+  }
+
+  // Full wording for sentences: "Slot 4", "Slot B", or just the code / custom name.
+  function slotDisplay(place, n) {
+    var c = nameCfg(place);
+    if ((c && c.custom[n]) || (c && c.style === 'sku')) return slotLabel(place, n);
+    return 'Slot ' + slotLabel(place, n);
+  }
+
+  function where(i) {
+    if (!i.slot) return i.location;
+    var c = nameCfg(i.location);
+    var plain = (!c || c.style === 'number') && !(c && c.custom[i.slot]);
+    return i.location + (plain ? ' #' + i.slot : ' · ' + slotLabel(i.location, i.slot));
+  }
 
   // ---------- delete ----------
 
@@ -810,6 +907,60 @@
   // ---------- slots sheet ----------
 
   var removeArmed = false;
+  var draftStyle = 'number';
+
+  function draftCfg() { return { style: draftStyle, prefix: $('slots-prefix').value.trim(), custom: {} }; }
+
+  function renderStyleChips() {
+    var box = $('slots-style');
+    box.replaceChildren();
+    [['number', '1, 2, 3'], ['letter', 'A, B, C'], ['sku', 'Code (SKU)']].forEach(function (o) {
+      box.appendChild(chip(o[1], draftStyle === o[0], function () { draftStyle = o[0]; renderStyleChips(); }));
+    });
+    $('slots-prefix-row').hidden = draftStyle !== 'sku';
+    var cfg = draftCfg();
+    $('slots-preview').textContent = 'Looks like: ' + [1, 2, 3].map(function (n) { return autoLabel(cfg, n); }).join(', ') + '…';
+  }
+
+  function openNames() {
+    var c = slotCount(currentPlace);
+    var cfg = nameCfg(currentPlace);
+    var list = $('names-list');
+    list.replaceChildren();
+    for (var n = 1; n <= c; n++) {
+      var row = el('div', 'names-row');
+      row.appendChild(el('div', 'slot-num', autoLabel(cfg, n)));
+      var inp = document.createElement('input');
+      inp.type = 'text';
+      inp.maxLength = 24;
+      inp.placeholder = 'Name for slot ' + n;
+      inp.value = cfg && cfg.custom[n] ? cfg.custom[n] : '';
+      inp.setAttribute('aria-label', 'Name for slot ' + n);
+      inp.dataset.n = String(n);
+      row.appendChild(inp);
+      list.appendChild(row);
+    }
+    $('names-sheet').hidden = false;
+  }
+
+  function closeNames() { $('names-sheet').hidden = true; }
+
+  function confirmNames(e) {
+    e.preventDefault();
+    var k = namesKey(currentPlace) || slotKey(currentPlace) || currentPlace;
+    var prev = JSON.stringify(slotNames);
+    var cfg = slotNames[k] || { style: 'number', prefix: '', custom: {} };
+    cfg.custom = {};
+    Array.prototype.forEach.call($('names-list').querySelectorAll('input'), function (inp) {
+      var v = inp.value.trim().replace(/\s+/g, ' ');
+      if (v) cfg.custom[inp.dataset.n] = v;
+    });
+    slotNames[k] = cfg;
+    if (!saveNames()) { slotNames = JSON.parse(prev); alert('Could not save on this device. Is private browsing on?'); return; }
+    closeNames();
+    closeSlots();
+    renderPlace();
+  }
 
   function openSlots() {
     if (!currentPlace) return;
@@ -820,6 +971,11 @@
     removeArmed = false;
     $('slots-remove').hidden = !c;
     $('slots-remove').textContent = 'Remove slots';
+    var cfg = nameCfg(currentPlace);
+    draftStyle = cfg ? cfg.style : 'number';
+    $('slots-prefix').value = cfg ? cfg.prefix : '';
+    $('slots-rename').hidden = !c;
+    renderStyleChips();
     $('slots-sheet').hidden = false;
   }
 
@@ -853,10 +1009,17 @@
     if (raw === '' || !Number.isInteger(n) || n < 1 || n > 500) { err.textContent = 'Enter a whole number from 1 to 500.'; return; }
     var over = placeItems(currentPlace).filter(function (i) { return i.slot && i.slot > n; });
     if (over.length) {
-      err.textContent = 'Slot ' + over[0].slot + ' is used by ' + over[0].name + '. Pick a bigger number, or move that item first.';
+      err.textContent = slotDisplay(currentPlace, over[0].slot) + ' is used by ' + over[0].name + '. Pick a bigger number, or move that item first.';
       return;
     }
     if (!writeSlots(n, false)) return;
+    var nk = namesKey(currentPlace) || slotKey(currentPlace) || currentPlace;
+    var prevNames = JSON.stringify(slotNames);
+    var old = slotNames[nk] || { custom: {} };
+    var custom = {};
+    Object.keys(old.custom).forEach(function (m) { if (Number(m) <= n) custom[m] = old.custom[m]; });
+    slotNames[nk] = { style: draftStyle, prefix: $('slots-prefix').value.trim(), custom: custom };
+    if (!saveNames()) { slotNames = JSON.parse(prevNames); err.textContent = 'Could not save the names on this device.'; return; }
     closeSlots();
     showPlace(currentPlace);
   }
@@ -868,6 +1031,8 @@
       return;
     }
     if (!writeSlots(0, true)) return;
+    var rk = namesKey(currentPlace);
+    if (rk) { delete slotNames[rk]; saveNames(); }
     closeSlots();
     showPlace(currentPlace);
   }
@@ -878,7 +1043,7 @@
     grabbing = item;
     $('grab-name').textContent = item.name;
     $('grab-place').textContent = item.location;
-    $('grab-slot').textContent = item.slot ? 'Slot ' + item.slot : '';
+    $('grab-slot').textContent = item.slot ? slotDisplay(item.location, item.slot) : '';
     $('grab-sheet').hidden = false;
     $('grab-yes').focus();
   }
@@ -1395,23 +1560,23 @@
     sb.textContent = sc ? 'Edit slots' : '+ Slots';
     var box = $('place-items');
     box.replaceChildren();
-    function match(i) { return !q || i.name.toLowerCase().indexOf(q) !== -1 || (i.slot && ('#' + i.slot) === q); }
+    function match(i) { return !q || i.name.toLowerCase().indexOf(q) !== -1 || (i.slot && slotLabel(i.location, i.slot).toLowerCase().indexOf(q) !== -1); }
     if (sc) {
       for (var n = 1; n <= sc; n++) (function (n) {
         var occ = here.filter(function (i) { return i.slot === n; })[0];
         if (q && !(occ && match(occ))) return; // searching shows only matching items
         var row = el('button', 'slot-row tap' + (occ ? '' : ' empty'));
         row.type = 'button';
-        row.appendChild(el('div', 'slot-num', String(n)));
+        row.appendChild(el('div', 'slot-num', slotLabel(name, n)));
         if (occ) {
-          row.setAttribute('aria-label', 'Slot ' + n + ': ' + occ.name + '. Edit');
+          row.setAttribute('aria-label', slotDisplay(name, n) + ': ' + occ.name + '. Edit');
           var main = el('div', 'item-main');
           main.appendChild(el('div', 'item-name', occ.name));
           main.appendChild(metaLine(occ, true));
           row.appendChild(main);
           row.addEventListener('click', function () { showEdit(occ); });
         } else {
-          row.setAttribute('aria-label', 'Slot ' + n + ' is empty. Put an item here');
+          row.setAttribute('aria-label', slotDisplay(name, n) + ' is empty. Put an item here');
           row.appendChild(el('div', 'dim', 'Empty · tap to add an item'));
           row.addEventListener('click', function () { openPick(n); });
         }
@@ -1437,7 +1602,7 @@
 
   function openPick(n) {
     pickSlot = n;
-    $('pick-title').textContent = 'Slot ' + n + ' in ' + currentPlace;
+    $('pick-title').textContent = slotDisplay(currentPlace, n) + ' in ' + currentPlace;
     var loose = placeItems(currentPlace).filter(function (i) { return !i.slot || i.slot > slotCount(currentPlace); });
     $('pick-sub').textContent = loose.length ? 'Pick an item already in ' + currentPlace + ', or add a new one.' : 'Every item in ' + currentPlace + ' already has a slot. Add a new one here.';
     var list = $('pick-list');
@@ -1554,10 +1719,10 @@
     $('slot-place').textContent = add.loc;
     for (var n = 1; n <= c; n++) (function (n) {
       var taken = slotTaken(add.loc, n, add.editing);
-      var b = chip(String(n), add.slot === n, function () { add.slot = add.slot === n ? null : n; renderSlotChips(); });
+      var b = chip(slotLabel(add.loc, n), add.slot === n, function () { add.slot = add.slot === n ? null : n; renderSlotChips(); });
       b.classList.add('slot');
-      if (taken) { b.disabled = true; b.title = 'Taken by ' + taken.name; b.setAttribute('aria-label', 'Slot ' + n + ', taken by ' + taken.name); }
-      else b.setAttribute('aria-label', 'Slot ' + n);
+      if (taken) { b.disabled = true; b.title = 'Taken by ' + taken.name; b.setAttribute('aria-label', slotDisplay(add.loc, n) + ', taken by ' + taken.name); }
+      else b.setAttribute('aria-label', slotDisplay(add.loc, n));
       box.appendChild(b);
     })(n);
   }
@@ -1723,7 +1888,7 @@
     var slot = (loc && add.slot && add.slot <= slotCount(loc)) ? add.slot : null;
     if (slot && add.stage !== 'shipped') {
       var other = slotTaken(loc, slot, add.editing);
-      if (other) { err.textContent = 'Slot ' + slot + ' in ' + loc + ' is taken by ' + other.name + '.'; return false; }
+      if (other) { err.textContent = slotDisplay(loc, slot) + ' in ' + loc + ' is taken by ' + other.name + '.'; return false; }
     }
 
     if (add.editing) {
@@ -1805,6 +1970,8 @@
     $('add-back').appendChild(icon('back', 22));
     $('place-back').appendChild(icon('back', 22));
     $('place-search-btn').appendChild(icon('search', 22));
+    $('search-x').appendChild(icon('x', 18));
+    $('place-search-x').appendChild(icon('x', 18));
     [['tab-home', 'home', 'Home'], ['tab-places', 'pin', 'Places'], ['tab-summary', 'bars', 'Summary']].forEach(function (t) {
       var b = $(t[0]);
       b.appendChild(icon(t[1], 24));
@@ -1858,6 +2025,14 @@
     else $('place-search').focus();
   });
   $('place-search').addEventListener('input', function (e) { placeQuery = e.target.value; renderPlace(); });
+  [['search-x', 'search'], ['place-search-x', 'place-search']].forEach(function (p) {
+    $(p[0]).addEventListener('click', function () {
+      var inp = $(p[1]);
+      inp.value = '';
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      inp.focus();
+    });
+  });
   $('pick-cancel').addEventListener('click', closePick);
   $('pick-new').addEventListener('click', function () {
     var n = pickSlot, loc = currentPlace;
@@ -1867,6 +2042,10 @@
   $('slots-form').addEventListener('submit', confirmSlots);
   $('slots-cancel').addEventListener('click', closeSlots);
   $('slots-remove').addEventListener('click', removeSlots);
+  $('slots-prefix').addEventListener('input', renderStyleChips);
+  $('slots-rename').addEventListener('click', openNames);
+  $('names-form').addEventListener('submit', confirmNames);
+  $('names-cancel').addEventListener('click', closeNames);
   $('grab-no').addEventListener('click', closeGrab);
   $('grab-yes').addEventListener('click', confirmGrab);
   $('del-cancel').addEventListener('click', closeDelete);
