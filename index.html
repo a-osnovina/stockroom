@@ -365,7 +365,6 @@
     <label for="search" style="position:absolute;left:-9999px">Search for an item</label>
     <input type="search" id="search" placeholder="Search for an item" autocomplete="off"><button type="button" class="clear-x" id="search-x" aria-label="Clear search"></button>
   </div>
-  <div class="meta hint" id="swipe-hint">Swipe an item right to edit it, left to delete or archive it.</div>
   <div id="list"></div>
 </main>
 
@@ -1661,7 +1660,6 @@
     var box = $('list');
     box.replaceChildren();
     openRow = null;
-    $('swipe-hint').hidden = visible.length === 0;
     if (visible.length === 0) {
       box.appendChild(el('div', 'empty',
         inView.length > 0 ? 'No items match your search or filter.'
