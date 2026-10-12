@@ -62,7 +62,7 @@ A soft fade sits under the bottom bar so items don't show sharply behind it.
 
 **Bundles and shipping**
 - In the sale sheet, **+ Sold with another item** lets you add other items that are in List on the same app. You enter one total price for the whole parcel (shared out evenly behind the scenes) and the profit is the total minus what all the items cost.
-- **Sold** has one card per sale. Each item with a place has a tick row showing where it is (like "my closet #4"). Tick each one as you gather it: its slot is free again straight away. When everything is ticked a **Packed** button appears. An item with no place has nothing to tick and shows **Packed** right away.
-- **Parcels** (the last step) holds the packed parcels: the item names, the profit and a **Ship** button. Ship moves the parcel to **History** and shows an Undo.
+- **Sold** has one card per sale. Each item with a place has a tick row showing where it is (like "my closet #4"). Tick each one as you gather it: its slot is free again straight away. When everything is ticked a **Packed** button appears in place of the amount. An item with no place has nothing to tick and shows **Packed** right away.
+- **Parcels** (the last step) holds the packed parcels: the item names, the profit and a **Ship** button on the right. Ship moves the parcel to **History** and shows an Undo. **Ship all** at the top ships every parcel at once.
 - **History** is in Summary. Shipped parcels leave the steps there but still count in your profit. **Back to List** on a card puts its items back in List and removes the sale. If an item's old slot was taken meanwhile, it comes back without a slot.
 - An item inside a bundle keeps its step and its share of the price when edited; swipe a bundle left to delete the whole parcel.

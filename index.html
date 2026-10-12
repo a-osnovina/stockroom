@@ -195,6 +195,7 @@
   .parcel-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 0 2px; }
   .ship-btn { min-height: 44px; padding: 0 20px; border: 0; border-radius: 22px; background: var(--solid); color: #0B1220; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; flex: none; }
   .ship-btn:disabled { opacity: .35; }
+  .ship-all { width: 100%; min-height: 52px; margin: 0 0 12px; border: 0; border-radius: 26px; background: #C79BFF; color: #0B1220; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
   .ship-btn.back-btn { background: var(--blue-bg); color: var(--blue-text); }
   .next { width: 44px; height: 44px; border: 0; border-radius: 22px; background: var(--line); color: var(--fg); display: flex; align-items: center; justify-content: center; flex: none; }
 
@@ -1779,12 +1780,14 @@
     showToast(members.length > 1 ? 'Moved ' + members.length + ' items back to List' : 'Moved back to List', 'View', function () { stage = 'list'; showList(); });
   }
 
-  // One card per sale: the items in it, what to gather, and the Ship button.
-  // mode is 'sold' (waiting to be gathered), 'shipped' or 'history'.
+  // One card per sale: the items in it, what to gather, and one button on the right.
+  // mode is 'sold' (waiting to be gathered, then Packed), 'shipped' (a packed parcel, Ship) or 'history'.
   function parcelCard(members, mode) {
     var lead = members[0];
     var multi = members.length > 1;
     var card = el('div', 'parcel s-' + (mode === 'sold' ? 'sold' : 'shipped'));
+    var need = members.filter(function (i) { return !!i.location; });
+    var done = need.filter(function (i) { return i.gathered; }).length;
 
     var head = el('div', 'parcel-head');
     var thumb = el('div', 'thumb');
@@ -1805,13 +1808,32 @@
       main.appendChild(meta);
     }
     head.appendChild(main);
-    var t = parcelTotals(members);
-    head.appendChild(el('div', 'amt ' + (t.profit === null ? '' : t.profit < 0 ? 'neg' : 'good'), t.profit === null ? money(t.total) : signedText(t.profit)));
+
+    // The button takes the place of the amount, so the card stays short.
+    var action = null;
+    if (mode === 'sold' && done >= need.length) {
+      action = el('button', 'ship-btn s-shipped');
+      action.type = 'button';
+      action.setAttribute('aria-label', 'Packed: ' + (multi ? 'this parcel' : lead.name));
+      action.appendChild(icon('box', 20));
+      action.appendChild(document.createTextNode('Packed'));
+      action.addEventListener('click', function () { packParcel(members); });
+    } else if (mode === 'shipped') {
+      action = el('button', 'ship-btn s-shipped');
+      action.type = 'button';
+      action.setAttribute('aria-label', 'Ship ' + (multi ? 'this parcel' : lead.name));
+      action.appendChild(icon('truck', 20));
+      action.appendChild(document.createTextNode('Ship'));
+      action.addEventListener('click', function () { shipParcel(members); });
+    }
+    if (!action) {
+      var t = parcelTotals(members);
+      action = el('div', 'amt ' + (t.profit === null ? '' : t.profit < 0 ? 'neg' : 'good'), t.profit === null ? money(t.total) : signedText(t.profit));
+    }
+    head.appendChild(action);
     card.appendChild(head);
 
     if (mode === 'sold') {
-      var need = members.filter(function (i) { return !!i.location; });
-      var done = need.filter(function (i) { return i.gathered; }).length;
       // A lone item with no place has nothing to tick, so it shows no rows at all.
       if (need.length) {
         var list = el('div', 'gather');
@@ -1846,52 +1868,47 @@
         });
         card.appendChild(list);
       }
-      var foot = el('div', 'parcel-foot');
-      if (done < need.length) {
-        if (multi) foot.appendChild(el('div', 'meta', done + ' of ' + need.length + ' gathered'));
-      } else {
-        var pack = el('button', 'ship-btn s-shipped');
-        pack.type = 'button';
-        pack.setAttribute('aria-label', 'Packed: ' + (multi ? 'this parcel' : lead.name));
-        pack.appendChild(icon('box', 20));
-        pack.appendChild(document.createTextNode('Packed'));
-        pack.addEventListener('click', function () { packParcel(members); });
-        foot.appendChild(pack);
+      if (multi && done < need.length) {
+        var foot = el('div', 'parcel-foot');
+        foot.appendChild(el('div', 'meta', done + ' of ' + need.length + ' gathered'));
+        card.appendChild(foot);
       }
-      if (foot.childNodes.length) card.appendChild(foot);
-    } else if (mode === 'shipped') {
-      // In Parcels: just what is in the box, and the Ship button.
+    } else {
       if (multi) {
         var names = el('div', 'item-meta parcel-names');
         names.textContent = members.map(function (i) { return i.name; }).join(' · ');
         card.appendChild(names);
       }
-      var pf = el('div', 'parcel-foot');
-      var ship = el('button', 'ship-btn s-shipped');
-      ship.type = 'button';
-      ship.setAttribute('aria-label', 'Ship ' + (multi ? 'this parcel' : lead.name));
-      ship.appendChild(icon('truck', 20));
-      ship.appendChild(document.createTextNode('Ship'));
-      ship.addEventListener('click', function () { shipParcel(members); });
-      pf.appendChild(ship);
-      card.appendChild(pf);
-    } else {
-      if (multi) {
-        var hnames = el('div', 'item-meta parcel-names');
-        hnames.textContent = members.map(function (i) { return i.name; }).join(' · ');
-        card.appendChild(hnames);
+      if (mode === 'history') {
+        var back = el('button', 'ship-btn back-btn');
+        back.type = 'button';
+        back.appendChild(icon('undo', 18));
+        back.appendChild(document.createTextNode('Back to List'));
+        back.addEventListener('click', function () { restoreParcel(members); });
+        var f = el('div', 'parcel-foot');
+        f.appendChild(el('div', 'meta', countText(members.length)));
+        f.appendChild(back);
+        card.appendChild(f);
       }
-      var back = el('button', 'ship-btn back-btn');
-      back.type = 'button';
-      back.appendChild(icon('undo', 18));
-      back.appendChild(document.createTextNode('Back to List'));
-      back.addEventListener('click', function () { restoreParcel(members); });
-      var f = el('div', 'parcel-foot');
-      f.appendChild(el('div', 'meta', countText(members.length)));
-      f.appendChild(back);
-      card.appendChild(f);
     }
     return swipeWrap(card, lead, members);
+  }
+
+  function shipAll() {
+    var all = items.filter(function (i) { return i.stage === 'shipped' && !i.history; });
+    if (!all.length) return;
+    all.forEach(function (i) { i.history = true; });
+    if (!save()) {
+      all.forEach(function (i) { delete i.history; });
+      alert('Could not save on this device. Is private browsing on?');
+      return;
+    }
+    refresh();
+    showToast('Shipped ' + countText(all.length), 'Undo', function () {
+      all.forEach(function (i) { delete i.history; });
+      save();
+      refresh();
+    });
   }
 
   function renderList() {
@@ -1909,6 +1926,14 @@
     var box = $('list');
     box.replaceChildren();
     openRow = null;
+    if (stage === 'shipped' && pool.some(function (i) { return i.stage === 'shipped'; })) {
+      var sa = el('button', 'ship-all');
+      sa.type = 'button';
+      sa.appendChild(icon('truck', 20));
+      sa.appendChild(document.createTextNode('Ship all'));
+      sa.addEventListener('click', shipAll);
+      box.appendChild(sa);
+    }
     if (visible.length === 0) {
       box.appendChild(el('div', 'empty',
         inView.length > 0 ? 'No items match your search or filter.'
