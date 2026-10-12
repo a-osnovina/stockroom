@@ -84,6 +84,7 @@
   .s-list { --fg: #6EA8FF; --bg: #243456; --solid: #6EA8FF; }
   .s-sold { --fg: #4FD1B5; --bg: #1D3A37; --solid: #4FD1B5; }
   .s-shipped { --fg: #C79BFF; --bg: #35294B; --solid: #C79BFF; }
+  .s-done { --fg: #F1F3F8; --bg: #2B3040; --solid: #F1F3F8; } /* soft white: the Ship button and the Shipped pile */
 
   /* Cards */
   .card { background: var(--card); border-radius: 12px; padding: 14px 16px; margin-top: 10px; }
@@ -207,7 +208,7 @@
   .parcel-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 0 2px; }
   .ship-btn { min-height: 44px; min-width: 88px; justify-content: center; padding: 0 14px; border: 0; border-radius: 22px; background: var(--solid); color: #0B1220; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex: none; }
   .ship-btn:disabled { opacity: .35; }
-  .ship-all { width: 100%; min-height: 52px; margin: 0 0 12px; border: 0; border-radius: 26px; background: #C79BFF; color: #0B1220; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .ship-all { width: 100%; min-height: 52px; margin: 0 0 12px; border: 0; border-radius: 26px; background: #F1F3F8; color: #0B1220; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
   .ship-btn.back-btn { background: var(--blue-bg); color: var(--blue-text); }
   .next { width: 44px; height: 44px; border: 0; border-radius: 22px; background: var(--line); color: var(--fg); display: flex; align-items: center; justify-content: center; flex: none; }
 
@@ -1945,7 +1946,7 @@
   function parcelCard(members, mode) {
     var lead = members[0];
     var multi = members.length > 1;
-    var card = el('div', 'parcel s-' + (mode === 'sold' ? 'sold' : 'shipped'));
+    var card = el('div', 'parcel s-' + (mode === 'sold' ? 'sold' : mode === 'history' ? 'done' : 'shipped'));
     var need = members.filter(function (i) { return !!i.location; });
     var done = need.filter(function (i) { return i.gathered; }).length;
 
@@ -1966,6 +1967,7 @@
     meta.appendChild(el('span', 'pill', mode === 'sold' ? 'Sold' : mode === 'shipped' ? 'Packed' : 'Shipped'));
     meta.appendChild(document.createTextNode((lead.sold && lead.sold.platform) || 'App not saved'));
     var pt = parcelTotals(members);
+    meta.appendChild(document.createTextNode(' '));
     meta.appendChild(el('span', 'amt-inline ' + (pt.profit === null ? '' : pt.profit < 0 ? 'neg' : 'good'),
       pt.profit === null ? 'Total ' + money(pt.total) : signedText(pt.profit)));
     main.appendChild(meta);
@@ -1981,7 +1983,7 @@
       action.appendChild(icon('arrow', 16));
       action.addEventListener('click', function () { packParcel(members); });
     } else if (mode === 'shipped') {
-      action = el('button', 'ship-btn s-shipped');
+      action = el('button', 'ship-btn s-done');
       action.type = 'button';
       action.setAttribute('aria-label', 'Ship ' + (multi ? 'this parcel' : lead.name));
       action.appendChild(icon('truck', 18));
