@@ -10,24 +10,24 @@ and a round **+** button to add an item from anywhere.
 
 **Home**
 - Total profit and money tied up in unsold items at the top, then profit for each app.
-- A card for each step (List, Sold, Packed, Shipped) showing the first item in it and how many more there are. Tap a card to open that step, or tap its **Add** button to add an item straight into it.
+- A card for each step (Not listed, List, Sold, Shipped) showing the first item in it and how many more there are. Tap a card to open that step, or tap its **Add** button to add an item straight into it.
 - "View all items" opens the full list.
 
 **Step list**
-- A step bar at the top: All > List > Sold > Packed > Shipped. "All" shows every item with a small tag for its step. Tap a step to see only the items in it; each step shows how many items it holds.
-- Slim cards: photo (or an icon), name, apps and place, and the price. Sold, Packed and Shipped items show the profit instead.
-- The arrow button moves an item to the next step. Moving an item to Sold asks what it sold for and which app it sold on, and shows the profit (sale price minus what you paid).
-- Swipe an item right to **Edit** it, or left to **Delete** it. Delete asks you to confirm first.
+- A step bar at the top: All > Not listed > List > Sold > Shipped. "All" shows every item with a small tag for its step. Tap a step to see only the items in it; each step shows how many items it holds.
+- Slim cards: photo (or an icon), name, apps and place, and the price. Sold and Shipped items show the profit instead.
+- The arrow button moves an item to the next step. Moving an item to Sold asks what it sold for and which app it sold on, and shows the profit (sale price minus what you paid). Moving an item to Shipped asks "Did you grab it?" and names its place, but only if the item has a place.
+- Swipe an item right to **Edit** it, or left to **Delete** it. Delete asks you to confirm first. An **Archive** button sits next to Delete; it is a placeholder and does nothing yet.
 - Search and filter by app inside a step.
 
 **Add item**
-- Add a photo (optional), then the item name and what you paid.
+- Add a photo (optional), then the item name and what you paid. If you leave the cost blank it saves as $0, with no warning. The form no longer pops the keyboard open by itself, so the screen does not jump when it opens.
 - Pick a place from the places you already use, or add a new one.
 - Pick the apps the item is listed on.
 - The "Add to" step at the top decides where the item starts. Adding from Home or All starts it as "Not listed".
 - **Save and add another** keeps the place and apps and clears the name, cost and photo, which helps when you add a batch.
 - "Fill from a screenshot" is shown as coming soon. It does not work yet.
-- Editing an item uses the same form, filled in. You can also change its step there. If you move an item to Sold, Packed or Shipped, it asks for the sale price and the app it sold on.
+- Editing an item uses the same form, filled in. You can also change its step there. If you move an item to Sold or Shipped, it asks for the sale price and the app it sold on.
 
 **Places**: every place with how many items are in it. Tap a place to see its items. Items that have shipped are not counted.
 

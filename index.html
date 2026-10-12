@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Stockroom">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -42,7 +42,8 @@
   header { display: flex; align-items: center; gap: 12px; min-height: 48px; margin-bottom: 4px; }
   h1 { font-size: 28px; margin: 0; font-weight: 700; }
   h2 { font-size: 20px; margin: 0; font-weight: 700; }
-  button { font: inherit; cursor: pointer; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  button { font: inherit; cursor: pointer; touch-action: manipulation; }
   svg { display: block; flex: none; }
 
   .round {
@@ -64,7 +65,6 @@
   .s-all, .s-import { --fg: #C3CADB; --bg: #2B3040; --solid: #9AA4B8; }
   .s-list { --fg: #6EA8FF; --bg: #243456; --solid: #6EA8FF; }
   .s-sold { --fg: #4FD1B5; --bg: #1D3A37; --solid: #4FD1B5; }
-  .s-packed { --fg: #F5B454; --bg: #463A22; --solid: #F5B454; }
   .s-shipped { --fg: #C79BFF; --bg: #35294B; --solid: #C79BFF; }
 
   /* Cards */
@@ -199,7 +199,10 @@
   }
   .swipe-actions .act-edit { background: #243456; color: var(--blue-text); }
   .swipe-actions .act-del { background: #4A1D22; color: var(--red); }
-  .swipe.edit-open .act-edit, .swipe.del-open .act-del, .swipe.drag .swipe-actions button, .swipe-actions button:focus-visible { opacity: 1; }
+  .swipe-actions .act-arch { background: #232A3B; color: var(--muted, #8A94AB); }
+  .swipe-actions .act-arch small { font-size: 10px; font-weight: 500; margin-top: -3px; }
+  .swipe-right { display: flex; }
+  .swipe.edit-open .act-edit, .swipe.del-open .act-del, .swipe.del-open .act-arch, .swipe.drag .swipe-actions button, .swipe-actions button:focus-visible { opacity: 1; }
 
   /* Bottom sheets (place, sale) */
   .sheet-wrap {
@@ -266,7 +269,7 @@
     <input type="search" id="search" placeholder="Search this step" autocomplete="off">
   </div>
   <div class="filters" id="filters"></div>
-  <div class="meta hint" id="swipe-hint">Swipe an item right to edit it, left to delete it.</div>
+  <div class="meta hint" id="swipe-hint">Swipe an item right to edit it, left to delete or archive it.</div>
   <div id="list"></div>
 </main>
 
@@ -367,6 +370,18 @@
   </div>
 </div>
 
+<div class="sheet-wrap" id="grab-sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="grab-title">
+    <h2 id="grab-title">Did you grab it?</h2>
+    <div class="sheet-name" id="grab-name"></div>
+    <div class="meta">Take it out of <strong id="grab-place"></strong> before you ship it.</div>
+    <div class="actions">
+      <button type="button" class="secondary" id="grab-no">Not yet</button>
+      <button type="button" class="primary" id="grab-yes">Yes, got it</button>
+    </div>
+  </div>
+</div>
+
 <div class="sheet-wrap" id="sold-sheet" hidden>
   <form class="sheet" id="sold-form" role="dialog" aria-modal="true" aria-labelledby="sold-title" novalidate>
     <h2 id="sold-title">Mark as sold</h2>
@@ -394,13 +409,12 @@
     { id: 'import', label: 'Not listed' },
     { id: 'list', label: 'List' },
     { id: 'sold', label: 'Sold' },
-    { id: 'packed', label: 'Packed' },
     { id: 'shipped', label: 'Shipped' }
   ];
   var SOLD_AT = 2; // index of the Sold step: this step and later have a sale price
   // The bar at the top: "All" shows every item, each other step shows the items in that step.
-  var BAR = [{ id: 'all', label: 'All' }].concat(STAGES.slice(1));
-  var HOME_STEPS = ['list', 'sold', 'packed', 'shipped'];
+  var BAR = [{ id: 'all', label: 'All' }].concat(STAGES);
+  var HOME_STEPS = ['import', 'list', 'sold', 'shipped'];
   var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Vinted', 'Facebook Marketplace', 'Etsy', 'Other'];
   var VIEWS = ['home-view', 'list-view', 'add-view', 'places-view', 'place-view', 'summary-view'];
   var KEY = 'stockroom.items.v1';
@@ -409,7 +423,6 @@
     camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
     tag: '<path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1"/>',
     sold: '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
-    box: '<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4"/><path d="M12 11v10"/>',
     truck: '<path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
     inbox: '<path d="M4 13l2-8h12l2 8v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/>',
     back: '<path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/>',
@@ -421,9 +434,10 @@
     phone: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M10 7h4"/>',
     down: '<path d="M6 9l6 6 6-6"/>',
     pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
+    archive: '<path d="M3 5h18v4H3z"/><path d="M5 9v10h14V9"/><path d="M10 13h4"/>',
     trash: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/>'
   };
-  var STAGE_ICON = { import: 'inbox', list: 'tag', sold: 'sold', packed: 'box', shipped: 'truck' };
+  var STAGE_ICON = { import: 'inbox', list: 'tag', sold: 'sold', shipped: 'truck' };
 
   var items = load();
   var stage = 'all';       // which bar step is open
@@ -434,6 +448,7 @@
   var add = null;          // state of the add form
   var deleting = null;     // item waiting for delete confirmation
   var openRow = null;      // the swiped-open item row, if any
+  var grabbing = null;     // item waiting for the "did you grab it?" answer
   var selling = null;     // item being marked as sold
   var soldOn = null;       // "sold on" app in the sale sheet
 
@@ -470,6 +485,7 @@
     if (!Array.isArray(list)) return [];
     // Accept every older save format and fill in anything missing.
     return list.map(function (i) {
+      if (i.stage === 'packed') i.stage = 'sold'; // the Packed step was removed
       if (stageIndex(i.stage) === -1) {
         if (i.shipped || i.status === 'shipped') i.stage = 'shipped';
         else if (i.sold || i.status === 'sold') i.stage = 'sold';
@@ -616,6 +632,27 @@
     }
     closeDelete();
     refresh();
+  }
+
+  // ---------- "did you grab it?" before shipping ----------
+
+  function openGrab(item) {
+    grabbing = item;
+    $('grab-name').textContent = item.name;
+    $('grab-place').textContent = item.location;
+    $('grab-sheet').hidden = false;
+    $('grab-yes').focus();
+  }
+
+  function closeGrab() {
+    grabbing = null;
+    $('grab-sheet').hidden = true;
+  }
+
+  function confirmGrab() {
+    if (!grabbing) return;
+    var item = grabbing;
+    if (setStage(item, 'shipped')) closeGrab();
   }
 
   // ---------- sale sheet ----------
@@ -806,14 +843,20 @@
     var next = STAGES[stageIndex(item.stage) + 1];
     if (!next) return;
     if (next.id === 'sold') { openSoldSheet(item); return; }
+    if (next.id === 'shipped' && item.location) { openGrab(item, next.id); return; }
+    setStage(item, next.id);
+  }
+
+  function setStage(item, id) {
     var before = item.stage;
-    item.stage = next.id;
+    item.stage = id;
     if (!save()) {
       item.stage = before;
       alert('Could not save on this device. Is private browsing on?');
-      return;
+      return false;
     }
     refresh();
+    return true;
   }
 
   function metaLine(i, showPill) {
@@ -829,7 +872,7 @@
       line.appendChild(pill);
     }
     if (i.stage !== 'import' || i.platforms.length) {
-      if (i.stage === 'sold' || i.stage === 'packed' || i.stage === 'shipped') {
+      if (i.stage === 'sold' || i.stage === 'shipped') {
         part(el('span', '', (i.sold && i.sold.platform) || 'App not saved'));
       } else {
         part(el('span', i.platforms.length ? '' : 'dim', i.platforms.length ? i.platforms.join(', ') : 'No app yet'));
@@ -879,14 +922,15 @@
 
   // ---------- swipe: right to edit, left to delete ----------
 
-  var SWIPE = 96; // width of the revealed button, in pixels
+  var SWIPE_R = 96;   // swipe right reveals Edit
+  var SWIPE_L = 192;  // swipe left reveals Archive and Delete
 
   function setSwipe(wrap, row, state) {
     wrap.classList.toggle('edit-open', state === 'edit');
     wrap.classList.toggle('del-open', state === 'del');
     row.style.transition = 'transform .2s';
-    row.style.transform = state === 'edit' ? 'translateX(' + SWIPE + 'px)'
-      : state === 'del' ? 'translateX(-' + SWIPE + 'px)' : '';
+    row.style.transform = state === 'edit' ? 'translateX(' + SWIPE_R + 'px)'
+      : state === 'del' ? 'translateX(-' + SWIPE_L + 'px)' : '';
     wrap._state = state;
     if (state === 'closed') {
       if (openRow && openRow.wrap === wrap) openRow = null;
@@ -904,7 +948,7 @@
     var startX = 0, startY = 0, baseX = 0, pid = null;
     var tracking = false, decided = false, horizontal = false, lastX = 0, justSwiped = false;
 
-    function base() { return wrap._state === 'edit' ? SWIPE : wrap._state === 'del' ? -SWIPE : 0; }
+    function base() { return wrap._state === 'edit' ? SWIPE_R : wrap._state === 'del' ? -SWIPE_L : 0; }
 
     row.addEventListener('pointerdown', function (e) {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -930,7 +974,7 @@
         row.style.transition = 'none';
         wrap.classList.add('drag');
       }
-      lastX = Math.max(-SWIPE, Math.min(SWIPE, baseX + dx));
+      lastX = Math.max(-SWIPE_L, Math.min(SWIPE_R, baseX + dx));
       row.style.transform = 'translateX(' + lastX + 'px)';
     });
 
@@ -941,7 +985,7 @@
       if (!horizontal) return;
       justSwiped = true;
       setTimeout(function () { justSwiped = false; }, 60);
-      setSwipe(wrap, row, lastX > SWIPE / 2 ? 'edit' : lastX < -SWIPE / 2 ? 'del' : 'closed');
+      setSwipe(wrap, row, lastX > SWIPE_R / 2 ? 'edit' : lastX < -SWIPE_L / 2 ? 'del' : 'closed');
     }
     row.addEventListener('pointerup', finish);
     row.addEventListener('pointercancel', finish);
@@ -977,8 +1021,20 @@
     db.addEventListener('focus', function () { setSwipe(wrap, row, 'del'); });
     db.addEventListener('click', function () { closeOpen(); openDelete(item); });
 
+    // Archive is a placeholder for now: it shows up but does nothing yet.
+    var ab = el('button', 'act-arch');
+    ab.type = 'button';
+    ab.disabled = true;
+    ab.setAttribute('aria-label', 'Archive ' + item.name + ' (coming soon)');
+    ab.appendChild(icon('archive', 22));
+    ab.appendChild(el('span', '', 'Archive'));
+    ab.appendChild(el('small', '', 'Coming soon'));
+
+    var right = el('div', 'swipe-right');
+    right.appendChild(ab);
+    right.appendChild(db);
     actions.appendChild(eb);
-    actions.appendChild(db);
+    actions.appendChild(right);
     wrap.appendChild(actions);
     wrap.appendChild(row);
     attachSwipe(wrap, row);
@@ -1227,7 +1283,6 @@
     renderPlatformChips();
     updateSoldFields();
     showView('add-view');
-    $('name').focus();
   }
 
   // Open the form filled in with an existing item.
@@ -1252,7 +1307,6 @@
     renderEditSteps();
     updateSoldFields();
     showView('add-view');
-    $('name').focus();
   }
 
   function leaveAdd() {
@@ -1310,11 +1364,13 @@
 
     if (!name) { err.textContent = 'Enter what the item is.'; return false; }
     // An older item saved without a cost can stay that way.
+    // Leaving the cost blank just saves $0 (an older item saved without a cost stays without one).
     var noCostOk = add.editing && add.editing.cost === null && costText === '';
-    if (!noCostOk && (costText === '' || !isFinite(cost) || cost < 0)) {
-      err.textContent = 'Enter what you paid, e.g. 12.50 (0 if it was free).';
+    if (costText !== '' && (!isFinite(cost) || cost < 0)) {
+      err.textContent = 'Enter what you paid, e.g. 12.50.';
       return false;
     }
+    if (costText === '') cost = 0;
     if (sold && price === null) { err.textContent = 'Enter what it sold for, e.g. 40.00.'; return false; }
     if (sold && !add.soldOn) { err.textContent = 'Pick the app it sold on.'; return false; }
 
@@ -1387,7 +1443,6 @@
     var note = $('saved-note');
     note.textContent = 'Saved ' + name;
     note.hidden = false;
-    $('name').focus();
   }
 
   // ---------- start ----------
@@ -1437,6 +1492,8 @@
     add.loc = '';
     renderPlaceChips();
   });
+  $('grab-no').addEventListener('click', closeGrab);
+  $('grab-yes').addEventListener('click', confirmGrab);
   $('del-cancel').addEventListener('click', closeDelete);
   $('del-confirm').addEventListener('click', confirmDelete);
   $('photo-remove').addEventListener('click', function () { add.photo = null; renderPhotoTile(); });
