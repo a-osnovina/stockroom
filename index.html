@@ -153,6 +153,18 @@
   .plat-name { font-size: 17px; font-weight: 700; }
   .plat-profit { font-size: 17px; font-weight: 700; }
 
+  #grab-place { font-size: 20px; font-weight: 700; }
+  .place-actions { margin: 0 0 12px; }
+  .slot-row { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 12px; padding: 8px 12px 8px 8px; margin-bottom: 8px; min-height: 56px; }
+  .slot-row.empty { background: none; border: 1.5px dashed #2A3144; }
+  .slot-num { width: 40px; height: 40px; border-radius: 10px; background: var(--blue-bg); color: var(--blue-text); font-weight: 700; font-size: 17px; display: flex; align-items: center; justify-content: center; flex: none; }
+  .slot-row.empty .slot-num { background: var(--card); color: var(--muted); }
+  .slot-row .item-main { min-height: 0; }
+  .slot-row .dim { color: var(--muted); font-size: 15px; }
+  .chip.slot { min-width: 48px; padding: 0 10px; text-align: center; }
+  .chip.slot:disabled { opacity: 0.3; cursor: default; }
+  .chip.slot.on { border-color: var(--blue); }
+
   /* Add form */
   .add-top { position: relative; display: flex; align-items: center; justify-content: center; min-height: 48px; }
   .add-top .round { position: absolute; left: 0; top: 2px; }
@@ -301,6 +313,11 @@
       </div>
     </div>
 
+    <div class="group" id="slot-group" hidden>
+      <div class="label">Slot in <span id="slot-place"></span> (optional)</div>
+      <div class="chips" id="slot-chips"></div>
+    </div>
+
     <div class="group">
       <div class="label">Listed on (optional)</div>
       <div class="chips" id="platform-chips"></div>
@@ -341,6 +358,7 @@
     <h1 id="place-title"></h1>
   </header>
   <div class="meta" id="place-sub" style="margin-bottom:12px"></div>
+  <div class="place-actions"><button type="button" class="chip new" id="place-slots-btn" hidden></button></div>
   <div id="place-items"></div>
 </main>
 
@@ -374,12 +392,32 @@
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="grab-title">
     <h2 id="grab-title">Did you grab it?</h2>
     <div class="sheet-name" id="grab-name"></div>
-    <div class="meta">Take it out of <strong id="grab-place"></strong> before you ship it.</div>
+    <div class="meta">Take it out of:</div>
+    <div class="profit-box" style="margin-top:8px">
+      <span id="grab-place"></span>
+      <strong id="grab-slot"></strong>
+    </div>
     <div class="actions">
       <button type="button" class="secondary" id="grab-no">Not yet</button>
       <button type="button" class="primary" id="grab-yes">Yes, got it</button>
     </div>
   </div>
+</div>
+
+<div class="sheet-wrap" id="slots-sheet" hidden>
+  <form class="sheet" id="slots-form" role="dialog" aria-modal="true" aria-labelledby="slots-title" novalidate>
+    <h2 id="slots-title">Slots</h2>
+    <div class="sheet-name" id="slots-place"></div>
+    <div class="meta">How many spaces does it have? Each item gets a number from 1 to this, so you can find it in order.</div>
+    <label for="slots-count">Number of slots</label>
+    <input type="number" id="slots-count" placeholder="e.g. 20" inputmode="numeric" step="1" min="1" max="500">
+    <div class="error" id="slots-error" role="alert"></div>
+    <div class="actions">
+      <button type="button" class="secondary" id="slots-cancel">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+    <button type="button" class="link" id="slots-remove" hidden style="padding-left:0;margin-top:8px;color:var(--red)">Remove slots</button>
+  </form>
 </div>
 
 <div class="sheet-wrap" id="sold-sheet" hidden>
@@ -439,6 +477,9 @@
   };
   var STAGE_ICON = { import: 'inbox', list: 'tag', sold: 'sold', shipped: 'truck' };
 
+  var SLOTS_KEY = 'stockroom.places.v1'; // { placeName: number of slots }
+  var placeSlots = loadSlots();
+  var currentPlace = null; // place open in the place view
   var items = load();
   var stage = 'all';       // which bar step is open
   var query = '';
@@ -497,6 +538,7 @@
       if (typeof i.name !== 'string' || !i.name) i.name = 'Untitled item';
       if (!Array.isArray(i.platforms)) i.platforms = [];
       if (typeof i.location !== 'string') i.location = '';
+      if (!(Number.isInteger(i.slot) && i.slot > 0)) delete i.slot;
       if (typeof i.photo !== 'string') delete i.photo;
       if (!i.sold || typeof i.sold !== 'object' || !isFinite(Number(i.sold.price))) delete i.sold;
       return i;
@@ -595,6 +637,9 @@
     items.forEach(function (i) {
       if (i.location && !m.has(i.location.toLowerCase())) m.set(i.location.toLowerCase(), i.location);
     });
+    Object.keys(placeSlots).forEach(function (k) {
+      if (!m.has(k.toLowerCase())) m.set(k.toLowerCase(), k);
+    });
     return Array.from(m.values()).sort(byName);
   }
 
@@ -605,6 +650,52 @@
     var found = allLocations().filter(function (l) { return l.toLowerCase() === t.toLowerCase(); });
     return found.length ? found[0] : t;
   }
+
+  // ---------- slots: numbered spaces inside a place ----------
+
+  function loadSlots() {
+    var out = {};
+    try {
+      var o = JSON.parse(localStorage.getItem(SLOTS_KEY) || '{}');
+      Object.keys(o || {}).forEach(function (k) {
+        var n = Number(o[k]);
+        if (k && Number.isInteger(n) && n > 0) out[k] = n;
+      });
+    } catch (e) { /* start without slots */ }
+    return out;
+  }
+
+  function saveSlots() {
+    try { localStorage.setItem(SLOTS_KEY, JSON.stringify(placeSlots)); return true; } catch (e) { return false; }
+  }
+
+  function slotKey(name) {
+    var t = String(name || '').toLowerCase();
+    if (!t) return null;
+    var keys = Object.keys(placeSlots);
+    for (var i = 0; i < keys.length; i++) if (keys[i].toLowerCase() === t) return keys[i];
+    return null;
+  }
+
+  function slotCount(name) { var k = slotKey(name); return k ? placeSlots[k] : 0; }
+
+  // The item sitting in this slot right now (shipped items have left the place).
+  function slotTaken(name, n, except) {
+    var t = String(name || '').toLowerCase();
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (it !== except && it.stage !== 'shipped' && it.slot === n && it.location.toLowerCase() === t) return it;
+    }
+    return null;
+  }
+
+  function firstFreeSlot(name, except) {
+    var c = slotCount(name);
+    for (var n = 1; n <= c; n++) if (!slotTaken(name, n, except)) return n;
+    return null;
+  }
+
+  function where(i) { return i.location + (i.slot ? ' #' + i.slot : ''); }
 
   // ---------- delete ----------
 
@@ -634,12 +725,78 @@
     refresh();
   }
 
+  // ---------- slots sheet ----------
+
+  var removeArmed = false;
+
+  function openSlots() {
+    if (!currentPlace) return;
+    var c = slotCount(currentPlace);
+    $('slots-place').textContent = currentPlace;
+    $('slots-count').value = c ? String(c) : '';
+    $('slots-error').textContent = '';
+    removeArmed = false;
+    $('slots-remove').hidden = !c;
+    $('slots-remove').textContent = 'Remove slots';
+    $('slots-sheet').hidden = false;
+  }
+
+  function closeSlots() { $('slots-sheet').hidden = true; }
+
+  function placeItems(name) {
+    var t = name.toLowerCase();
+    return items.filter(function (i) { return i.stage !== 'shipped' && i.location.toLowerCase() === t; });
+  }
+
+  function writeSlots(next, clearItems) {
+    var old = JSON.stringify(placeSlots);
+    var oldSlots = items.map(function (i) { return i.slot; });
+    var key = slotKey(currentPlace) || currentPlace;
+    if (next) placeSlots[key] = next; else delete placeSlots[key];
+    if (clearItems) placeItems(currentPlace).forEach(function (i) { delete i.slot; });
+    if (!saveSlots() || (clearItems && !save())) {
+      placeSlots = JSON.parse(old);
+      items.forEach(function (i, k) { if (oldSlots[k] === undefined) delete i.slot; else i.slot = oldSlots[k]; });
+      $('slots-error').textContent = 'Could not save on this device. Is private browsing on?';
+      return false;
+    }
+    return true;
+  }
+
+  function confirmSlots(e) {
+    e.preventDefault();
+    var err = $('slots-error');
+    var raw = $('slots-count').value.trim();
+    var n = Number(raw);
+    if (raw === '' || !Number.isInteger(n) || n < 1 || n > 500) { err.textContent = 'Enter a whole number from 1 to 500.'; return; }
+    var over = placeItems(currentPlace).filter(function (i) { return i.slot && i.slot > n; });
+    if (over.length) {
+      err.textContent = 'Slot ' + over[0].slot + ' is used by ' + over[0].name + '. Pick a bigger number, or move that item first.';
+      return;
+    }
+    if (!writeSlots(n, false)) return;
+    closeSlots();
+    showPlace(currentPlace);
+  }
+
+  function removeSlots() {
+    if (!removeArmed) {
+      removeArmed = true;
+      $('slots-remove').textContent = 'Tap again: this clears the item numbers';
+      return;
+    }
+    if (!writeSlots(0, true)) return;
+    closeSlots();
+    showPlace(currentPlace);
+  }
+
   // ---------- "did you grab it?" before shipping ----------
 
   function openGrab(item) {
     grabbing = item;
     $('grab-name').textContent = item.name;
     $('grab-place').textContent = item.location;
+    $('grab-slot').textContent = item.slot ? 'Slot ' + item.slot : '';
     $('grab-sheet').hidden = false;
     $('grab-yes').focus();
   }
@@ -879,7 +1036,7 @@
       }
     }
     if (i.stage !== 'shipped') {
-      part(el('span', i.location ? 'loc' : 'dim', i.location ? i.location : 'No place'));
+      part(el('span', i.location ? 'loc' : 'dim', i.location ? where(i) : 'No place'));
     }
     return line;
   }
@@ -1091,15 +1248,21 @@
       if (!map.has(i.location)) map.set(i.location, []);
       map.get(i.location).push(i);
     });
+    // A place with slots stays listed even when it is empty.
+    Object.keys(placeSlots).forEach(function (k) {
+      var has = false;
+      map.forEach(function (_, n) { if (n.toLowerCase() === k.toLowerCase()) has = true; });
+      if (!has) map.set(k, []);
+    });
     return { names: Array.from(map.keys()).sort(byName), map: map, none: none };
   }
 
-  function placeRow(name, count, onClick) {
+  function placeRow(name, count, onClick, extra) {
     var b = el('button', 'place-row');
     b.type = 'button';
     var left = el('span');
     left.appendChild(el('div', 'place-name', name));
-    left.appendChild(el('div', 'meta', countText(count)));
+    left.appendChild(el('div', 'meta', countText(count) + (extra || '')));
     b.appendChild(left);
     b.appendChild(el('span', 'chev', '›'));
     b.addEventListener('click', onClick);
@@ -1115,7 +1278,8 @@
       return;
     }
     g.names.forEach(function (n) {
-      box.appendChild(placeRow(n, g.map.get(n).length, function () { showPlace(n); }));
+      var sc = slotCount(n);
+      box.appendChild(placeRow(n, g.map.get(n).length, function () { showPlace(n); }, sc ? ' · ' + sc + (sc === 1 ? ' slot' : ' slots') : ''));
     });
     if (g.none.length) {
       box.appendChild(placeRow('No place', g.none.length, function () { showPlace(''); }));
@@ -1130,14 +1294,35 @@
   function showPlace(name) {
     var g = groupByPlace();
     var here = name === '' ? g.none : (g.map.get(name) || []);
+    currentPlace = name;
+    var sc = name === '' ? 0 : slotCount(name);
     $('place-title').textContent = name === '' ? 'No place' : name;
-    $('place-sub').textContent = countText(here.length);
+    $('place-sub').textContent = countText(here.length) + (sc ? ' · ' + sc + (sc === 1 ? ' slot' : ' slots') + ', ' + (sc - here.filter(function (i) { return i.slot && i.slot <= sc; }).length) + ' free' : '');
+    var sb = $('place-slots-btn');
+    sb.hidden = name === '';
+    sb.textContent = sc ? 'Change slots' : '+ Add slots';
     var box = $('place-items');
     box.replaceChildren();
-    if (here.length === 0) {
-      box.appendChild(el('div', 'empty', 'Nothing here right now.'));
+    if (sc) {
+      for (var n = 1; n <= sc; n++) {
+        var occ = here.filter(function (i) { return i.slot === n; })[0];
+        var row = el('div', 'slot-row' + (occ ? '' : ' empty'));
+        row.appendChild(el('div', 'slot-num', String(n)));
+        if (occ) {
+          var main = el('div', 'item-main');
+          main.appendChild(el('div', 'item-name', occ.name));
+          main.appendChild(metaLine(occ, true));
+          row.appendChild(main);
+        } else {
+          row.appendChild(el('div', 'dim', 'Empty'));
+        }
+        box.appendChild(row);
+      }
     }
-    here.forEach(function (i) {
+    var loose = here.filter(function (i) { return !(sc && i.slot && i.slot <= sc); });
+    if (sc && loose.length) box.appendChild(el('div', 'section-label', 'No slot yet'));
+    if (here.length === 0 && !sc) box.appendChild(el('div', 'empty', 'Nothing here right now.'));
+    loose.forEach(function (i) {
       box.appendChild(itemRow(i, { pill: true, readOnly: true }));
     });
     showView('place-view');
@@ -1207,6 +1392,7 @@
       var on = add.loc !== '' && add.loc.toLowerCase() === l.toLowerCase();
       box.appendChild(chip(l, on, function () {
         add.loc = on ? '' : l;
+        add.slot = add.loc ? firstFreeSlot(add.loc, add.editing) : null; // pick the lowest free number
         $('new-place').value = '';
         renderPlaceChips();
       }));
@@ -1217,6 +1403,25 @@
       $('new-place').focus();
     });
     box.appendChild(np);
+    renderSlotChips();
+  }
+
+  // Numbered slots of the chosen place, taken ones greyed out.
+  function renderSlotChips() {
+    var c = add.loc ? slotCount(add.loc) : 0;
+    $('slot-group').hidden = !c;
+    var box = $('slot-chips');
+    box.replaceChildren();
+    if (!c) { add.slot = null; return; }
+    $('slot-place').textContent = add.loc;
+    for (var n = 1; n <= c; n++) (function (n) {
+      var taken = slotTaken(add.loc, n, add.editing);
+      var b = chip(String(n), add.slot === n, function () { add.slot = add.slot === n ? null : n; renderSlotChips(); });
+      b.classList.add('slot');
+      if (taken) { b.disabled = true; b.title = 'Taken by ' + taken.name; b.setAttribute('aria-label', 'Slot ' + n + ', taken by ' + taken.name); }
+      else b.setAttribute('aria-label', 'Slot ' + n);
+      box.appendChild(b);
+    })(n);
   }
 
   function renderPlatformChips() {
@@ -1265,7 +1470,7 @@
   function showAdd(stageId) {
     addOrigin = currentView === 'add-view' ? addOrigin : currentView;
     var s = stageId || (currentView === 'list-view' && stage !== 'all' ? stage : 'import');
-    add = { stage: s, selected: [], loc: '', newPlace: false, photo: null, soldOn: null };
+    add = { stage: s, selected: [], loc: '', slot: null, newPlace: false, photo: null, soldOn: null };
     setFormMode(false);
     $('add-stage').value = s;
     updateStageText();
@@ -1289,7 +1494,7 @@
   function showEdit(item) {
     addOrigin = currentView === 'add-view' ? addOrigin : currentView;
     add = {
-      editing: item, stage: item.stage, selected: item.platforms.slice(), loc: item.location || '',
+      editing: item, stage: item.stage, selected: item.platforms.slice(), loc: item.location || '', slot: item.slot || null,
       newPlace: false, photo: item.photo || null, soldOn: item.sold ? (item.sold.platform || null) : null
     };
     setFormMode(true);
@@ -1375,6 +1580,12 @@
     if (sold && !add.soldOn) { err.textContent = 'Pick the app it sold on.'; return false; }
 
     var typed = $('new-place').value.trim();
+    var loc = canonLocation(typed || add.loc);
+    var slot = (loc && add.slot && add.slot <= slotCount(loc)) ? add.slot : null;
+    if (slot && add.stage !== 'shipped') {
+      var other = slotTaken(loc, slot, add.editing);
+      if (other) { err.textContent = 'Slot ' + slot + ' in ' + loc + ' is taken by ' + other.name + '.'; return false; }
+    }
 
     if (add.editing) {
       var it = add.editing;
@@ -1383,7 +1594,8 @@
       it.name = name;
       it.cost = noCostOk ? null : cost;
       it.platforms = add.selected.slice();
-      it.location = canonLocation(typed || add.loc);
+      it.location = loc;
+      if (slot) it.slot = slot; else delete it.slot;
       it.stage = add.stage;
       if (add.photo) it.photo = add.photo; else delete it.photo;
       if (sold) {
@@ -1405,11 +1617,12 @@
       name: name,
       cost: cost,
       platforms: add.selected.slice(),
-      location: canonLocation(typed || add.loc),
+      location: loc,
       stage: add.stage,
       createdAt: Date.now()
     };
     if (add.photo) item.photo = add.photo;
+    if (slot) item.slot = slot;
     if (sold) item.sold = { price: price, platform: add.soldOn, fees: 0, shipping: 0, date: Date.now() };
     items.unshift(item);
     if (!save()) {
@@ -1437,6 +1650,7 @@
     // Show a place typed as new as a normal choice from now on.
     var typed = canonLocation($('new-place').value);
     if (typed) { add.loc = typed; $('new-place').value = ''; add.newPlace = false; $('new-place-row').hidden = true; }
+    add.slot = add.loc ? firstFreeSlot(add.loc) : null;
     renderPhotoTile();
     renderPlaceChips();
     updateSoldFields();
@@ -1490,8 +1704,13 @@
   $('photo-input').addEventListener('change', onPhotoPicked);
   $('new-place').addEventListener('input', function () {
     add.loc = '';
+    add.slot = null;
     renderPlaceChips();
   });
+  $('place-slots-btn').addEventListener('click', openSlots);
+  $('slots-form').addEventListener('submit', confirmSlots);
+  $('slots-cancel').addEventListener('click', closeSlots);
+  $('slots-remove').addEventListener('click', removeSlots);
   $('grab-no').addEventListener('click', closeGrab);
   $('grab-yes').addEventListener('click', confirmGrab);
   $('del-cancel').addEventListener('click', closeDelete);
