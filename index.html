@@ -692,7 +692,7 @@
 (function () {
   var STAGES = [
     { id: 'import', label: 'Unlisted' },
-    { id: 'list', label: 'List' },
+    { id: 'list', label: 'Listed', verb: 'List' },
     { id: 'sold', label: 'Sold' },
     { id: 'shipped', label: 'Packed' }
   ];
@@ -1664,9 +1664,9 @@
     if (next && !opts.readOnly) {
       var nb = el('button', 'ship-btn s-' + next.id);
       nb.type = 'button';
-      nb.setAttribute('aria-label', 'Move ' + i.name + ' to ' + next.label);
+      nb.setAttribute('aria-label', 'Move ' + i.name + ' to ' + (next.verb || next.label));
       nb.appendChild(icon(STAGE_ICON[next.id], 18));
-      nb.appendChild(document.createTextNode(next.label));
+      nb.appendChild(document.createTextNode(next.verb || next.label));
       nb.appendChild(icon('arrow', 16));
       nb.addEventListener('click', function () { moveForward(i); });
       row.appendChild(nb);
