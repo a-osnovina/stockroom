@@ -132,7 +132,7 @@
     clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
   }
   .step:last-child { border-radius: 0 10px 10px 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%); }
-  .step .count { font-size: 17px; line-height: 1; color: var(--fg); }
+  .step .count { font-size: 17px; line-height: 1; color: var(--fg); max-width: 100%; padding: 0 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .step.on { background: var(--solid); color: #0B1220; }
   .step.on .count { color: #0B1220; }
 
@@ -722,6 +722,14 @@
     var r = Math.round(n * 100) / 100;
     return (r < 0 ? '-' : '+') + '$' + Math.abs(r).toFixed(2);
   }
+  // Short form for big counts so they always fit: 999, 1.2k, 12k, 1.2M.
+  function compact(n) {
+    if (n < 1000) return String(n);
+    if (n < 10000) return (Math.floor(n / 100) / 10) + 'k';
+    if (n < 1000000) return Math.floor(n / 1000) + 'k';
+    if (n < 10000000) return (Math.floor(n / 100000) / 10) + 'M';
+    return Math.floor(n / 1000000) + 'M';
+  }
   function countText(n) { return n + (n === 1 ? ' item' : ' items'); }
   function parseMoney(text) {
     var t = String(text).trim();
@@ -1309,7 +1317,7 @@
       var count = s.id === 'all' ? items.length : items.filter(function (i) { return i.stage === s.id; }).length;
       var b = el('button', 'step s-' + s.id + (idx === current ? ' on' : ''));
       b.type = 'button';
-      b.appendChild(el('span', 'count', String(count)));
+      b.appendChild(el('span', 'count', compact(count)));
       b.appendChild(el('span', '', s.label));
       if (idx === current) b.setAttribute('aria-current', 'step');
       b.addEventListener('click', function () {
@@ -1601,7 +1609,7 @@
     var arch = items.filter(function (i) { return i.stage === 'import' && i.archived; }).length;
     box.replaceChildren();
     [['draft', 'Draft', draft], ['archive', 'Archive', arch]].forEach(function (t) {
-      var b = el('button', t[0] === subTab ? 'on' : '', t[1] + ' · ' + t[2]);
+      var b = el('button', t[0] === subTab ? 'on' : '', t[1] + ' · ' + compact(t[2]));
       b.type = 'button';
       b.setAttribute('aria-pressed', t[0] === subTab ? 'true' : 'false');
       b.addEventListener('click', function () { subTab = t[0]; renderList(); });
