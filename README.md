@@ -20,14 +20,13 @@ and a round **+** button to add an item from anywhere.
 - Swipe an item right to **Edit** it, or left to **Delete** it. Delete asks you to confirm first. An **Archive** button sits next to Delete; it is a placeholder and does nothing yet.
 - Search for an item by its name or its place (the search boxes have a small x to clear them in one tap; typing "clos" finds "Closed sign" and everything in Closet), and filter by app, inside a step.
 
-**Add item**
-- Add a photo (optional), then the item name and what you paid. If you leave the cost blank it saves as $0, with no warning. The form no longer pops the keyboard open by itself, so the screen does not jump when it opens.
-- Pick a place from the places you already use, or add a new one.
-- Pick the apps the item is listed on.
-- The "Add to" step at the top decides where the item starts. Adding from Home or All starts it as "Not listed".
-- **Save and add another** keeps the place and apps and clears the name, cost and photo, which helps when you add a batch.
-- "Fill from a screenshot" is shown as coming soon. It does not work yet.
-- Editing an item uses the same form, filled in. You can also change its step there. If you move an item to Sold or Shipped, it asks for the sale price and the app it sold on.
+**Add item** (one page; the same page edits an item)
+- Three blue tiles at the top for **Barcode scan**, **Screenshot** and **Bulk upload**. They are shown as coming soon and do not work yet.
+- A photo (optional) and the item name, with its step shown underneath.
+- Detail rows with the label on the left and the value on the right: **What you paid** (blank saves as $0, no warning), **Step**, **Place** and **Slot** (your phone's own picker, so long lists stay short; the lowest free slot is picked for you and taken ones are greyed out). Choose "+ New place..." in Place to type a new one.
+- **Listed on** apps as buttons. Choosing the Sold step adds **Sold for** and **Sold on**.
+- A summary under the details shows Paid, Sold for and Profit as you type.
+- **Save and add another** keeps the place and apps and clears the name, cost and photo, which helps when you add a batch. Adding from Home or All starts an item as "Not listed".
 
 **Places**: tap **+ New place** (top right) to create a storage place with a name and, if you like, a number of slots, before putting anything in it. Every place with how many items are in it. Tap a place to see its items. Tap **+ Add slots** inside a place (like Closet) and enter how many spaces it has. The place then shows slots 1, 2, 3... in order, with the item in each one or "Empty". When you add or edit an item in that place, pick its slot number (the lowest free one is chosen for you; taken ones are greyed out). Items show as "Closet #4", and the "Did you grab it?" window shows the place and "Slot 4". Slot counts can be changed or removed later. In **Edit slots** you can also choose how slots are named: numbers (1, 2, 3), letters (A, B, C), or a code with your own prefix (CL-001), and **Name slots one by one** lets you give any slot your own name, like "Top shelf". The name shows everywhere the slot does, including the shipping pop-up. Tap an empty slot to put an item already in that place into it, or add a new item straight into that slot. Tap a filled slot to edit its item. The slots button and a search button sit at the top right of the place, and the search finds items in that place. Items that have shipped are not counted.
 

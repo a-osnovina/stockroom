@@ -182,16 +182,47 @@
   .chip.slot.on { border-color: var(--blue); }
 
   /* Add form */
+  .add-top h2 { margin: 0; font-size: 18px; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+  .tile {
+    width: 100%; min-width: 0; min-height: 80px; border: 0; border-radius: 12px; background: var(--card); color: var(--blue-text);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    font-size: 13px; font-weight: 700; padding: 6px;
+  }
+  .tile:disabled { opacity: 0.8; cursor: default; }
+  .tile small { font-size: 10px; font-weight: 500; color: var(--muted); }
+  .add-head { display: flex; gap: 14px; align-items: center; margin-top: 20px; }
+  .add-head .photo-tile { width: 84px; min-height: 84px; height: 84px; font-size: 12px; gap: 4px; border-radius: 12px; }
+  .add-head-text { flex: 1; min-width: 0; }
+  .big-name { font-size: 22px !important; font-weight: 700; background: none !important; border-radius: 0 !important; border-bottom: 1.5px solid #2A3144 !important; padding: 0 0 4px !important; min-height: 44px; }
+  .add-sub { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .details { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 4px; }
+  .drow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; margin-top: 10px; }
+  .drow > label { margin: 0; font-size: 16px; color: var(--text); flex: none; }
+  .vbox {
+    position: relative; flex: 0 1 200px; min-width: 130px; display: flex; align-items: center; justify-content: flex-end;
+    border: 1.5px solid #3A4460; border-radius: 10px; min-height: 44px; padding: 0 12px; color: var(--blue-text);
+  }
+  .vbox:focus-within { border-color: var(--blue); }
+  .vbox .pre { color: var(--muted); margin-right: 4px; }
+  .vbox input[type=number], .vbox input[type=text] {
+    background: none; text-align: right; min-height: 40px; padding: 0; border-radius: 0; color: var(--blue-text); font-weight: 500;
+  }
+  .vbox input:focus-visible, .vbox select:focus-visible { outline: none; }
+  .vbox select {
+    width: 100%; background: none; border: 0; color: var(--blue-text); font-size: 16px; font-family: inherit; font-weight: 500;
+    text-align: right; text-align-last: right; -webkit-appearance: none; appearance: none; padding: 0 22px 0 0; min-height: 40px;
+  }
+  .vbox select option { background: #1B2030; color: #F1F3F8; }
+  .vbox.sel svg { position: absolute; right: 10px; pointer-events: none; color: var(--muted); }
+  .dgroup { margin-top: 16px; }
+  .sumbar { display: flex; gap: 8px; background: var(--card); border-radius: 12px; padding: 14px 8px; margin-top: 20px; }
+  .sumbar > div { flex: 1; text-align: center; min-width: 0; }
+  .sumbar b { display: block; font-size: 20px; }
+  .sumbar span { font-size: 12px; color: var(--muted); }
+  .sumbar .good { color: var(--green); } .sumbar .neg { color: var(--red); }
   .add-top { position: relative; display: flex; align-items: center; justify-content: center; min-height: 48px; }
   .add-top .round { position: absolute; left: 0; top: 2px; }
-  .stage-pick { position: relative; display: flex; align-items: center; gap: 6px; color: var(--blue); font-size: 18px; font-weight: 700; margin: 0; }
-  .stage-pick { min-height: 44px; }
-  .stage-pick.edit svg, .stage-pick.edit select { display: none; }
-  .stage-pick select {
-    position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px;
-    -webkit-appearance: none; appearance: none; border: 0; background: none;
-  }
-  .stage-pick:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 8px; }
   button:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
   .add-main { display: flex; gap: 12px; align-items: stretch; margin-top: 16px; }
   .photo-tile {
@@ -304,54 +335,68 @@
 <main id="add-view" hidden>
   <div class="add-top">
     <button class="round" id="add-back" type="button" aria-label="Back"></button>
-    <label class="stage-pick" for="add-stage"><span id="add-stage-text">Add to</span><select id="add-stage"></select></label>
+    <h2 id="add-title">Add item</h2>
   </div>
   <form id="add-form" novalidate>
-    <div class="add-main">
+    <div class="tiles" id="tiles">
+      <button type="button" class="tile" disabled id="tile-barcode"><span class="ti"></span>Barcode scan<small>Coming soon</small></button>
+      <button type="button" class="tile" disabled id="tile-shot"><span class="ti"></span>Screenshot<small>Coming soon</small></button>
+      <button type="button" class="tile" disabled id="tile-bulk"><span class="ti"></span>Bulk upload<small>Coming soon</small></button>
+    </div>
+
+    <div class="add-head">
       <button type="button" class="photo-tile" id="photo-tile" aria-label="Add a photo"></button>
       <input type="file" id="photo-input" accept="image/*" hidden>
-      <div class="fields">
-        <label for="name">Item name</label>
-        <input type="text" id="name" placeholder="e.g. Levi's 501 jeans" autocomplete="off">
-        <label for="cost">What you paid</label>
-        <input type="number" id="cost" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
+      <div class="add-head-text">
+        <label for="name" style="position:absolute;left:-9999px">Item name</label>
+        <input type="text" id="name" class="big-name" placeholder="Item name" autocomplete="off">
+        <div class="add-sub" id="add-sub"></div>
       </div>
     </div>
-
     <button type="button" class="link" id="photo-remove" hidden style="padding-left:0">Remove photo</button>
 
-    <div class="group">
-      <div class="label">Place (optional)</div>
-      <div class="chips" id="place-chips"></div>
-      <div id="new-place-row" hidden style="margin-top:8px">
-        <label for="new-place" style="position:absolute;left:-9999px">New place name</label>
-        <input type="text" id="new-place" placeholder="Name the new place, e.g. Garage shelf" autocomplete="off">
+    <div class="details">
+      <div class="drow">
+        <label for="cost">What you paid</label>
+        <div class="vbox"><span class="pre">$</span><input type="number" id="cost" placeholder="0.00" inputmode="decimal" step="0.01" min="0"></div>
+      </div>
+      <div class="drow">
+        <label for="add-stage">Step</label>
+        <div class="vbox sel"><select id="add-stage"></select></div>
+      </div>
+      <div class="drow">
+        <label for="add-place">Place</label>
+        <div class="vbox sel"><select id="add-place"></select></div>
+      </div>
+      <div class="drow" id="new-place-row" hidden>
+        <label for="new-place">New place</label>
+        <div class="vbox"><input type="text" id="new-place" placeholder="e.g. Garage shelf" autocomplete="off"></div>
+      </div>
+      <div class="drow" id="slot-group" hidden>
+        <label for="add-slot">Slot</label>
+        <div class="vbox sel"><select id="add-slot"></select></div>
+      </div>
+      <div class="dgroup">
+        <div class="label">Listed on</div>
+        <div class="chips" id="platform-chips"></div>
+      </div>
+      <div id="add-sold" hidden>
+        <div class="drow">
+          <label for="add-price">Sold for</label>
+          <div class="vbox"><span class="pre">$</span><input type="number" id="add-price" placeholder="0.00" inputmode="decimal" step="0.01" min="0"></div>
+        </div>
+        <div class="dgroup">
+          <div class="label">Sold on</div>
+          <div class="chips" id="add-sold-chips"></div>
+        </div>
       </div>
     </div>
 
-    <div class="group" id="slot-group" hidden>
-      <div class="label">Slot in <span id="slot-place"></span> (optional)</div>
-      <div class="chips" id="slot-chips"></div>
+    <div class="sumbar" aria-live="polite">
+      <div><b id="sum-paid">$0.00</b><span>Paid</span></div>
+      <div><b id="sum-sold">&mdash;</b><span>Sold for</span></div>
+      <div><b id="sum-profit">&mdash;</b><span>Profit</span></div>
     </div>
-
-    <div class="group">
-      <div class="label">Listed on (optional)</div>
-      <div class="chips" id="platform-chips"></div>
-    </div>
-
-    <div id="edit-step" class="group" hidden>
-      <div class="label">Step</div>
-      <div class="chips" id="edit-step-chips"></div>
-    </div>
-
-    <div id="add-sold" class="group" hidden>
-      <label for="add-price">Sold for $</label>
-      <input type="number" id="add-price" placeholder="0.00" inputmode="decimal" step="0.01" min="0">
-      <div class="label" style="margin-top:16px">Sold on</div>
-      <div class="chips" id="add-sold-chips"></div>
-    </div>
-
-    <button type="button" class="soon" disabled id="shot-btn"></button>
 
     <div class="note" id="saved-note" role="status" hidden></div>
     <div class="error" id="error" role="alert"></div>
@@ -1688,43 +1733,65 @@
     $('photo-remove').hidden = !add.photo;
   }
 
+  // Place and slot are pick lists (a phone shows its own picker, so long lists stay short).
   function renderPlaceChips() {
-    var box = $('place-chips');
-    box.replaceChildren();
+    var sel = $('add-place');
+    sel.replaceChildren();
+    function opt(value, text) {
+      var o = document.createElement('option');
+      o.value = value; o.textContent = text; sel.appendChild(o);
+    }
+    opt('', 'No place');
+    var current = '';
     allLocations().forEach(function (l) {
-      var on = add.loc !== '' && add.loc.toLowerCase() === l.toLowerCase();
-      box.appendChild(chip(l, on, function () {
-        add.loc = on ? '' : l;
-        add.slot = add.loc ? firstFreeSlot(add.loc, add.editing) : null; // pick the lowest free number
-        $('new-place').value = '';
-        renderPlaceChips();
-      }));
+      opt(l, l);
+      if (add.loc && add.loc.toLowerCase() === l.toLowerCase()) current = l;
     });
-    var np = button('chip new', '+ New place', function () {
-      add.newPlace = true;
-      $('new-place-row').hidden = false;
-      $('new-place').focus();
-    });
-    box.appendChild(np);
+    opt('__new', '+ New place…');
+    sel.value = add.newPlace ? '__new' : current;
+    $('new-place-row').hidden = !add.newPlace;
     renderSlotChips();
   }
 
-  // Numbered slots of the chosen place, taken ones greyed out.
+  // Numbered slots of the chosen place; taken ones can't be picked.
   function renderSlotChips() {
-    var c = add.loc ? slotCount(add.loc) : 0;
+    var c = add.loc && !add.newPlace ? slotCount(add.loc) : 0;
     $('slot-group').hidden = !c;
-    var box = $('slot-chips');
-    box.replaceChildren();
+    var sel = $('add-slot');
+    sel.replaceChildren();
     if (!c) { add.slot = null; return; }
-    $('slot-place').textContent = add.loc;
-    for (var n = 1; n <= c; n++) (function (n) {
+    var none = document.createElement('option');
+    none.value = ''; none.textContent = 'No slot';
+    sel.appendChild(none);
+    for (var n = 1; n <= c; n++) {
       var taken = slotTaken(add.loc, n, add.editing);
-      var b = chip(slotLabel(add.loc, n), add.slot === n, function () { add.slot = add.slot === n ? null : n; renderSlotChips(); });
-      b.classList.add('slot');
-      if (taken) { b.disabled = true; b.title = 'Taken by ' + taken.name; b.setAttribute('aria-label', slotDisplay(add.loc, n) + ', taken by ' + taken.name); }
-      else b.setAttribute('aria-label', slotDisplay(add.loc, n));
-      box.appendChild(b);
-    })(n);
+      var o = document.createElement('option');
+      o.value = String(n);
+      o.textContent = slotDisplay(add.loc, n) + (taken ? ' (taken: ' + taken.name + ')' : '');
+      if (taken) o.disabled = true;
+      sel.appendChild(o);
+    }
+    sel.value = add.slot ? String(add.slot) : '';
+  }
+
+  // Paid, sold for and profit under the details, as you type.
+  function updateSummary() {
+    var costText = $('cost').value.trim();
+    var paid = costText === '' ? 0 : Number(costText);
+    var paidOk = isFinite(paid) && paid >= 0;
+    $('sum-paid').textContent = paidOk ? money(paid) : '—';
+    var sold = stageIndex(add.stage) >= SOLD_AT;
+    var price = parseMoney($('add-price').value);
+    $('sum-sold').textContent = sold && price !== null ? money(price) : '—';
+    var pe = $('sum-profit');
+    pe.className = '';
+    if (sold && price !== null && paidOk) {
+      var p = price - paid;
+      pe.className = p < 0 ? 'neg' : 'good';
+      pe.textContent = signedText(p);
+    } else {
+      pe.textContent = '—';
+    }
   }
 
   function renderPlatformChips() {
@@ -1740,25 +1807,13 @@
   }
 
   function updateStageText() {
-    $('add-stage-text').textContent = add.editing ? 'Edit item' : 'Add to ' + stageLabel(add.stage);
-  }
-
-  function renderEditSteps() {
-    var box = $('edit-step-chips');
-    box.replaceChildren();
-    STAGES.forEach(function (s) {
-      box.appendChild(chip(s.label, add.stage === s.id, function () {
-        add.stage = s.id;
-        renderEditSteps();
-        updateSoldFields();
-      }));
-    });
+    $('add-title').textContent = add.editing ? 'Edit item' : 'Add item';
+    $('add-sub').textContent = stageLabel(add.stage);
+    $('add-stage').value = add.stage;
   }
 
   // The same form is used to add a new item and to edit an existing one.
   function setFormMode(editing) {
-    $('add-stage').parentNode.classList.toggle('edit', editing);
-    $('edit-step').hidden = !editing;
     $('save-btn').textContent = editing ? 'Save changes' : 'Save';
     $('again-btn').hidden = editing;
   }
@@ -1767,6 +1822,7 @@
     var sold = stageIndex(add.stage) >= SOLD_AT;
     $('add-sold').hidden = !sold;
     if (sold) renderPickChips($('add-sold-chips'), PLATFORMS, add.soldOn, function (p) { add.soldOn = p; });
+    updateSummary();
   }
 
   // Open the form. A new item goes in the given step (or "Not listed" when none is given).
@@ -1785,7 +1841,6 @@
     $('saved-note').hidden = true;
     var noPlaces = allLocations().length === 0;
     add.newPlace = noPlaces;
-    $('new-place-row').hidden = !noPlaces;
     renderPhotoTile();
     renderPlaceChips();
     renderPlatformChips();
@@ -1805,14 +1860,12 @@
     $('name').value = item.name;
     $('cost').value = item.cost === null ? '' : String(item.cost);
     $('new-place').value = '';
-    $('new-place-row').hidden = true;
     $('add-price').value = item.sold ? String(item.sold.price) : '';
     $('error').textContent = '';
     $('saved-note').hidden = true;
     renderPhotoTile();
     renderPlaceChips();
     renderPlatformChips();
-    renderEditSteps();
     updateSoldFields();
     showView('add-view');
   }
@@ -1978,9 +2031,12 @@
       b.appendChild(el('span', '', t[2]));
     });
     $('fab').appendChild(icon('plus', 32, 2.4));
-    $('shot-btn').appendChild(icon('phone', 20));
-    $('shot-btn').appendChild(document.createTextNode('Fill from a screenshot · coming soon'));
-    $('add-stage').parentNode.appendChild(icon('down', 16, 2.4));
+    [['tile-barcode', 'bars'], ['tile-shot', 'phone'], ['tile-bulk', 'inbox']].forEach(function (t) {
+      $(t[0]).querySelector('.ti').appendChild(icon(t[1], 24));
+    });
+    ['add-stage', 'add-place', 'add-slot'].forEach(function (id) {
+      $(id).parentNode.appendChild(icon('down', 16, 2.4));
+    });
     STAGES.forEach(function (s) {
       var o = document.createElement('option');
       o.value = s.id;
@@ -2004,15 +2060,25 @@
     updateStageText();
     updateSoldFields();
   });
+  $('add-place').addEventListener('change', function (e) {
+    var v = e.target.value;
+    $('new-place').value = '';
+    add.newPlace = v === '__new';
+    add.loc = add.newPlace ? '' : v;
+    add.slot = add.loc ? firstFreeSlot(add.loc, add.editing) : null; // pick the lowest free slot
+    renderPlaceChips();
+  });
+  $('add-slot').addEventListener('change', function (e) {
+    add.slot = e.target.value ? Number(e.target.value) : null;
+  });
   ['name', 'cost', 'add-price'].forEach(function (id) {
-    $(id).addEventListener('input', function () { $('error').textContent = ''; });
+    $(id).addEventListener('input', function () { $('error').textContent = ''; updateSummary(); });
   });
   $('photo-tile').addEventListener('click', function () { $('photo-input').click(); });
   $('photo-input').addEventListener('change', onPhotoPicked);
   $('new-place').addEventListener('input', function () {
     add.loc = '';
     add.slot = null;
-    renderPlaceChips();
   });
   $('new-place-btn').addEventListener('click', openNewPlace);
   $('np-form').addEventListener('submit', confirmNewPlace);
