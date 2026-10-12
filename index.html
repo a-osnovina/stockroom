@@ -383,7 +383,7 @@
   </div>
   <form id="add-form" novalidate>
     <div class="tiles" id="tiles">
-      <button type="button" class="quick" disabled id="tile-barcode"><span class="ti"></span>Barcode scan<small>Coming soon</small></button>
+      <button type="button" class="quick" disabled id="tile-qr"><span class="ti"></span>QR code<small>Coming soon</small></button>
       <button type="button" class="quick" disabled id="tile-shot"><span class="ti"></span>Screenshot<small>Coming soon</small></button>
       <button type="button" class="quick" disabled id="tile-bulk"><span class="ti"></span>Bulk upload<small>Coming soon</small></button>
     </div>
@@ -631,6 +631,7 @@
     phone: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M10 7h4"/>',
     down: '<path d="M6 9l6 6 6-6"/>',
     archive: '<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11h14V8M10 12h4"/>',
+    qr: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v1M14 20h1M18 18v3h3"/>',
     sliders: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
     x: '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
@@ -2204,7 +2205,7 @@
       b.appendChild(el('span', '', t[2]));
     });
     $('fab').appendChild(icon('plus', 32, 2.4));
-    [['tile-barcode', 'bars'], ['tile-shot', 'phone'], ['tile-bulk', 'inbox']].forEach(function (t) {
+    [['tile-qr', 'qr'], ['tile-shot', 'phone'], ['tile-bulk', 'inbox']].forEach(function (t) {
       $(t[0]).querySelector('.ti').appendChild(icon(t[1], 24));
     });
     ['add-stage', 'add-place', 'add-slot'].forEach(function (id) {

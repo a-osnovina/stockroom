@@ -22,7 +22,7 @@ and a round **+** button to add an item from anywhere.
 - Search for an item by its name or its place (the search boxes have a small x to clear them in one tap; typing "clos" finds "Closed sign" and everything in Closet), and filter by one or more apps, inside a step (only apps you have actually used are listed; tap each app to select it, tap again to deselect it; the list updates as you tap). The search box has a filter button beside it that opens the list of apps (a small badge shows how many are selected), so the page stays short. On Not listed the same button chooses **Draft** or **Archive** (it turns amber on Archive), so the search box sits in the same place on every step.
 
 **Add item** (one page; the same page edits an item)
-- Three blue tiles at the top for **Barcode scan**, **Screenshot** and **Bulk upload**. They are shown as coming soon and do not work yet.
+- Three blue tiles at the top for **QR code**, **Screenshot** and **Bulk upload**. They are shown as coming soon and do not work yet.
 - A photo (optional) and the item name, with its step shown underneath.
 - Detail rows with the label on the left and the value on the right: **What you paid** (blank saves as $0, no warning), **Step**, **Place** and **Slot** (your phone's own picker, so long lists stay short; the lowest free slot is picked for you and taken ones are greyed out). Choose "+ New place..." in Place to type a new one.
 - **Listed on** apps as buttons. Choosing the Sold step adds **Sold for** and **Sold on**.
