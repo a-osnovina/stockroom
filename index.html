@@ -643,7 +643,7 @@
   var items = load();
   var stage = 'all';       // which bar step is open
   var query = '';
-  var filter = null;
+  var filter = [];
   var subTab = 'draft';    // Not listed has two parts: draft and archive
   var currentView = 'home-view';
   var addOrigin = 'home-view';
@@ -1350,17 +1350,21 @@
     btn.replaceChildren();
     btn.setAttribute('aria-expanded', appsOpen ? 'true' : 'false');
     btn.appendChild(el('span', '', 'Apps'));
-    var val = el('span', 'val' + (filter ? ' set' : ''));
-    val.appendChild(el('span', '', filter || 'All'));
+    var val = el('span', 'val' + (filter.length ? ' set' : ''));
+    val.appendChild(el('span', '', filter.length === 0 ? 'All' : filter.length <= 2 ? filter.join(', ') : filter.length + ' apps'));
     val.appendChild(icon('down', 16, 2.4));
     btn.appendChild(val);
     var box = $('filters');
     box.hidden = !appsOpen;
     box.replaceChildren();
     [null].concat(PLATFORMS).forEach(function (p) {
-      box.appendChild(chip(p === null ? 'All apps' : p, filter === p, function () {
-        filter = p;
-        appsOpen = false;
+      var on = p === null ? filter.length === 0 : filter.indexOf(p) !== -1;
+      box.appendChild(chip(p === null ? 'All apps' : p, on, function () {
+        if (p === null) filter = [];
+        else {
+          var k = filter.indexOf(p);
+          if (k === -1) filter.push(p); else filter.splice(k, 1);
+        }
         renderFilters();
         renderList();
       }));
@@ -1641,7 +1645,7 @@
     $('apps-row').hidden = notListed;
     var visible = inView.filter(function (i) {
       return (!q || i.name.toLowerCase().indexOf(q) !== -1 || (i.location || '').toLowerCase().indexOf(q) !== -1) &&
-        (notListed || !filter || i.platforms.indexOf(filter) !== -1 || (i.sold && i.sold.platform === filter));
+        (notListed || !filter.length || filter.some(function (f) { return i.platforms.indexOf(f) !== -1 || (i.sold && i.sold.platform === f); }));
     });
     var box = $('list');
     box.replaceChildren();
