@@ -84,7 +84,7 @@
   .s-listed { --fg: #6EA8FF; --bg: #243456; --solid: #6EA8FF; }
   .s-sold { --fg: #4FD1B5; --bg: #1D3A37; --solid: #4FD1B5; }
   .s-packed { --fg: #C79BFF; --bg: #35294B; --solid: #C79BFF; }
-  .s-shipped { --fg: #F1F3F8; --bg: #2B3040; --solid: #F1F3F8; } /* soft white: the Ship button and the Shipped pile */
+  .s-shipped { --fg: #FF9EC0; --bg: #4A2A3C; --solid: #FF9EC0; } /* rose: the Ship button and the Shipped pile */
 
   /* Cards */
   .card { background: var(--card); border-radius: 12px; padding: 14px 16px; margin-top: 10px; }
@@ -130,7 +130,7 @@
   .task-banner .tb-title { font-size: 16px; font-weight: 700; }
   .task-banner .tb-sub { font-size: 13px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .task-banner .tb-btn { min-height: 44px; padding: 0 16px; border: 0; border-radius: 22px; font-size: 15px; font-weight: 700; flex: none; color: #0B1220; }
-  .task-banner.ship { background: #35294B; } .task-banner.ship .tb-sub { color: #D9C6F5; } .task-banner.ship .tb-btn { background: #F1F3F8; }
+  .task-banner.ship { background: #35294B; } .task-banner.ship .tb-sub { color: #D9C6F5; } .task-banner.ship .tb-btn { background: #FF9EC0; }
   .task-banner.pack { background: #1D3A37; } .task-banner.pack .tb-sub { color: #9FE3D3; } .task-banner.pack .tb-btn { background: #4FD1B5; }
   .caught-up { display: flex; align-items: center; gap: 14px; background: var(--card); border-radius: 16px; padding: 18px 16px; margin-top: 20px; }
   .caught-up .cu-ic { width: 44px; height: 44px; border-radius: 22px; background: #1D3A37; color: var(--green); display: flex; align-items: center; justify-content: center; flex: none; }
@@ -262,7 +262,7 @@
   .parcel-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 0 2px; }
   .ship-btn { min-height: 44px; min-width: 88px; justify-content: center; padding: 0 14px; border: 0; border-radius: 22px; background: var(--solid); color: #0B1220; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex: none; }
   .ship-btn:disabled { opacity: .35; }
-  .ship-all { width: 100%; min-height: 52px; margin: 0 0 12px; border: 0; border-radius: 26px; background: #F1F3F8; color: #0B1220; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .ship-all { width: 100%; min-height: 52px; margin: 0 0 12px; border: 0; border-radius: 26px; background: #FF9EC0; color: #0B1220; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
   .ship-btn.back-btn { background: var(--blue-bg); color: var(--blue-text); }
   .next { width: 44px; height: 44px; border: 0; border-radius: 22px; background: var(--line); color: var(--fg); display: flex; align-items: center; justify-content: center; flex: none; }
 
@@ -481,8 +481,18 @@
   <div id="home-body"></div>
 </main>
 
+<main id="items-view" class="has-dock" hidden>
+  <header><h1 style="flex:1">Items</h1></header>
+  <div class="section">
+    <h2>Steps</h2>
+    <button class="link" id="view-all" type="button">View all items</button>
+  </div>
+  <div id="items-steps"></div>
+</main>
+
 <main id="list-view" class="has-dock" hidden>
   <header>
+    <button class="round" id="list-back" type="button" aria-label="Back to items"></button>
     <h1 id="list-title">All items</h1>
   </header>
   <nav class="steps" id="steps" aria-label="Steps"></nav>
@@ -809,7 +819,7 @@
   // The bar at the top: "All" shows every item, each step shows the items in it.
   var BAR = [{ id: 'all', label: 'All' }].concat(STAGES, [{ id: 'shipped', label: 'Shipped' }]);
     var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Vinted', 'Facebook Marketplace', 'Etsy', 'Other'];
-  var VIEWS = ['home-view', 'list-view', 'picker-view', 'add-view', 'places-view', 'place-view', 'summary-view', 'receipt-view', 'settings-view'];
+  var VIEWS = ['home-view', 'items-view', 'list-view', 'picker-view', 'add-view', 'places-view', 'place-view', 'summary-view', 'receipt-view', 'settings-view'];
   var KEY = 'stockroom.items.v1';
 
   var ICONS = {
@@ -1030,7 +1040,7 @@
     currentView = id;
     VIEWS.forEach(function (v) { $(v).hidden = (v !== id); });
     $('dock').hidden = (id === 'add-view');
-    var active = id === 'settings-view' ? 'home' : (id === 'places-view' || id === 'place-view') ? 'places' : (id === 'summary-view' || id === 'receipt-view') ? 'summary' : id === 'list-view' ? 'items' : 'home';
+    var active = id === 'settings-view' ? 'home' : (id === 'places-view' || id === 'place-view') ? 'places' : (id === 'summary-view' || id === 'receipt-view') ? 'summary' : (id === 'list-view' || id === 'items-view') ? 'items' : 'home';
     ['home', 'items', 'places', 'summary'].forEach(function (t) {
       var b = $('tab-' + t);
       b.classList.toggle('on', t === active);
@@ -1722,6 +1732,41 @@
       return;
     }
     vis.forEach(function (i) { box.appendChild(soldRow(i)); });
+  }
+
+  // ---------- items tab: the steps overview ----------
+
+  function renderItems() {
+    var steps = $('items-steps');
+    steps.replaceChildren();
+    BAR.slice(1).forEach(function (st) {
+      var id = st.id;
+      var inStage = items.filter(function (i) { return id === 'shipped' ? !!i.shipped : (i.stage === id && !i.shipped); });
+      var c = el('div', 'step-card s-' + id);
+      var open = el('button', 'step-open');
+      open.type = 'button';
+      var tile = el('span', 'tile');
+      tile.appendChild(icon(id === 'shipped' ? 'truck' : STAGE_ICON[id], 22));
+      open.appendChild(tile);
+      var text = el('span', 'step-text');
+      text.appendChild(el('div', 'step-title', st.label));
+      text.appendChild(el('div', 'step-sub', inStage.length === 0 ? 'Nothing here yet'
+        : inStage[0].name + (inStage.length > 1 ? ' and ' + (inStage.length - 1) + ' more' : '')));
+      open.appendChild(text);
+      open.addEventListener('click', function () { openStep(id); });
+      c.appendChild(open);
+      if (id !== 'shipped') {
+        var addBtn = button('add-pill', 'Add', function () { showAdd(id); });
+        addBtn.setAttribute('aria-label', 'Add an item to ' + st.label);
+        c.appendChild(addBtn);
+      }
+      steps.appendChild(c);
+    });
+  }
+
+  function showItems() {
+    renderItems();
+    showView('items-view');
   }
 
   function showHome() {
@@ -2504,6 +2549,7 @@
     if (currentView === 'list-view') { renderSteps(); renderFilters(); renderList(); }
     else if (currentView === 'home-view') renderHome();
     else if (currentView === 'picker-view') renderPicker();
+    else if (currentView === 'items-view') renderItems();
     else if (currentView === 'places-view') renderPlaces();
     else if (currentView === 'summary-view') renderSummary();
     else if (currentView === 'receipt-view') renderReceipt();
@@ -2978,6 +3024,8 @@
   function leaveAdd() {
     add = null;
     if (addOrigin === 'list-view') showList();
+    else if (addOrigin === 'items-view') showItems();
+    else if (addOrigin === 'picker-view') showPicker();
     else if (addOrigin === 'place-view' && currentPlace !== null) showPlace(currentPlace);
     else if (addOrigin === 'places-view' || addOrigin === 'place-view') showPlaces();
     else if (addOrigin === 'summary-view') showSummary();
@@ -3321,6 +3369,7 @@
     $('settings-btn').appendChild(icon('gear', 22));
     $('settings-back').appendChild(icon('back', 22));
     $('sp-back').appendChild(icon('back', 22));
+    $('list-back').appendChild(icon('back', 22));
     $('add-back').appendChild(icon('back', 22));
     $('place-back').appendChild(icon('back', 22));
     $('receipt-back').appendChild(icon('back', 22));
@@ -3347,6 +3396,8 @@
     });
   }
 
+  $('view-all').addEventListener('click', function () { stage = 'all'; showList(); });
+  $('list-back').addEventListener('click', function () { showItems(); });
   $('home-profit').addEventListener('click', showSummary);
   $('sp-back').addEventListener('click', showHome);
   $('sp-search').addEventListener('input', function (e) { pickQuery = e.target.value; renderPicker(); });
@@ -3356,11 +3407,7 @@
   $('rs-cancel').addEventListener('click', closeRestore);
   $('rs-confirm').addEventListener('click', confirmRestore);
   $('tab-home').addEventListener('click', showHome);
-  // Items reopens on the step you left. Tapping it again while you are on it goes back to All.
-  $('tab-items').addEventListener('click', function () {
-    if (currentView === 'list-view') { stage = 'all'; appsOpen = false; }
-    showList();
-  });
+  $('tab-items').addEventListener('click', showItems);
   $('tab-places').addEventListener('click', showPlaces);
   $('tab-summary').addEventListener('click', showSummary);
   $('fab').addEventListener('click', function () { showAdd(); });
