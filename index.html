@@ -80,11 +80,11 @@
 
   /* Stage colors: --fg text/icon, --bg tint, --solid filled */
   .s-all { --fg: #C3CADB; --bg: #2B3040; --solid: #9AA4B8; }
-  .s-import { --fg: #F5C46E; --bg: #3B3320; --solid: #F5C46E; } /* amber = drafts: Unlisted and Archive. Slate gray is used for the Places warning (No spot) */
-  .s-list { --fg: #6EA8FF; --bg: #243456; --solid: #6EA8FF; }
+  .s-unlisted { --fg: #F5C46E; --bg: #3B3320; --solid: #F5C46E; } /* amber = drafts: Unlisted and Archive. Slate gray is used for the Places warning (No place) */
+  .s-listed { --fg: #6EA8FF; --bg: #243456; --solid: #6EA8FF; }
   .s-sold { --fg: #4FD1B5; --bg: #1D3A37; --solid: #4FD1B5; }
-  .s-shipped { --fg: #C79BFF; --bg: #35294B; --solid: #C79BFF; }
-  .s-done { --fg: #F1F3F8; --bg: #2B3040; --solid: #F1F3F8; } /* soft white: the Ship button and the Shipped pile */
+  .s-packed { --fg: #C79BFF; --bg: #35294B; --solid: #C79BFF; }
+  .s-shipped { --fg: #F1F3F8; --bg: #2B3040; --solid: #F1F3F8; } /* soft white: the Ship button and the Shipped pile */
 
   /* Cards */
   .card { background: var(--card); border-radius: 12px; padding: 14px 16px; margin-top: 10px; }
@@ -125,18 +125,19 @@
   .seg { display: flex; gap: 4px; background: var(--card); border-radius: 22px; padding: 4px; margin-top: 12px; }
   .seg button { flex: 1; min-height: 40px; border: 0; border-radius: 18px; background: none; color: var(--muted); font-size: 15px; font-weight: 700; }
   .seg button.on { background: #3B3320; color: #F5C46E; }
+  /* Six chips (All, four steps, Shipped) share the width, so the notches and text are slightly smaller. */
   .step {
-    flex: 1; min-width: 0; min-height: 52px; border: 0; margin-left: -10px; padding: 0;
-    background: var(--card2); color: var(--muted); font-size: 12px; font-weight: 700;
+    flex: 1; min-width: 0; min-height: 52px; border: 0; margin-left: -6px; padding: 0;
+    background: var(--card2); color: var(--muted); font-size: 11px; font-weight: 700;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%, 8px 50%);
   }
   .step:first-child {
     margin-left: 0; border-radius: 10px 0 0 10px;
-    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%);
   }
-  .step:last-child { border-radius: 0 10px 10px 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%); }
-  .step .count { font-size: 17px; line-height: 1; color: var(--fg); max-width: 100%; padding: 0 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .step:last-child { border-radius: 0 10px 10px 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 8px 50%); }
+  .step .count { font-size: 17px; line-height: 1; color: var(--fg); max-width: 100%; padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .step.on { background: var(--solid); color: #0B1220; }
   .step.on .count { color: #0B1220; }
   .step.zero:not(.on) .count { opacity: .4; }
@@ -260,6 +261,11 @@
   .receipt-amt.good { color: var(--green); }
   .receipt-amt.neg { color: var(--red); }
   .plat-top { gap: 12px; }
+  .receipt-note { margin: 12px 4px 0; }
+  .plat-row.all-row { background: var(--blue-bg); color: var(--blue-text); margin-bottom: 14px; min-height: 64px; }
+  .plat-row.all-row .plat-sub { font-size: 14px; color: var(--soft); margin-top: 2px; }
+  .plat-row.all-row .plat-lead { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .plat-row.all-row .chev { color: var(--blue-text); }
   .plat-name { font-size: 17px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .plat-profit { font-size: 17px; font-weight: 700; flex: none; }
 
@@ -746,15 +752,17 @@
 <script>
 (function () {
   var STAGES = [
-    { id: 'import', label: 'Unlisted' },
-    { id: 'list', label: 'Listed', verb: 'List' },
+    { id: 'unlisted', label: 'Unlisted' },
+    { id: 'listed', label: 'Listed', verb: 'List' },
     { id: 'sold', label: 'Sold' },
-    { id: 'shipped', label: 'Packed' }
+    { id: 'packed', label: 'Packed' }
   ];
   var SOLD_AT = 2; // index of the Sold step: this step and later have a sale price
-  // The bar at the top: "All" shows every item, each other step shows the items in that step.
-  var BAR = [{ id: 'all', label: 'All' }].concat(STAGES);
-  var HOME_STEPS = ['import', 'list', 'sold', 'shipped'];
+  // Step ids match the names on screen: unlisted, listed, sold, packed. An item that has
+  // gone out is stage 'packed' with shipped = true; the Shipped chip shows those items.
+  // The bar at the top: "All" shows every item, each step shows the items in it.
+  var BAR = [{ id: 'all', label: 'All' }].concat(STAGES, [{ id: 'shipped', label: 'Shipped' }]);
+  var HOME_STEPS = ['unlisted', 'listed', 'sold', 'packed'];
   var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Vinted', 'Facebook Marketplace', 'Etsy', 'Other'];
   var VIEWS = ['home-view', 'list-view', 'add-view', 'places-view', 'place-view', 'summary-view', 'receipt-view', 'settings-view'];
   var KEY = 'stockroom.items.v1';
@@ -786,9 +794,10 @@
     pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
     archive: '<path d="M3 5h18v4H3z"/><path d="M5 9v10h14V9"/><path d="M10 13h4"/>',
     gear: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+    receipt: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
     trash: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/>'
   };
-  var STAGE_ICON = { import: 'inbox', list: 'tag', sold: 'sold', shipped: 'box' };
+  var STAGE_ICON = { unlisted: 'inbox', listed: 'tag', sold: 'sold', packed: 'box' };
 
   var SLOTS_KEY = 'stockroom.places.v1'; // { placeName: number of slots }
   var placeSlots = loadSlots();
@@ -803,9 +812,6 @@
   var query = '';
   var filter = [];
   var subTab = 'draft';    // Unlisted has two parts: draft and archive
-  var HIDE_KEY = 'stockroom.hideShipped.v1';
-  var hideShipped = false; // All shows shipped items unless this is on
-  try { hideShipped = localStorage.getItem(HIDE_KEY) === '1'; } catch (e) {}
   var currentView = 'home-view';
   var addOrigin = 'home-view';
   var add = null;          // state of the add form
@@ -837,10 +843,10 @@
     return 0;
   }
 
-  function stageLabel(id) { return STAGES[stageIndex(id)].label; }
+  function stageLabel(id) { var k = stageIndex(id); return k === -1 ? BAR[barIndex(id)].label : STAGES[k].label; }
 
   // An item has left its place once it is gathered for a parcel or shipped.
-  function gone(i) { return i.stage === 'shipped' || !!i.gathered; }
+  function gone(i) { return i.stage === 'packed' || !!i.gathered; }
   // Items sold together share a parcel id. A lone item is a parcel of one.
   function membersOf(i) { return i.parcel ? items.filter(function (x) { return x.parcel === i.parcel; }) : [i]; }
   function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
@@ -856,24 +862,28 @@
     if (!Array.isArray(list)) return [];
     // Accept every older save format and fill in anything missing.
     return list.map(function (i) {
-      if (i.stage === 'packed') i.stage = 'sold'; // the Packed step was removed
+      // Step ids used to be import, list and shipped (now Packed, with a history flag for Shipped).
+      if (i.stage === 'import') i.stage = 'unlisted';
+      else if (i.stage === 'list') i.stage = 'listed';
+      else if (i.stage === 'shipped') { i.stage = 'packed'; if (i.history === true) i.shipped = true; }
+      delete i.history;
       if (stageIndex(i.stage) === -1) {
-        if (i.shipped || i.status === 'shipped') i.stage = 'shipped';
+        if (i.shipped || i.status === 'shipped') i.stage = 'packed';
         else if (i.sold || i.status === 'sold') i.stage = 'sold';
-        else if (i.price != null || i.status === 'listed') i.stage = 'list';
-        else i.stage = 'import';
+        else if (i.price != null || i.status === 'listed') i.stage = 'listed';
+        else i.stage = 'unlisted';
       }
       var c = Number(i.cost);
       i.cost = (i.cost === null || i.cost === undefined || i.cost === '' || !isFinite(c)) ? null : c;
       if (typeof i.name !== 'string' || !i.name) i.name = 'Untitled item';
       if (!Array.isArray(i.platforms)) i.platforms = [];
       if (typeof i.location !== 'string') i.location = '';
-      if (i.archived !== true || i.stage !== 'import') delete i.archived;
+      if (i.archived !== true || i.stage !== 'unlisted') delete i.archived;
       if (!(Number.isInteger(i.slot) && i.slot > 0)) delete i.slot;
       if (typeof i.photo !== 'string') delete i.photo;
       if (typeof i.parcel !== 'string' || !i.parcel) delete i.parcel;
       if (i.gathered !== true || stageIndex(i.stage) < SOLD_AT) delete i.gathered;
-      if (i.history !== true || i.stage !== 'shipped') delete i.history;
+      if (i.shipped !== true || i.stage !== 'packed') delete i.shipped;
       if (!i.sold || typeof i.sold !== 'object' || !isFinite(Number(i.sold.price))) delete i.sold;
       return i;
     });
@@ -1322,10 +1332,10 @@
 
   // ---------- sale sheet ----------
 
-  // Other items that can go in the same sale: in List, on the same app.
+  // Other items that can go in the same sale: Listed, on the same app.
   function bundleCandidates() {
     if (!selling || !soldOn) return [];
-    return items.filter(function (x) { return x !== selling && x.stage === 'list' && !x.history && x.platforms.indexOf(soldOn) !== -1; });
+    return items.filter(function (x) { return x !== selling && x.stage === 'listed' && !x.shipped && x.platforms.indexOf(soldOn) !== -1; });
   }
 
   function renderBundle() {
@@ -1337,8 +1347,8 @@
     var box = $('sold-with-chips');
     box.replaceChildren();
     $('sold-with-note').textContent = !soldOn ? 'Pick the app it sold on first.'
-      : cands.length ? 'Tap the items that were in the same sale (same app, in List).'
-      : 'No other items in List on ' + soldOn + '.';
+      : cands.length ? 'Tap the items that were in the same sale (same app, Listed).'
+      : 'No other items Listed on ' + soldOn + '.';
     cands.forEach(function (x) {
       box.appendChild(chip(x.name, bundle.indexOf(x) !== -1, function () {
         var k = bundle.indexOf(x);
@@ -1435,7 +1445,7 @@
     });
     var tied = 0;
     items.forEach(function (i) {
-      if ((i.stage === 'import' || i.stage === 'list') && i.cost !== null) tied += i.cost;
+      if ((i.stage === 'unlisted' || i.stage === 'listed') && i.cost !== null) tied += i.cost;
     });
     var apps = Array.from(byApp.keys()).sort(function (a, b) { return byApp.get(b) - byApp.get(a); })
       .map(function (a) { return { name: a, profit: byApp.get(a) }; });
@@ -1502,7 +1512,7 @@
     var steps = $('home-steps');
     steps.replaceChildren();
     HOME_STEPS.forEach(function (id) {
-      var inStage = items.filter(function (i) { return i.stage === id && !i.history; });
+      var inStage = items.filter(function (i) { return i.stage === id && !i.shipped; });
       var c = el('div', 'step-card s-' + id);
       var open = el('button', 'step-open');
       open.type = 'button';
@@ -1532,11 +1542,12 @@
 
   function renderSteps() {
     var box = $('steps');
-    box.hidden = stage === 'history';
     box.replaceChildren();
     var current = barIndex(stage);
     BAR.forEach(function (s, idx) {
-      var count = items.filter(function (i) { return s.id === 'all' ? (!i.history || !hideShipped) : (!i.history && i.stage === s.id); }).length;
+      var count = items.filter(function (i) {
+        return s.id === 'all' ? true : s.id === 'shipped' ? !!i.shipped : (!i.shipped && i.stage === s.id);
+      }).length;
       var b = el('button', 'step s-' + s.id + (idx === current ? ' on' : '') + (count === 0 ? ' zero' : ''));
       b.type = 'button';
       b.appendChild(el('span', 'count', compact(count)));
@@ -1564,7 +1575,7 @@
   }
 
   function renderFilters() {
-    var notListed = stage === 'import';
+    var notListed = stage === 'unlisted';
     var used = usedApps();
     filter = filter.filter(function (f) { return used.indexOf(f) !== -1; });
     var btn = $('apps-btn');
@@ -1579,7 +1590,7 @@
       btn.setAttribute('aria-label', 'Show ' + (subTab === 'archive' ? 'archive (change to draft)' : 'draft (change to archive)'));
       btn.appendChild(icon('archive', 20, 2.2));
       [['draft', 'Draft', function (i) { return !i.archived; }], ['archive', 'Archive', function (i) { return i.archived; }]].forEach(function (t) {
-        var n = items.filter(function (i) { return i.stage === 'import' && t[2](i); }).length;
+        var n = items.filter(function (i) { return i.stage === 'unlisted' && t[2](i); }).length;
         box.appendChild(chip(t[1] + ' · ' + compact(n), subTab === t[0], function () {
           subTab = t[0];
           appsOpen = false;
@@ -1588,9 +1599,8 @@
       });
       return;
     }
-    // In All the same button also chooses whether shipped items show; hiding them counts as one filter.
-    var active = filter.length + (stage === 'all' && hideShipped ? 1 : 0);
-    var what = stage === 'all' ? 'Filter by app or shipped items' : 'Filter by app';
+    var active = filter.length;
+    var what = 'Filter by app';
     btn.className = 'apps-btn' + (active ? ' set' : '');
     btn.setAttribute('aria-label', active ? what + ', ' + active + ' selected' : what);
     btn.appendChild(icon('sliders', 20, 2.2));
@@ -1607,15 +1617,6 @@
         renderList();
       }));
     });
-    if (stage === 'all') {
-      box.appendChild(chip('Show shipped', !hideShipped, function () {
-        hideShipped = !hideShipped;
-        try { localStorage.setItem(HIDE_KEY, hideShipped ? '1' : '0'); } catch (e) {}
-        renderFilters();
-        renderSteps();
-        renderList();
-      }));
-    }
   }
 
   function moveForward(item) {
@@ -1623,11 +1624,11 @@
     if (!next) return;
     if (next.id === 'sold') { openSoldSheet(item); return; }
     // An item with no app yet has to pick one before it can be listed.
-    if (next.id === 'list' && item.platforms.length === 0) { openAppSheet(item); return; }
+    if (next.id === 'listed' && item.platforms.length === 0) { openAppSheet(item); return; }
     setStage(item, next.id);
   }
 
-  // Asks which app an item is being listed on, then moves it to List.
+  // Asks which app an item is being listed on, then moves it to Listed.
   var listing = null;
 
   function openAppSheet(item) {
@@ -1651,7 +1652,7 @@
     var before = item.platforms;
     item.platforms = [p];
     closeAppSheet();
-    if (!setStage(item, 'list')) item.platforms = before;
+    if (!setStage(item, 'listed')) item.platforms = before;
   }
 
   function setStage(item, id) {
@@ -1678,11 +1679,11 @@
       first = false;
     }
     if (showPill) {
-      var pill = el('span', 'pill', i.archived && i.stage === 'import' ? 'Archived' : stageLabel(i.stage));
+      var pill = el('span', 'pill', i.archived && i.stage === 'unlisted' ? 'Archived' : stageLabel(i.stage));
       line.appendChild(pill);
     }
-    if (i.stage !== 'import' || i.platforms.length) {
-      if (i.stage === 'sold' || i.stage === 'shipped') {
+    if (i.stage !== 'unlisted' || i.platforms.length) {
+      if (i.stage === 'sold' || i.stage === 'packed') {
         part(el('span', '', (i.sold && i.sold.platform) || 'App not saved'));
       } else {
         part(el('span', i.platforms.length ? '' : 'dim', i.platforms.length ? i.platforms.join(', ') : 'No app yet'));
@@ -1691,7 +1692,7 @@
     // What you paid shows only once it is more than $0.
     if (showCost && i.cost > 0) part(el('span', 'nw', 'Paid ' + money(i.cost)));
     // The place gets its own third line, and only when the item has one.
-    if (hidePlace || !i.location || i.stage === 'shipped') return line;
+    if (hidePlace || !i.location || i.stage === 'packed') return line;
     var box = el('div', 'item-meta-wrap');
     box.appendChild(line);
     box.appendChild(el('div', 'item-meta loc', where(i)));
@@ -1844,8 +1845,8 @@
 
     // Archive sends an item to Unlisted, Archive (and Unarchive brings it back to Draft).
     // Sold and shipped items can't be archived: that would lose their sale.
-    var canArchive = item.stage === 'import' || item.stage === 'list';
-    var isArch = item.stage === 'import' && item.archived;
+    var canArchive = item.stage === 'unlisted' || item.stage === 'listed';
+    var isArch = item.stage === 'unlisted' && item.archived;
     var ab = null;
     if (canArchive) {
       ab = el('button', 'act-arch');
@@ -1889,7 +1890,7 @@
 
   function archiveItem(item, archive) {
     var before = { stage: item.stage, archived: item.archived, sold: item.sold };
-    if (archive) { item.stage = 'import'; item.archived = true; }
+    if (archive) { item.stage = 'unlisted'; item.archived = true; }
     else { delete item.archived; }
     if (!save()) {
       item.stage = before.stage;
@@ -1899,7 +1900,7 @@
     }
     refresh();
     showToast(archive ? 'Moved to Unlisted › Archive' : 'Moved back to Unlisted › Draft', 'View', function () {
-      stage = 'import';
+      stage = 'unlisted';
       subTab = archive ? 'archive' : 'draft';
       showList();
     });
@@ -1993,7 +1994,7 @@
   // Packed: the parcel is boxed up and waits in the Packed step.
   function packParcel(members) {
     var before = members.map(function (i) { return i.stage; });
-    members.forEach(function (i) { i.stage = 'shipped'; });
+    members.forEach(function (i) { i.stage = 'packed'; });
     if (members[0].parcel) delete parcelOpen[members[0].parcel];
     if (!save()) {
       members.forEach(function (i, k) { i.stage = before[k]; });
@@ -2005,16 +2006,16 @@
 
   // Ship: the parcel has gone. It moves to Shipped and still counts in your profit.
   function shipParcel(members) {
-    members.forEach(function (i) { i.history = true; });
+    members.forEach(function (i) { i.shipped = true; });
     if (members[0].parcel) delete parcelOpen[members[0].parcel];
     if (!save()) {
-      members.forEach(function (i) { delete i.history; });
+      members.forEach(function (i) { delete i.shipped; });
       alert('Could not save on this device. Is private browsing on?');
       return;
     }
     refresh();
     showToast('Shipped', 'Undo', function () {
-      members.forEach(function (i) { delete i.history; });
+      members.forEach(function (i) { delete i.shipped; });
       save();
       refresh();
     });
@@ -2023,8 +2024,8 @@
   function restoreParcel(members) {
     var saved = JSON.parse(JSON.stringify(members));
     members.forEach(function (i) {
-      i.stage = 'list';
-      delete i.sold; delete i.parcel; delete i.gathered; delete i.history;
+      i.stage = 'listed';
+      delete i.sold; delete i.parcel; delete i.gathered; delete i.shipped;
       if (i.slot && slotTaken(i.location, i.slot, i)) delete i.slot;
     });
     if (!save()) {
@@ -2033,7 +2034,7 @@
       return;
     }
     refresh();
-    showToast(members.length > 1 ? 'Moved ' + members.length + ' items back to List' : 'Moved back to List', 'View', function () { stage = 'list'; showList(); });
+    showToast(members.length > 1 ? 'Moved ' + members.length + ' items back to Listed' : 'Moved back to Listed', 'View', function () { stage = 'listed'; showList(); });
   }
 
   function itemThumb(i, small) {
@@ -2080,7 +2081,7 @@
   function parcelCard(members, mode) {
     var lead = members[0];
     var multi = members.length > 1;
-    var card = el('div', 'parcel s-' + (mode === 'sold' ? 'sold' : mode === 'history' ? 'done' : 'shipped'));
+    var card = el('div', 'parcel s-' + (mode === 'sold' ? 'sold' : mode === 'shipped' ? 'done' : 'packed'));
     var need = members.filter(function (i) { return !!i.location; });
     var done = need.filter(function (i) { return i.gathered; }).length;
     var pid = lead.parcel;
@@ -2096,7 +2097,7 @@
     main.appendChild(el('div', 'item-name' + (multi ? '' : ' wrap'), multi ? lead.name + ' + ' + (members.length - 1) + ' more' : lead.name));
     // Step tag, then the app, then the profit.
     var meta = el('div', 'item-meta');
-    meta.appendChild(el('span', 'pill', mode === 'sold' ? 'Sold' : mode === 'shipped' ? 'Packed' : 'Shipped'));
+    meta.appendChild(el('span', 'pill', mode === 'sold' ? 'Sold' : mode === 'packed' ? 'Packed' : 'Shipped'));
     meta.appendChild(document.createTextNode((lead.sold && lead.sold.platform) || 'App not saved'));
     var pt = parcelTotals(members);
     meta.appendChild(document.createTextNode(' '));
@@ -2117,7 +2118,7 @@
     if (mode === 'sold') {
       // Always there, greyed out until every item with a place is ticked.
       var ready = done >= need.length;
-      action = el('button', 'ship-btn s-shipped');
+      action = el('button', 'ship-btn s-packed');
       action.type = 'button';
       action.disabled = !ready;
       action.setAttribute('aria-label', 'Pack ' + (multi ? 'this parcel' : lead.name) + (ready ? '' : ' (gather every item first)'));
@@ -2125,15 +2126,15 @@
       action.appendChild(document.createTextNode('Pack'));
       action.appendChild(icon('arrow', 16));
       action.addEventListener('click', function () { packParcel(members); });
-    } else if (mode === 'shipped') {
-      action = el('button', 'ship-btn s-done');
+    } else if (mode === 'packed') {
+      action = el('button', 'ship-btn s-shipped');
       action.type = 'button';
       action.setAttribute('aria-label', 'Ship ' + (multi ? 'this parcel' : lead.name));
       action.appendChild(icon('truck', 18));
       action.appendChild(document.createTextNode('Ship'));
       action.appendChild(icon('arrow', 16));
       action.addEventListener('click', function () { shipParcel(members); });
-    } else if (mode === 'history') {
+    } else if (mode === 'shipped') {
       action = el('button', 'ship-btn back-btn');
       action.type = 'button';
       action.appendChild(icon('undo', 18));
@@ -2159,13 +2160,13 @@
           rowEl.appendChild(cb);
         }
         rowEl.appendChild(el('span', 'g-name cl-name', i.name));
-        rowEl.appendChild(el('span', 'g-sub cl-place', i.location ? where(i) : 'No spot'));
+        rowEl.appendChild(el('span', 'g-sub cl-place', i.location ? where(i) : 'No place'));
         return rowEl;
       }
       rowEl.appendChild(itemThumb(i, true));
       var txt = el('span', 'g-text');
       txt.appendChild(el('span', 'g-name', where(i) || i.name));
-      txt.appendChild(el('span', 'g-sub', !i.location ? 'No spot' : (i.gathered ? 'Gathered' : 'Tap when you have it')));
+      txt.appendChild(el('span', 'g-sub', !i.location ? 'No place' : (i.gathered ? 'Gathered' : 'Tap when you have it')));
       rowEl.appendChild(txt);
       if (i.location) {
         var box = el('span', 'gbox');
@@ -2232,17 +2233,17 @@
   }
 
   function shipAll() {
-    var all = items.filter(function (i) { return i.stage === 'shipped' && !i.history; });
+    var all = items.filter(function (i) { return i.stage === 'packed' && !i.shipped; });
     if (!all.length) return;
-    all.forEach(function (i) { i.history = true; });
+    all.forEach(function (i) { i.shipped = true; });
     if (!save()) {
-      all.forEach(function (i) { delete i.history; });
+      all.forEach(function (i) { delete i.shipped; });
       alert('Could not save on this device. Is private browsing on?');
       return;
     }
     refresh();
     showToast('Shipped ' + countText(all.length), 'Undo', function () {
-      all.forEach(function (i) { delete i.history; });
+      all.forEach(function (i) { delete i.shipped; });
       save();
       refresh();
     });
@@ -2250,11 +2251,11 @@
 
   function renderList() {
     var q = query.trim().toLowerCase();
-    var history = stage === 'history';
-    // All also lists shipped items, unless they are hidden with the filter button.
-    var pool = items.filter(function (i) { return history ? !!i.history : (!i.history || (stage === 'all' && !hideShipped)); });
-    var inView = (stage === 'all' || history) ? pool : pool.filter(function (i) { return i.stage === stage; });
-    var notListed = stage === 'import';
+    var inShipped = stage === 'shipped';
+    // All lists every item, shipped ones last. A step lists only the items that have not shipped; Shipped lists the ones that have.
+    var pool = items.filter(function (i) { return inShipped ? !!i.shipped : (stage === 'all' || !i.shipped); });
+    var inView = (stage === 'all' || inShipped) ? pool : pool.filter(function (i) { return i.stage === stage; });
+    var notListed = stage === 'unlisted';
     if (notListed) inView = inView.filter(function (i) { return !!i.archived === (subTab === 'archive'); });
     renderFilters();
     var visible = inView.filter(function (i) {
@@ -2263,7 +2264,7 @@
     });
     // In All, items follow the order of the step bar (Unlisted, List, Sold, Packed). Within a step the order is unchanged.
     if (stage === 'all') {
-      var rank = function (i) { return stageIndex(i.stage) + (i.history ? 0.5 : 0); }; // shipped items come last
+      var rank = function (i) { return stageIndex(i.stage) + (i.shipped ? 0.5 : 0); }; // shipped items come last
       visible = visible.map(function (x, n) { return { x: x, n: n }; })
         .sort(function (a, b) { return (rank(a.x) - rank(b.x)) || (a.n - b.n); })
         .map(function (o) { return o.x; });
@@ -2271,7 +2272,7 @@
     var box = $('list');
     box.replaceChildren();
     openRow = null;
-    if (stage === 'shipped' && pool.some(function (i) { return i.stage === 'shipped'; })) {
+    if (stage === 'packed' && pool.some(function (i) { return i.stage === 'packed'; })) {
       var sa = el('button', 'ship-all');
       sa.type = 'button';
       sa.appendChild(icon('truck', 20));
@@ -2282,10 +2283,9 @@
     if (visible.length === 0) {
       box.appendChild(el('div', 'empty',
         inView.length > 0 ? 'No items match your search or filter.'
-          : history ? 'Nothing in Shipped yet. Parcels you ship go here.'
-          : stage === 'all' && hideShipped && items.length > 0 ? 'Everything so far is shipped and hidden. Tap the filter button to show shipped items.'
+          : inShipped ? 'Nothing shipped yet. Tap Ship on a packed parcel and it lands here.'
           : stage === 'all' ? 'No items yet. Tap the + button to put your first one here.'
-          : stage === 'shipped' ? 'Nothing packed yet. Tap Pack on a sold item and it lands here.'
+          : stage === 'packed' ? 'Nothing packed yet. Tap Pack on a sold item and it lands here.'
           : notListed ? (subTab === 'archive' ? 'Nothing archived yet.' : 'No drafts yet. Tap the + button to add one.')
           : 'Nothing in ' + BAR[barIndex(stage)].label + ' yet. Tap the + button to put an item here.'));
       return;
@@ -2294,15 +2294,15 @@
     visible.forEach(function (i) {
       if (i.parcel) { if (seen[i.parcel]) return; seen[i.parcel] = true; }
       var members = membersOf(i);
-      if (history || i.history) box.appendChild(parcelCard(members, 'history'));
+      if (i.shipped) box.appendChild(parcelCard(members, 'shipped'));
       else if (i.stage === 'sold') box.appendChild(parcelCard(members, 'sold'));
-      else if (i.stage === 'shipped') box.appendChild(parcelCard(members, 'shipped'));
+      else if (i.stage === 'packed') box.appendChild(parcelCard(members, 'packed'));
       else box.appendChild(itemRow(i, { pill: stage === 'all' }));
     });
   }
 
   function showList() {
-    $('list-title').textContent = stage === 'all' ? 'All items' : stage === 'history' ? 'Shipped' : stageLabel(stage);
+    $('list-title').textContent = stage === 'all' ? 'All items' : stageLabel(stage);
     renderSteps();
     renderList();
     showView('list-view');
@@ -2364,7 +2364,7 @@
     ta.appendChild(el('div', 'card-label', 'Items in a place'));
     ta.appendChild(el('div', 'big', String(inPlaces)));
     var tb = el('div');
-    tb.appendChild(el('div', 'card-label', 'Not in a place'));
+    tb.appendChild(el('div', 'card-label', 'No place'));
     tb.appendChild(el('div', 'big' + (g.none.length ? ' slate' : ''), String(g.none.length)));
     tc.appendChild(ta);
     tc.appendChild(tb);
@@ -2380,7 +2380,7 @@
       box.appendChild(placeRow(n, g.map.get(n).length, function () { showPlace(n); }, sc ? ' · ' + sc + (sc === 1 ? ' slot' : ' slots') : ''));
     });
     if (g.none.length) {
-      var ns = placeRow('No spot', g.none.length, function () { showPlace(''); });
+      var ns = placeRow('No place', g.none.length, function () { showPlace(''); });
       ns.classList.add('nospot');
       box.appendChild(ns);
     }
@@ -2406,7 +2406,7 @@
     var here = name === '' ? g.none : (g.map.get(name) || []);
     var sc = name === '' ? 0 : slotCount(name);
     var q = placeQuery.trim().toLowerCase();
-    $('place-title').textContent = name === '' ? 'No spot' : name;
+    $('place-title').textContent = name === '' ? 'No place' : name;
     $('place-sub').textContent = countText(here.length) + (sc ? ' · ' + sc + (sc === 1 ? ' slot' : ' slots') + ', ' + (sc - here.filter(function (i) { return i.slot && i.slot <= sc; }).length) + ' free' : '');
     var sb = $('place-slots-btn');
     sb.hidden = name === '';
@@ -2497,6 +2497,24 @@
       box.appendChild(el('div', 'empty', 'No sales yet. Move an item to Sold to see profit for each app.'));
     }
     var max = s.apps.length ? s.apps[0].profit : 0;
+    if (s.apps.length) {
+      // One receipt for every app at once, newest month first.
+      var all = el('button', 'plat-row all-row');
+      all.type = 'button';
+      all.setAttribute('aria-label', 'All apps. Open a receipt of every shipped item.');
+      all.addEventListener('click', function () { showReceipt(ALL_APPS); });
+      var allTop = el('div', 'plat-top');
+      var lead = el('div', 'plat-lead');
+      lead.appendChild(icon('receipt', 24));
+      var lt = el('div');
+      lt.appendChild(el('div', 'plat-name', 'All apps'));
+      lt.appendChild(el('div', 'plat-sub', 'Receipt of every shipped item'));
+      lead.appendChild(lt);
+      allTop.appendChild(lead);
+      allTop.appendChild(el('span', 'chev', '›'));
+      all.appendChild(allTop);
+      box.appendChild(all);
+    }
     s.apps.forEach(function (a) {
       var row = el('button', 'plat-row');
       row.type = 'button';
@@ -2520,6 +2538,7 @@
 
   // ---------- receipt: everything sold on one app ----------
 
+  var ALL_APPS = '__all__'; // receipt of every app
   var receiptApp = null;
 
   function showReceipt(app) {
@@ -2530,16 +2549,17 @@
 
   function renderReceipt() {
     var app = receiptApp;
+    var every = app === ALL_APPS;
     // Only items that have shipped and left the inventory.
     var sales = items.filter(function (i) {
-      return i.history && i.sold && (i.sold.platform || 'Unknown app') === app;
+      return i.shipped && i.sold && (every || (i.sold.platform || 'Unknown app') === app);
     });
     sales.sort(function (x, y) { return (y.sold.date || 0) - (x.sold.date || 0); });
-    $('receipt-title').textContent = app;
+    $('receipt-title').textContent = every ? 'All apps' : app;
     var box = $('receipt');
     box.replaceChildren();
     if (sales.length === 0) {
-      box.appendChild(el('div', 'empty', 'Nothing shipped from ' + app + ' yet.'));
+      box.appendChild(el('div', 'empty', every ? 'Nothing shipped yet.' : 'Nothing shipped from ' + app + ' yet.'));
       return;
     }
     var card = el('div', 'receipt');
@@ -2561,7 +2581,8 @@
       line.appendChild(el('span', 'receipt-amt', money(i.sold.price)));
       card.appendChild(line);
       var sub = el('div', 'receipt-sub');
-      sub.appendChild(document.createTextNode((d ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · ' : '') +
+      sub.appendChild(document.createTextNode((every ? (i.sold.platform || 'Unknown app') + ' · ' : '') +
+        (d ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · ' : '') +
         'Paid ' + money(i.cost === null ? 0 : i.cost) + ' · '));
       sub.appendChild(el('span', p < 0 ? 'neg' : 'good', signedText(p)));
       card.appendChild(sub);
@@ -2579,6 +2600,15 @@
     card.appendChild(el('div', 'receipt-rule'));
     total('Profit', profitText(profit), profit < 0 ? 'neg' : 'good', true);
     box.appendChild(card);
+    // Profit from items that are sold or packed but have not shipped is not on the receipt yet.
+    var waiting = 0;
+    items.forEach(function (i) {
+      if (i.shipped || stageIndex(i.stage) < SOLD_AT) return;
+      if (!every && (!i.sold || (i.sold.platform || 'Unknown app') !== app)) return;
+      var p = profitOf(i);
+      if (p !== null) waiting += p;
+    });
+    if (waiting !== 0) box.appendChild(el('div', 'meta receipt-note', profitText(waiting) + ' more profit is sold or packed and not shipped yet.'));
   }
 
   function showSummary() {
@@ -2707,7 +2737,7 @@
   // Open the form. A new item goes in the given step (or "Unlisted" when none is given).
   function showAdd(stageId, preset) {
     addOrigin = currentView === 'add-view' ? addOrigin : currentView;
-    var s = stageId || (currentView === 'list-view' && stage !== 'all' && stage !== 'history' ? stage : 'import');
+    var s = stageId || (currentView === 'list-view' && stage !== 'all' && stage !== 'shipped' ? stage : 'unlisted');
     add = { stage: s, selected: [], loc: (preset && preset.loc) || '', slot: (preset && preset.slot) || null, newPlace: false, photo: null, soldOn: null };
     setFormMode(false);
     $('add-stage').disabled = false;
@@ -2845,7 +2875,7 @@
     var typed = $('new-place').value.trim();
     var loc = canonLocation(typed || add.loc);
     var slot = (loc && add.slot && add.slot <= slotCount(loc)) ? add.slot : null;
-    if (slot && add.stage !== 'shipped') {
+    if (slot && add.stage !== 'packed') {
       var other = slotTaken(loc, slot, add.editing);
       if (other) return fail(slotDisplay(loc, slot) + ' in ' + loc + ' is taken by ' + other.name + '.', 'add-slot');
     }
@@ -2860,9 +2890,9 @@
       it.location = loc;
       if (slot) it.slot = slot; else delete it.slot;
       it.stage = add.stage;
-      if (add.stage !== 'sold' && add.stage !== 'shipped') delete it.gathered;
-      if (add.stage !== 'shipped') delete it.history;
-      if (add.stage !== 'import') delete it.archived;
+      if (add.stage !== 'sold' && add.stage !== 'packed') delete it.gathered;
+      if (add.stage !== 'packed') delete it.shipped;
+      if (add.stage !== 'unlisted') delete it.archived;
       if (add.photo) it.photo = add.photo; else delete it.photo;
       if (sold) {
         var prev = it.sold || {};
@@ -3126,7 +3156,7 @@
   }
 
   $('view-all').addEventListener('click', function () { stage = 'all'; showList(); });
-  $('list-back').addEventListener('click', function () { if (stage === 'history') showSummary(); else showHome(); });
+  $('list-back').addEventListener('click', function () { showHome(); });
   $('settings-btn').addEventListener('click', showSettings);
   $('settings-back').addEventListener('click', showHome);
   $('restore-input').addEventListener('change', onRestorePicked);
