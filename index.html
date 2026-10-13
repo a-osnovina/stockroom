@@ -82,7 +82,7 @@
   .s-all { --fg: #C3CADB; --bg: #2B3040; --solid: #9AA4B8; }
   .s-unlisted { --fg: #F5C46E; --bg: #3B3320; --solid: #F5C46E; } /* amber = drafts: Unlisted and Archive. Slate gray is used for the Places warning (No place) */
   .s-listed { --fg: #6EA8FF; --bg: #243456; --solid: #6EA8FF; }
-  .s-sold { --fg: #4FD1B5; --bg: #1D3A37; --solid: #4FD1B5; }
+  .s-sold { --fg: #3FD3D6; --bg: #17383D; --solid: #3FD3D6; } /* cyan-teal, so it stays apart from the profit green */
   .s-packed { --fg: #C79BFF; --bg: #35294B; --solid: #C79BFF; }
   .s-shipped { --fg: #FF9EC0; --bg: #4A2A3C; --solid: #FF9EC0; } /* rose: the Ship button and the Shipped pile */
 
@@ -121,9 +121,10 @@
   .sold-row .thumb { width: 40px; height: 40px; }
   .sold-main { flex: 1; min-width: 0; }
   .sold-main .item-name { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sold-btn { min-height: 44px; padding: 0 14px; border: 0; border-radius: 22px; background: #4FD1B5; color: #0B1220; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex: none; }
+  .sold-btn { min-height: 44px; padding: 0 14px; border: 0; border-radius: 22px; background: #3FD3D6; color: #0B1220; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex: none; }
   .quiet-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; margin-top: 6px; background: none; border: 1px dashed var(--line); border-radius: 12px; color: #C3CADB; font-size: 15px; padding: 0 8px; text-align: left; }
   .quiet-row .qn { width: 28px; height: 28px; border-radius: 8px; background: #3B3320; color: #F5C46E; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; }
+  .quiet-row .qn.listed { background: var(--blue-bg); color: var(--blue); }
   .quiet-row .qt { flex: 1; }
   .task-banner { display: flex; align-items: center; gap: 12px; border-radius: 14px; padding: 10px 10px 10px 14px; margin-bottom: 8px; }
   .task-banner .tb-main { flex: 1; min-width: 0; background: none; border: 0; padding: 0; color: var(--text); text-align: left; min-height: 44px; }
@@ -131,7 +132,11 @@
   .task-banner .tb-sub { font-size: 13px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .task-banner .tb-btn { min-height: 44px; padding: 0 16px; border: 0; border-radius: 22px; font-size: 15px; font-weight: 700; flex: none; color: #0B1220; }
   .task-banner.ship { background: #35294B; } .task-banner.ship .tb-sub { color: #D9C6F5; } .task-banner.ship .tb-btn { background: #FF9EC0; }
-  .task-banner.pack { background: #1D3A37; } .task-banner.pack .tb-sub { color: #9FE3D3; } .task-banner.pack .tb-btn { background: #4FD1B5; }
+  /* Items to pack: the parcels sit on a Sold-tinted panel, each with its own purple Pack button. */
+  .pack-group { background: #17383D; border-radius: 14px; padding: 10px 10px 4px; margin-bottom: 8px; }
+  .pack-group .pg-head { display: flex; align-items: center; min-height: 44px; padding: 0 4px; }
+  .pack-group .pg-title { flex: 1; min-width: 0; font-size: 16px; font-weight: 700; }
+  .pack-group .link { padding: 0; min-height: 44px; font-size: 14px; display: flex; align-items: center; gap: 2px; }
   .caught-up { display: flex; align-items: center; gap: 14px; background: var(--card); border-radius: 16px; padding: 18px 16px; margin-top: 20px; }
   .caught-up .cu-ic { width: 44px; height: 44px; border-radius: 22px; background: #1D3A37; color: var(--green); display: flex; align-items: center; justify-content: center; flex: none; }
   .caught-up b { display: block; font-size: 17px; }
@@ -1487,7 +1492,8 @@
   // ---------- numbers shared by Home and Summary ----------
 
   function stats() {
-    var total = 0, counted = 0, skipped = 0;
+    var total = 0, counted = 0, skipped = 0, month = 0;
+    var now = new Date(), thisMonth = now.getFullYear() * 12 + now.getMonth();
     var byApp = new Map();
     items.forEach(function (i) {
       if (stageIndex(i.stage) < SOLD_AT) return;
@@ -1495,6 +1501,11 @@
       if (p === null) { skipped++; return; }
       total += p;
       counted++;
+      // Profit from sales made in the current calendar month (a sale with no date is left out).
+      if (i.sold && i.sold.date) {
+        var sd = new Date(i.sold.date);
+        if (sd.getFullYear() * 12 + sd.getMonth() === thisMonth) month += p;
+      }
       var app = i.sold.platform || 'Unknown app';
       byApp.set(app, (byApp.get(app) || 0) + p);
     });
@@ -1504,7 +1515,7 @@
     });
     var apps = Array.from(byApp.keys()).sort(function (a, b) { return byApp.get(b) - byApp.get(a); })
       .map(function (a) { return { name: a, profit: byApp.get(a) }; });
-    return { total: total, counted: counted, skipped: skipped, tied: tied, apps: apps };
+    return { total: total, month: month, counted: counted, skipped: skipped, tied: tied, apps: apps };
   }
 
   function barWidth(profit, max) {
@@ -1590,15 +1601,15 @@
 
   function renderHome() {
     var s = stats();
-    // The line at the top: profit and money tied up. Tapping it opens Summary.
+    // The line at the top: this month's profit and money tied up. Tapping it opens Summary.
     var pl = $('home-profit');
     pl.replaceChildren();
     if (!items.length) pl.appendChild(el('span', '', 'Nothing sold yet'));
     else {
       var txt = el('span');
       if (s.counted > 0) {
-        txt.appendChild(el('b', s.total < 0 ? 'neg' : '', money(s.total)));
-        txt.appendChild(document.createTextNode(' profit · ' + money(s.tied) + ' tied up'));
+        txt.appendChild(el('b', s.month < 0 ? 'neg' : '', money(s.month)));
+        txt.appendChild(document.createTextNode(' profit this month · ' + money(s.tied) + ' tied up'));
       } else txt.appendChild(document.createTextNode('No sales yet · ' + money(s.tied) + ' tied up'));
       pl.appendChild(txt);
       pl.appendChild(icon('chev', 16, 2.4));
@@ -1608,16 +1619,6 @@
 
     var box = $('home-body');
     box.replaceChildren();
-    if (backupDue()) {
-      var nudge = el('div', 'card nudge');
-      nudge.style.marginTop = '12px';
-      var nt = el('div', 'nt');
-      nt.appendChild(el('b', '', 'Time to back up'));
-      nt.appendChild(el('div', 'meta', lastBackup() ? 'Last backup ' + agoText(lastBackup()).toLowerCase() : 'You have not backed up yet'));
-      nudge.appendChild(nt);
-      nudge.appendChild(button('add-pill', 'Back up', doBackup));
-      box.appendChild(nudge);
-    }
     // First use: one clear action.
     if (!items.length) {
       var fu = el('div', 'first-use');
@@ -1643,20 +1644,22 @@
     sb.addEventListener('click', function () { showPicker(); });
     box.appendChild(sb);
 
+    // Marking things sold starts from the search above; this row is the way to browse the whole Listed step.
     var listed = listedItems();
-    var lab = el('div', 'home-label');
-    lab.appendChild(el('span', '', 'Newest listed'));
     if (listed.length) {
-      var all = el('button', 'link');
-      all.type = 'button';
-      all.appendChild(document.createTextNode('See all ' + compact(listed.length)));
-      all.appendChild(icon('chev', 16, 2.4));
-      all.addEventListener('click', function () { openStep('listed'); });
-      lab.appendChild(all);
+      var br = el('button', 'quiet-row');
+      br.type = 'button';
+      br.style.marginTop = '12px';
+      br.appendChild(el('span', 'qn listed', compact(listed.length)));
+      br.appendChild(el('span', 'qt', 'Listed items · browse all'));
+      br.appendChild(icon('chev', 16, 2.4));
+      br.addEventListener('click', function () { openStep('listed'); });
+      box.appendChild(br);
+    } else {
+      var nl = el('div', 'meta', 'Nothing is listed right now.');
+      nl.style.margin = '12px 4px 0';
+      box.appendChild(nl);
     }
-    box.appendChild(lab);
-    if (!listed.length) box.appendChild(el('div', 'meta', 'Nothing is listed right now.'));
-    listed.slice(0, 3).forEach(function (i) { box.appendChild(soldRow(i)); });
 
     var unl = items.filter(function (i) { return i.stage === 'unlisted' && !i.archived && !i.shipped; }).length;
     if (unl) {
@@ -1669,18 +1672,50 @@
       box.appendChild(q);
     }
 
-    // Jobs waiting at home: parcels to ship, items to pack.
+    // Jobs waiting at home, in the order the work happens: pack, ship, then back up when it is due.
     var toShip = items.filter(function (i) { return i.stage === 'packed' && !i.shipped; });
     var toPack = items.filter(function (i) { return i.stage === 'sold' && !i.shipped; });
     var parcels = {};
     toShip.forEach(function (i) { parcels[i.parcel || i.id || i.name] = true; });
     var nParcels = Object.keys(parcels).length;
-    if (toShip.length || toPack.length) {
+    var due = backupDue();
+    if (toShip.length || toPack.length || due) {
       box.appendChild(el('div', 'home-label', 'Waiting on you'));
+      if (toPack.length) {
+        // The same Sold cards as the Sold step (gather, then Pack), so the job can be done from here.
+        var groups = [], seenP = {};
+        toPack.forEach(function (i) {
+          if (i.parcel) { if (seenP[i.parcel]) return; seenP[i.parcel] = true; }
+          groups.push(membersOf(i));
+        });
+        var pg = el('div', 'pack-group');
+        var ph = el('div', 'pg-head');
+        ph.appendChild(el('div', 'pg-title', toPack.length + (toPack.length === 1 ? ' item to pack' : ' items to pack')));
+        // One card at a time keeps Ship and Back up on the first screen; the next one slides up as you pack.
+        if (groups.length > 1) {
+          var seeAll = el('button', 'link');
+          seeAll.type = 'button';
+          seeAll.appendChild(document.createTextNode('See all'));
+          seeAll.appendChild(icon('chev', 16, 2.4));
+          seeAll.addEventListener('click', function () { openStep('sold'); });
+          ph.appendChild(seeAll);
+        }
+        pg.appendChild(ph);
+        groups.slice(0, 1).forEach(function (m) { pg.appendChild(parcelCard(m, 'sold', { home: true })); });
+        box.appendChild(pg);
+      }
       if (toShip.length) box.appendChild(taskBanner('ship', nParcels + (nParcels === 1 ? ' parcel to ship' : ' parcels to ship'),
         namesText(toShip), 'Ship all', function () { openStep('packed'); }, shipAll));
-      if (toPack.length) box.appendChild(taskBanner('pack', toPack.length + (toPack.length === 1 ? ' item to pack' : ' items to pack'),
-        namesText(toPack), 'Open', function () { openStep('sold'); }, function () { openStep('sold'); }));
+      if (due) {
+        var nudge = el('div', 'card nudge');
+        nudge.style.margin = '0 0 8px';
+        var nt = el('div', 'nt');
+        nt.appendChild(el('b', '', 'Time to back up'));
+        nt.appendChild(el('div', 'meta', lastBackup() ? 'Last backup ' + agoText(lastBackup()).toLowerCase() : 'You have not backed up yet'));
+        nudge.appendChild(nt);
+        nudge.appendChild(button('add-pill', 'Back up', doBackup));
+        box.appendChild(nudge);
+      }
     } else {
       var cu = el('div', 'caught-up');
       var ci = el('div', 'cu-ic');
@@ -2291,15 +2326,16 @@
 
   // One card per sale. The button on the right changes with the step: Pack (Sold), Ship (Packed). Shipped cards have no button.
   // A lone item shows its photo; a bundle shows a photo stack, the app, the profit, and an item list you can open or close.
-  function parcelCard(members, mode) {
+  function parcelCard(members, mode, opts) {
     var lead = members[0];
     var multi = members.length > 1;
     var card = el('div', 'parcel s-' + (mode === 'sold' ? 'sold' : mode === 'shipped' ? 'done' : 'packed'));
     var need = members.filter(function (i) { return !!i.location; });
     var done = need.filter(function (i) { return i.gathered; }).length;
     var pid = lead.parcel;
-    var open = multi && (parcelOpen[pid] !== undefined ? parcelOpen[pid] : mode === 'sold');
-    function toggle() { parcelOpen[pid] = !open; renderList(); }
+    // On Home a Sold bundle starts closed to save room; in the Sold step it starts open.
+    var open = multi && (parcelOpen[pid] !== undefined ? parcelOpen[pid] : (mode === 'sold' && !(opts && opts.home)));
+    function toggle() { parcelOpen[pid] = !open; refresh(); }
 
     var head = el('div', 'parcel-head');
     // One item keeps its photo here, unless it has a place to tick off below (then the photo goes in that row).
