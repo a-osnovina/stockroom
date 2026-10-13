@@ -205,6 +205,24 @@
   .g-name { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
   .g-sub { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
   .gather-row.on .g-name { color: var(--muted); }
+  /* Bundle: photo stack, progress segments, open/close list */
+  .stack { position: relative; width: 56px; height: 56px; flex: none; }
+  .stack-i { position: absolute; border-radius: 8px; border: 2px solid var(--card); box-sizing: border-box; overflow: hidden; background: var(--bg); color: var(--muted); display: flex; align-items: center; justify-content: center; }
+  .stack-i img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .stack-n { position: absolute; right: -2px; bottom: -2px; min-width: 20px; height: 20px; padding: 0 4px; box-sizing: border-box; border-radius: 10px; border: 2px solid var(--card); background: var(--solid); color: #0B1220; font-size: 12px; font-weight: 700; line-height: 16px; text-align: center; }
+  .item-meta.nw { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .prog { display: flex; gap: 4px; margin: 12px 4px 0; }
+  .prog span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+  .prog span.on { background: var(--green); }
+  .prog-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 6px 4px 0; }
+  .toggle { border: 0; background: none; color: var(--blue-text); font: inherit; font-size: 13px; font-weight: 700; min-height: 40px; padding: 0 0 0 12px; display: flex; align-items: center; gap: 4px; flex: none; }
+  .toggle.round-toggle { width: 44px; padding: 0; justify-content: center; }
+  .preview-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px 4px 0; }
+  .preview-row .meta { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gather-row.cl { min-height: 48px; }
+  .gather-row.cl .cl-name { flex: 1; min-width: 0; }
+  .gather-row.cl .cl-place { flex: none; }
+  .gather-row.on .cl-name { color: var(--muted); }
   .parcel-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 0 2px; }
   .ship-btn { min-height: 44px; min-width: 88px; justify-content: center; padding: 0 14px; border: 0; border-radius: 22px; background: var(--solid); color: #0B1220; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex: none; }
   .ship-btn:disabled { opacity: .35; }
@@ -755,6 +773,7 @@
     bars: '<path d="M5 20V10"/><path d="M12 20V4"/><path d="M19 20v-7"/>',
     phone: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M10 7h4"/>',
     down: '<path d="M6 9l6 6 6-6"/>',
+    up: '<path d="M6 15l6-6 6 6"/>',
     archive: '<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11h14V8M10 12h4"/>',
     qr: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v1M14 20h1M18 18v3h3"/>',
     box: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
@@ -1975,6 +1994,7 @@
   function packParcel(members) {
     var before = members.map(function (i) { return i.stage; });
     members.forEach(function (i) { i.stage = 'shipped'; });
+    if (members[0].parcel) delete parcelOpen[members[0].parcel];
     if (!save()) {
       members.forEach(function (i, k) { i.stage = before[k]; });
       alert('Could not save on this device. Is private browsing on?');
@@ -1986,6 +2006,7 @@
   // Ship: the parcel has gone. It moves to Shipped and still counts in your profit.
   function shipParcel(members) {
     members.forEach(function (i) { i.history = true; });
+    if (members[0].parcel) delete parcelOpen[members[0].parcel];
     if (!save()) {
       members.forEach(function (i) { delete i.history; });
       alert('Could not save on this device. Is private browsing on?');
@@ -2026,27 +2047,53 @@
     return thumb;
   }
 
+  // Which bundles have their item list open. Not listed = Sold bundles open (you are gathering), others closed.
+  var parcelOpen = {};
+
+  // A small stack of the bundle's photos with the item count, like one item's thumbnail.
+  function bundleStack(members) {
+    var n = Math.min(members.length, 3);
+    var two = n === 2;
+    var size = two ? 40 : 36;
+    var pos = two ? [[0, 14], [12, 2]] : [[0, 18], [10, 9], [20, 0]];
+    var box = el('div', 'stack');
+    for (var k = 0; k < n; k++) {
+      var t = el('div', 'stack-i');
+      t.style.width = size + 'px';
+      t.style.height = size + 'px';
+      t.style.left = pos[k][0] + 'px';
+      t.style.top = pos[k][1] + 'px';
+      if (members[k].photo) {
+        var img = document.createElement('img');
+        img.src = members[k].photo;
+        img.alt = '';
+        t.appendChild(img);
+      } else t.appendChild(icon('camera', 16));
+      box.appendChild(t);
+    }
+    box.appendChild(el('span', 'stack-n', String(members.length)));
+    return box;
+  }
+
   // One card per sale. The button on the right changes with the step: Pack (Sold), Ship (Packed), Back to List (Shipped).
-  // The total sits at the bottom right. A bundle has no photo in its header; each item shows its own.
+  // A lone item shows its photo; a bundle shows a photo stack, the app, the profit, and an item list you can open or close.
   function parcelCard(members, mode) {
     var lead = members[0];
     var multi = members.length > 1;
     var card = el('div', 'parcel s-' + (mode === 'sold' ? 'sold' : mode === 'history' ? 'done' : 'shipped'));
     var need = members.filter(function (i) { return !!i.location; });
     var done = need.filter(function (i) { return i.gathered; }).length;
+    var pid = lead.parcel;
+    var open = multi && (parcelOpen[pid] !== undefined ? parcelOpen[pid] : mode === 'sold');
+    function toggle() { parcelOpen[pid] = !open; renderList(); }
 
     var head = el('div', 'parcel-head');
-    // A bundle gets one tile that shows how many items are in it. One item keeps its photo here,
-    // unless it has a place to tick off below (then the photo goes in that row).
+    // One item keeps its photo here, unless it has a place to tick off below (then the photo goes in that row).
     var hasRows = mode === 'sold' && need.length > 0;
-    if (multi) {
-      var bundleTile = el('div', 'thumb bundle');
-      bundleTile.appendChild(icon('layers', 22));
-      bundleTile.appendChild(el('span', 'thumb-count', String(members.length)));
-      head.appendChild(bundleTile);
-    } else if (!hasRows) head.appendChild(itemThumb(lead));
+    if (multi) head.appendChild(bundleStack(members));
+    else if (!hasRows) head.appendChild(itemThumb(lead));
     var main = el('div', 'item-main');
-    main.appendChild(el('div', 'item-name' + (multi ? ' wrap' : ''), multi ? lead.name + ' + ' + (members.length - 1) + ' more' : lead.name));
+    main.appendChild(el('div', 'item-name' + (multi ? '' : ' wrap'), multi ? lead.name + ' + ' + (members.length - 1) + ' more' : lead.name));
     // Step tag, then the app, then the profit.
     var meta = el('div', 'item-meta');
     meta.appendChild(el('span', 'pill', mode === 'sold' ? 'Sold' : mode === 'shipped' ? 'Packed' : 'Shipped'));
@@ -2056,13 +2103,24 @@
     meta.appendChild(el('span', 'amt-inline ' + (pt.profit === null ? '' : pt.profit < 0 ? 'neg' : 'good'),
       pt.profit === null ? 'Total ' + money(pt.total) : signedText(pt.profit)));
     main.appendChild(meta);
+    // Where the bundle's items still are (only while gathering).
+    if (multi && mode === 'sold') {
+      var seen = {}, places = [];
+      members.forEach(function (i) {
+        if (i.location && !i.gathered && !seen[i.location.toLowerCase()]) { seen[i.location.toLowerCase()] = 1; places.push(i.location); }
+      });
+      if (places.length) main.appendChild(el('div', 'item-meta loc', places.join(' · ')));
+    }
     head.appendChild(main);
 
     var action = null;
-    if (mode === 'sold' && done >= need.length) {
+    if (mode === 'sold') {
+      // Always there, greyed out until every item with a place is ticked.
+      var ready = done >= need.length;
       action = el('button', 'ship-btn s-shipped');
       action.type = 'button';
-      action.setAttribute('aria-label', 'Pack ' + (multi ? 'this parcel' : lead.name));
+      action.disabled = !ready;
+      action.setAttribute('aria-label', 'Pack ' + (multi ? 'this parcel' : lead.name) + (ready ? '' : ' (gather every item first)'));
       action.appendChild(icon('box', 18));
       action.appendChild(document.createTextNode('Pack'));
       action.appendChild(icon('arrow', 16));
@@ -2085,52 +2143,89 @@
     if (action) head.appendChild(action);
     card.appendChild(head);
 
-    if (mode === 'sold') {
-      // A lone item with no place has nothing to tick, so it shows no rows at all.
-      if (need.length) {
-        var list = el('div', 'gather');
-        members.forEach(function (i) {
-          var label = multi ? i.name : where(i);
-          var sub = !i.location ? 'No spot' : multi ? where(i) + (i.gathered ? ' · gathered' : '') : (i.gathered ? 'Gathered' : 'Tap when you have it');
-          var rowEl = el(i.location ? 'button' : 'div', 'gather-row' + (i.gathered ? ' on' : '') + (i.location ? '' : ' none'));
-          if (i.location) {
-            rowEl.type = 'button';
-            rowEl.setAttribute('aria-pressed', i.gathered ? 'true' : 'false');
-            rowEl.setAttribute('aria-label', (i.gathered ? 'Gathered: ' : 'Gather ') + i.name + ' from ' + where(i));
-            rowEl.addEventListener('click', function () { setGathered(i, !i.gathered); });
-          }
-          rowEl.appendChild(itemThumb(i, true));
-          var txt = el('span', 'g-text');
-          txt.appendChild(el('span', 'g-name', label));
-          if (sub) txt.appendChild(el('span', 'g-sub', sub));
-          rowEl.appendChild(txt);
-          if (i.location) {
-            var box = el('span', 'gbox');
-            if (i.gathered) box.appendChild(icon('check', 16, 3));
-            rowEl.appendChild(box);
-          }
-          list.appendChild(rowEl);
-        });
-        card.appendChild(list);
+    // A row to tick off when you have the item.
+    function tickRow(i, compact) {
+      var rowEl = el(i.location ? 'button' : 'div', 'gather-row' + (compact ? ' cl' : '') + (i.gathered ? ' on' : '') + (i.location ? '' : ' none'));
+      if (i.location) {
+        rowEl.type = 'button';
+        rowEl.setAttribute('aria-pressed', i.gathered ? 'true' : 'false');
+        rowEl.setAttribute('aria-label', (i.gathered ? 'Gathered: ' : 'Gather ') + i.name + ' from ' + where(i));
+        rowEl.addEventListener('click', function () { setGathered(i, !i.gathered); });
       }
-    } else if (multi) {
-      var items = el('div', 'gather');
-      members.forEach(function (i) {
-        var r = el('div', 'gather-row plain');
-        r.appendChild(itemThumb(i, true));
-        var txt = el('span', 'g-text');
-        txt.appendChild(el('span', 'g-name', i.name));
-        r.appendChild(txt);
-        items.appendChild(r);
-      });
-      card.appendChild(items);
+      if (compact) {
+        if (i.location) {
+          var cb = el('span', 'gbox');
+          if (i.gathered) cb.appendChild(icon('check', 16, 3));
+          rowEl.appendChild(cb);
+        }
+        rowEl.appendChild(el('span', 'g-name cl-name', i.name));
+        rowEl.appendChild(el('span', 'g-sub cl-place', i.location ? where(i) : 'No spot'));
+        return rowEl;
+      }
+      rowEl.appendChild(itemThumb(i, true));
+      var txt = el('span', 'g-text');
+      txt.appendChild(el('span', 'g-name', where(i) || i.name));
+      txt.appendChild(el('span', 'g-sub', !i.location ? 'No spot' : (i.gathered ? 'Gathered' : 'Tap when you have it')));
+      rowEl.appendChild(txt);
+      if (i.location) {
+        var box = el('span', 'gbox');
+        if (i.gathered) box.appendChild(icon('check', 16, 3));
+        rowEl.appendChild(box);
+      }
+      return rowEl;
     }
 
-    // Only a bundle that is still being gathered has anything to say down here.
-    if (mode === 'sold' && multi && done < need.length) {
-      var foot = el('div', 'parcel-foot');
-      foot.appendChild(el('div', 'meta', done + ' of ' + need.length + ' gathered'));
-      card.appendChild(foot);
+    if (!multi) {
+      // A lone item with no place has nothing to tick, so it shows no rows at all.
+      if (mode === 'sold' && need.length) {
+        var one = el('div', 'gather');
+        one.appendChild(tickRow(lead, false));
+        card.appendChild(one);
+      }
+    } else if (mode === 'sold' && need.length) {
+      // One segment per item to gather, then the count and the open/close link.
+      var prog = el('div', 'prog');
+      need.forEach(function (i) { prog.appendChild(el('span', i.gathered ? 'on' : '')); });
+      card.appendChild(prog);
+      var prow = el('div', 'prog-row');
+      prow.appendChild(el('span', 'meta', done >= need.length ? 'All gathered' : done + ' of ' + need.length + ' gathered'));
+      var tg = el('button', 'toggle');
+      tg.type = 'button';
+      tg.setAttribute('aria-expanded', open ? 'true' : 'false');
+      tg.appendChild(document.createTextNode(open ? 'Hide items' : 'Show items'));
+      tg.appendChild(icon(open ? 'up' : 'down', 14, 2.4));
+      tg.addEventListener('click', toggle);
+      prow.appendChild(tg);
+      card.appendChild(prow);
+      if (open) {
+        var cl = el('div', 'gather');
+        members.forEach(function (i) { cl.appendChild(tickRow(i, true)); });
+        card.appendChild(cl);
+      }
+    } else {
+      // Packed, Shipped (or a Sold bundle with nothing to tick): the names in one line, and a chevron to open the list.
+      var prev = el('div', 'preview-row');
+      prev.appendChild(el('span', 'meta', members.map(function (i) { return i.name; }).join(', ')));
+      var chev = el('button', 'toggle round-toggle');
+      chev.type = 'button';
+      chev.setAttribute('aria-label', open ? 'Hide items' : 'Show items');
+      chev.setAttribute('aria-expanded', open ? 'true' : 'false');
+      chev.appendChild(icon(open ? 'up' : 'down', 16, 2.4));
+      chev.addEventListener('click', toggle);
+      prev.appendChild(chev);
+      card.appendChild(prev);
+      if (open) {
+        var items = el('div', 'gather');
+        members.forEach(function (i) {
+          var r = el('div', 'gather-row plain');
+          r.appendChild(itemThumb(i, true));
+          var txt = el('span', 'g-text');
+          txt.appendChild(el('span', 'g-name', i.name));
+          r.appendChild(txt);
+          items.appendChild(r);
+        });
+        card.appendChild(items);
+      }
     }
     // Packed parcels edit the sale (price and app). Only a lone item still waiting in Sold opens its full details.
     return swipeWrap(card, lead, members, (mode === 'sold' && !multi) ? null : function () { openSaleEdit(members); });
