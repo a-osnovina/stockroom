@@ -108,7 +108,42 @@
   .meta { font-size: 13px; color: var(--muted); }
   .empty { text-align: center; color: var(--muted); padding: 40px 16px; font-size: 15px; }
 
-  /* Home step cards */
+  /* Home: search first */
+  header .profit-line { flex: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 2px; background: none; border: 0; padding: 0; color: var(--muted); font-size: 14px; text-align: left; }
+  .profit-line b { color: var(--green); }
+  .profit-line b.neg { color: var(--red); }
+  .home-h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.5px; margin: 6px 4px 0; }
+  .home-search { display: flex; align-items: center; gap: 12px; width: 100%; height: 60px; margin-top: 14px; border: 0; border-radius: 30px; background: var(--card); color: var(--muted); font-size: 17px; padding: 0 20px; text-align: left; }
+  .home-label { display: flex; align-items: center; margin: 16px 4px 8px; font-size: 15px; font-weight: 700; color: var(--muted); }
+  .home-label span { flex: 1; }
+  .home-label .link { padding: 0; min-height: 36px; font-size: 14px; display: flex; align-items: center; gap: 2px; }
+  .sold-row { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 12px; padding: 6px 8px; margin-bottom: 6px; }
+  .sold-row .thumb { width: 40px; height: 40px; }
+  .sold-main { flex: 1; min-width: 0; }
+  .sold-main .item-name { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sold-btn { min-height: 44px; padding: 0 14px; border: 0; border-radius: 22px; background: #4FD1B5; color: #0B1220; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex: none; }
+  .quiet-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; margin-top: 6px; background: none; border: 1px dashed var(--line); border-radius: 12px; color: #C3CADB; font-size: 15px; padding: 0 8px; text-align: left; }
+  .quiet-row .qn { width: 28px; height: 28px; border-radius: 8px; background: #3B3320; color: #F5C46E; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; }
+  .quiet-row .qt { flex: 1; }
+  .task-banner { display: flex; align-items: center; gap: 12px; border-radius: 14px; padding: 10px 10px 10px 14px; margin-bottom: 8px; }
+  .task-banner .tb-main { flex: 1; min-width: 0; background: none; border: 0; padding: 0; color: var(--text); text-align: left; min-height: 44px; }
+  .task-banner .tb-title { font-size: 16px; font-weight: 700; }
+  .task-banner .tb-sub { font-size: 13px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-banner .tb-btn { min-height: 44px; padding: 0 16px; border: 0; border-radius: 22px; font-size: 15px; font-weight: 700; flex: none; color: #0B1220; }
+  .task-banner.ship { background: #35294B; } .task-banner.ship .tb-sub { color: #D9C6F5; } .task-banner.ship .tb-btn { background: #F1F3F8; }
+  .task-banner.pack { background: #1D3A37; } .task-banner.pack .tb-sub { color: #9FE3D3; } .task-banner.pack .tb-btn { background: #4FD1B5; }
+  .caught-up { display: flex; align-items: center; gap: 14px; background: var(--card); border-radius: 16px; padding: 18px 16px; margin-top: 20px; }
+  .caught-up .cu-ic { width: 44px; height: 44px; border-radius: 22px; background: #1D3A37; color: var(--green); display: flex; align-items: center; justify-content: center; flex: none; }
+  .caught-up b { display: block; font-size: 17px; }
+  .first-use { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: 90px; padding: 0 24px; }
+  .first-use .fu-ic { width: 88px; height: 88px; border-radius: 44px; background: var(--card); color: var(--blue); display: flex; align-items: center; justify-content: center; }
+  .first-use h2 { font-size: 22px; margin: 22px 0 0; }
+  .first-use p { font-size: 15px; color: var(--muted); margin: 8px 0 0; line-height: 1.45; }
+  .first-use .fu-btn { display: flex; align-items: center; gap: 10px; height: 56px; margin-top: 26px; padding: 0 28px; border: 0; border-radius: 28px; background: var(--blue); color: #0B1220; font-size: 17px; font-weight: 700; }
+  .sp-chips { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 2px; }
+  .sp-chips .chip { flex: none; }
+
+  /* Home step cards (old) */
   .step-card { display: flex; align-items: center; gap: 4px; background: var(--card); border-radius: 12px; padding: 6px 12px 6px 6px; margin-bottom: 8px; }
   .step-open {
     flex: 1; min-width: 0; min-height: 56px; display: flex; align-items: center; gap: 12px; text-align: left;
@@ -424,7 +459,7 @@
     background: linear-gradient(to bottom, rgba(18, 21, 28, 0), var(--bg) 70%); z-index: -1; pointer-events: none;
   }
   .pill-nav {
-    pointer-events: auto; flex: 1; max-width: 300px; height: 68px; padding: 6px; display: flex; gap: 4px;
+    pointer-events: auto; flex: 1; max-width: 330px; height: 68px; padding: 6px; display: flex; gap: 2px;
     background: var(--card); border: 1px solid var(--line); border-radius: 34px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   }
   .tab {
@@ -441,18 +476,13 @@
 <body>
 
 <main id="home-view" class="has-dock">
-  <header><h1 style="flex:1">Stockroom</h1><button class="round" id="settings-btn" type="button" aria-label="Settings"></button></header>
-  <div id="home-summary"></div>
-  <div class="section">
-    <h2>Steps</h2>
-    <button class="link" id="view-all" type="button">View all items</button>
-  </div>
-  <div id="home-steps"></div>
+  <header><button class="profit-line" id="home-profit" type="button"></button><button class="round" id="settings-btn" type="button" aria-label="Settings"></button></header>
+  <h1 class="home-h1" id="home-h1">What sold?</h1>
+  <div id="home-body"></div>
 </main>
 
 <main id="list-view" class="has-dock" hidden>
   <header>
-    <button class="round" id="list-back" type="button" aria-label="Back to home"></button>
     <h1 id="list-title">All items</h1>
   </header>
   <nav class="steps" id="steps" aria-label="Steps"></nav>
@@ -465,6 +495,21 @@
   </div>
   <div class="apps-panel" id="filters" hidden></div>
   <div id="list"></div>
+</main>
+
+<main id="picker-view" class="has-dock" hidden>
+  <header>
+    <button class="round" id="sp-back" type="button" aria-label="Back to home"></button>
+    <h1>Mark as sold</h1>
+  </header>
+  <div class="searchrow">
+    <div class="search-wrap">
+      <label for="sp-search" style="position:absolute;left:-9999px">Search your listed items</label>
+      <input type="search" id="sp-search" placeholder="Search your listed items" autocomplete="off">
+    </div>
+  </div>
+  <div class="sp-chips" id="sp-chips"></div>
+  <div id="sp-list"></div>
 </main>
 
 <main id="add-view" hidden>
@@ -591,6 +636,7 @@
 <div class="dock" id="dock">
   <nav class="pill-nav" aria-label="Main">
     <button class="tab" id="tab-home" type="button"></button>
+    <button class="tab" id="tab-items" type="button"></button>
     <button class="tab" id="tab-places" type="button"></button>
     <button class="tab" id="tab-summary" type="button"></button>
   </nav>
@@ -762,9 +808,8 @@
   // gone out is stage 'packed' with shipped = true; the Shipped chip shows those items.
   // The bar at the top: "All" shows every item, each step shows the items in it.
   var BAR = [{ id: 'all', label: 'All' }].concat(STAGES, [{ id: 'shipped', label: 'Shipped' }]);
-  var HOME_STEPS = ['unlisted', 'listed', 'sold', 'packed'];
-  var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Vinted', 'Facebook Marketplace', 'Etsy', 'Other'];
-  var VIEWS = ['home-view', 'list-view', 'add-view', 'places-view', 'place-view', 'summary-view', 'receipt-view', 'settings-view'];
+    var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Vinted', 'Facebook Marketplace', 'Etsy', 'Other'];
+  var VIEWS = ['home-view', 'list-view', 'picker-view', 'add-view', 'places-view', 'place-view', 'summary-view', 'receipt-view', 'settings-view'];
   var KEY = 'stockroom.items.v1';
 
   var ICONS = {
@@ -776,6 +821,8 @@
     back: '<path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/>',
     arrow: '<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>',
     plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+    list: '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/>',
+    chev: '<path d="M9 6l6 6-6 6"/>',
     home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
     pin: '<path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>',
     bars: '<path d="M5 20V10"/><path d="M12 20V4"/><path d="M19 20v-7"/>',
@@ -983,8 +1030,8 @@
     currentView = id;
     VIEWS.forEach(function (v) { $(v).hidden = (v !== id); });
     $('dock').hidden = (id === 'add-view');
-    var active = id === 'settings-view' ? 'home' : (id === 'places-view' || id === 'place-view') ? 'places' : (id === 'summary-view' || id === 'receipt-view') ? 'summary' : 'home';
-    ['home', 'places', 'summary'].forEach(function (t) {
+    var active = id === 'settings-view' ? 'home' : (id === 'places-view' || id === 'place-view') ? 'places' : (id === 'summary-view' || id === 'receipt-view') ? 'summary' : id === 'list-view' ? 'items' : 'home';
+    ['home', 'items', 'places', 'summary'].forEach(function (t) {
       var b = $('tab-' + t);
       b.classList.toggle('on', t === active);
       if (t === active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
@@ -1471,12 +1518,91 @@
 
   // ---------- home ----------
 
+  function listedItems() {
+    return items.filter(function (i) { return i.stage === 'listed' && !i.shipped; })
+      .map(function (x, n) { return { x: x, n: n }; })
+      .sort(function (p, q) { return ((q.x.createdAt || 0) - (p.x.createdAt || 0)) || (p.n - q.n); })
+      .map(function (o) { return o.x; });
+  }
+
+  // One compact row with the teal Sold button: used on Home and in the Mark as sold picker.
+  function soldRow(i) {
+    var row = el('div', 'sold-row');
+    var thumb = el('div', 'thumb');
+    if (i.photo) {
+      var img = document.createElement('img');
+      img.src = i.photo;
+      img.alt = '';
+      thumb.appendChild(img);
+    } else thumb.appendChild(icon('camera', 20));
+    row.appendChild(thumb);
+    var main = el('div', 'sold-main');
+    main.appendChild(el('div', 'item-name', i.name));
+    var bits = [];
+    if (i.platforms && i.platforms.length) bits.push(i.platforms.join(', '));
+    if (i.createdAt) bits.push('added ' + agoText(i.createdAt).toLowerCase());
+    main.appendChild(el('div', 'meta', bits.join(' · ')));
+    row.appendChild(main);
+    var b = el('button', 'sold-btn');
+    b.type = 'button';
+    b.setAttribute('aria-label', 'Mark ' + i.name + ' as sold');
+    b.appendChild(document.createTextNode('Sold'));
+    b.appendChild(icon('arrow', 16, 2.4));
+    b.addEventListener('click', function () { openSoldSheet(i); });
+    row.appendChild(b);
+    return row;
+  }
+
+  function namesText(list) {
+    var names = list.map(function (i) { return i.name; });
+    return names.length <= 2 ? names.join(', ') : names.slice(0, 1).join('') + ', +' + (names.length - 1) + ' more';
+  }
+
+  function taskBanner(kind, title, sub, btnText, onOpen, onBtn) {
+    var b = el('div', 'task-banner ' + kind);
+    var main = el('button', 'tb-main');
+    main.type = 'button';
+    main.appendChild(el('div', 'tb-title', title));
+    main.appendChild(el('div', 'tb-sub', sub));
+    main.addEventListener('click', onOpen);
+    b.appendChild(main);
+    var btn = el('button', 'tb-btn', btnText);
+    btn.type = 'button';
+    btn.addEventListener('click', onBtn);
+    b.appendChild(btn);
+    return b;
+  }
+
+  function openStep(id) {
+    stage = id;
+    appsOpen = false;
+    if (id === 'unlisted') subTab = 'draft';
+    showList();
+  }
+
   function renderHome() {
     var s = stats();
-    var box = $('home-summary');
+    // The line at the top: profit and money tied up. Tapping it opens Summary.
+    var pl = $('home-profit');
+    pl.replaceChildren();
+    if (!items.length) pl.appendChild(el('span', '', 'Nothing sold yet'));
+    else {
+      var txt = el('span');
+      if (s.counted > 0) {
+        txt.appendChild(el('b', s.total < 0 ? 'neg' : '', money(s.total)));
+        txt.appendChild(document.createTextNode(' profit · ' + money(s.tied) + ' tied up'));
+      } else txt.appendChild(document.createTextNode('No sales yet · ' + money(s.tied) + ' tied up'));
+      pl.appendChild(txt);
+      pl.appendChild(icon('chev', 16, 2.4));
+    }
+    pl.disabled = !items.length;
+    pl.setAttribute('aria-label', items.length ? 'Open Summary' : 'Nothing sold yet');
+
+    var box = $('home-body');
     box.replaceChildren();
     if (backupDue()) {
       var nudge = el('div', 'card nudge');
+      nudge.style.marginTop = '12px';
       var nt = el('div', 'nt');
       nt.appendChild(el('b', '', 'Time to back up'));
       nt.appendChild(el('div', 'meta', lastBackup() ? 'Last backup ' + agoText(lastBackup()).toLowerCase() : 'You have not backed up yet'));
@@ -1484,53 +1610,118 @@
       nudge.appendChild(button('add-pill', 'Back up', doBackup));
       box.appendChild(nudge);
     }
-    box.appendChild(bigCard(s));
-
-    var card = el('div', 'card');
-    card.appendChild(el('div', 'card-label', 'Profit by app'));
-    if (s.apps.length === 0) {
-      card.appendChild(el('div', 'meta', 'No sales yet.'));
-      card.lastChild.style.marginTop = '8px';
-    } else {
-      var row = el('div', 'apps');
-      var max = s.apps[0].profit;
-      s.apps.slice(0, 4).forEach(function (a) {
-        var c = el('div', 'app');
-        c.appendChild(el('div', 'app-name', a.name));
-        c.appendChild(el('div', 'app-val ' + (a.profit < 0 ? 'neg' : 'good'), shortMoney(a.profit, 10000)));
-        var bar = el('div', 'bar');
-        var fill = el('span');
-        fill.style.width = barWidth(a.profit, max);
-        bar.appendChild(fill);
-        c.appendChild(bar);
-        row.appendChild(c);
-      });
-      card.appendChild(row);
+    // First use: one clear action.
+    if (!items.length) {
+      var fu = el('div', 'first-use');
+      var fi = el('div', 'fu-ic');
+      fi.appendChild(icon('tag', 40, 1.8));
+      fu.appendChild(fi);
+      fu.appendChild(el('h2', '', 'Add your first item'));
+      fu.appendChild(el('p', '', 'Items you list show up here, so you can mark them sold in a tap.'));
+      var fb = el('button', 'fu-btn');
+      fb.type = 'button';
+      fb.appendChild(icon('plus', 22, 2.4));
+      fb.appendChild(document.createTextNode('Add an item'));
+      fb.addEventListener('click', function () { showAdd(); });
+      fu.appendChild(fb);
+      box.appendChild(fu);
+      return;
     }
-    box.appendChild(card);
 
-    var steps = $('home-steps');
-    steps.replaceChildren();
-    HOME_STEPS.forEach(function (id) {
-      var inStage = items.filter(function (i) { return i.stage === id && !i.shipped; });
-      var c = el('div', 'step-card s-' + id);
-      var open = el('button', 'step-open');
-      open.type = 'button';
-      var tile = el('span', 'tile');
-      tile.appendChild(icon(STAGE_ICON[id], 22));
-      open.appendChild(tile);
-      var text = el('span', 'step-text');
-      text.appendChild(el('div', 'step-title', stageLabel(id)));
-      text.appendChild(el('div', 'step-sub', inStage.length === 0 ? 'Nothing here yet'
-        : inStage[0].name + (inStage.length > 1 ? ' and ' + (inStage.length - 1) + ' more' : '')));
-      open.appendChild(text);
-      open.addEventListener('click', function () { stage = id; showList(); });
-      c.appendChild(open);
-      var addBtn = button('add-pill', 'Add', function () { showAdd(id); });
-      addBtn.setAttribute('aria-label', 'Add an item to ' + stageLabel(id));
-      c.appendChild(addBtn);
-      steps.appendChild(c);
+    var sb = el('button', 'home-search');
+    sb.type = 'button';
+    sb.appendChild(icon('search', 22));
+    sb.appendChild(document.createTextNode('Search your listed items'));
+    sb.addEventListener('click', function () { showPicker(); });
+    box.appendChild(sb);
+
+    var listed = listedItems();
+    var lab = el('div', 'home-label');
+    lab.appendChild(el('span', '', 'Newest listed'));
+    if (listed.length) {
+      var all = el('button', 'link');
+      all.type = 'button';
+      all.appendChild(document.createTextNode('See all ' + compact(listed.length)));
+      all.appendChild(icon('chev', 16, 2.4));
+      all.addEventListener('click', function () { openStep('listed'); });
+      lab.appendChild(all);
+    }
+    box.appendChild(lab);
+    if (!listed.length) box.appendChild(el('div', 'meta', 'Nothing is listed right now.'));
+    listed.slice(0, 3).forEach(function (i) { box.appendChild(soldRow(i)); });
+
+    var unl = items.filter(function (i) { return i.stage === 'unlisted' && !i.archived && !i.shipped; }).length;
+    if (unl) {
+      var q = el('button', 'quiet-row');
+      q.type = 'button';
+      q.appendChild(el('span', 'qn', compact(unl)));
+      q.appendChild(el('span', 'qt', unl === 1 ? 'Unlisted item needs an app' : 'Unlisted items need an app'));
+      q.appendChild(icon('chev', 16, 2.4));
+      q.addEventListener('click', function () { openStep('unlisted'); });
+      box.appendChild(q);
+    }
+
+    // Jobs waiting at home: parcels to ship, items to pack.
+    var toShip = items.filter(function (i) { return i.stage === 'packed' && !i.shipped; });
+    var toPack = items.filter(function (i) { return i.stage === 'sold' && !i.shipped; });
+    var parcels = {};
+    toShip.forEach(function (i) { parcels[i.parcel || i.id || i.name] = true; });
+    var nParcels = Object.keys(parcels).length;
+    if (toShip.length || toPack.length) {
+      box.appendChild(el('div', 'home-label', 'Waiting on you'));
+      if (toShip.length) box.appendChild(taskBanner('ship', nParcels + (nParcels === 1 ? ' parcel to ship' : ' parcels to ship'),
+        namesText(toShip), 'Ship all', function () { openStep('packed'); }, shipAll));
+      if (toPack.length) box.appendChild(taskBanner('pack', toPack.length + (toPack.length === 1 ? ' item to pack' : ' items to pack'),
+        namesText(toPack), 'Open', function () { openStep('sold'); }, function () { openStep('sold'); }));
+    } else {
+      var cu = el('div', 'caught-up');
+      var ci = el('div', 'cu-ic');
+      ci.appendChild(icon('check', 24, 2.6));
+      cu.appendChild(ci);
+      var ct = el('div');
+      ct.appendChild(el('b', '', 'All caught up'));
+      ct.appendChild(el('div', 'meta', 'Nothing to pack or ship.'));
+      cu.appendChild(ct);
+      box.appendChild(cu);
+    }
+  }
+
+  // ---------- mark as sold picker ----------
+
+  var pickQuery = '';
+  var pickApp = null;
+
+  function showPicker() {
+    pickQuery = '';
+    pickApp = null;
+    $('sp-search').value = '';
+    renderPicker();
+    showView('picker-view');
+    $('sp-search').focus(); // the person tapped search to type, so the keyboard opens right away
+  }
+
+  function renderPicker() {
+    var all = listedItems();
+    var apps = PLATFORMS.filter(function (p) { return all.some(function (i) { return i.platforms.indexOf(p) !== -1; }); });
+    if (pickApp && apps.indexOf(pickApp) === -1) pickApp = null;
+    var chips = $('sp-chips');
+    chips.replaceChildren();
+    chips.hidden = apps.length < 2;
+    [null].concat(apps).forEach(function (p) {
+      chips.appendChild(chip(p === null ? 'All apps' : p, p === pickApp, function () { pickApp = p; renderPicker(); }));
     });
+    var q = pickQuery.trim().toLowerCase();
+    var vis = all.filter(function (i) {
+      return (!q || i.name.toLowerCase().indexOf(q) !== -1 || (i.location || '').toLowerCase().indexOf(q) !== -1) &&
+        (!pickApp || i.platforms.indexOf(pickApp) !== -1);
+    });
+    var box = $('sp-list');
+    box.replaceChildren();
+    if (!vis.length) {
+      box.appendChild(el('div', 'empty', all.length ? 'No listed item matches.' : 'Nothing is listed right now.'));
+      return;
+    }
+    vis.forEach(function (i) { box.appendChild(soldRow(i)); });
   }
 
   function showHome() {
@@ -2312,6 +2503,7 @@
   function refresh() {
     if (currentView === 'list-view') { renderSteps(); renderFilters(); renderList(); }
     else if (currentView === 'home-view') renderHome();
+    else if (currentView === 'picker-view') renderPicker();
     else if (currentView === 'places-view') renderPlaces();
     else if (currentView === 'summary-view') renderSummary();
     else if (currentView === 'receipt-view') renderReceipt();
@@ -3128,14 +3320,14 @@
   function build() {
     $('settings-btn').appendChild(icon('gear', 22));
     $('settings-back').appendChild(icon('back', 22));
-    $('list-back').appendChild(icon('back', 22));
+    $('sp-back').appendChild(icon('back', 22));
     $('add-back').appendChild(icon('back', 22));
     $('place-back').appendChild(icon('back', 22));
     $('receipt-back').appendChild(icon('back', 22));
     $('place-search-btn').appendChild(icon('search', 22));
     $('search-x').appendChild(icon('x', 18));
     $('place-search-x').appendChild(icon('x', 18));
-    [['tab-home', 'home', 'Home'], ['tab-places', 'pin', 'Places'], ['tab-summary', 'bars', 'Summary']].forEach(function (t) {
+    [['tab-home', 'home', 'Home'], ['tab-items', 'list', 'Items'], ['tab-places', 'pin', 'Places'], ['tab-summary', 'bars', 'Summary']].forEach(function (t) {
       var b = $(t[0]);
       b.appendChild(icon(t[1], 24));
       b.appendChild(el('span', '', t[2]));
@@ -3155,14 +3347,20 @@
     });
   }
 
-  $('view-all').addEventListener('click', function () { stage = 'all'; showList(); });
-  $('list-back').addEventListener('click', function () { showHome(); });
+  $('home-profit').addEventListener('click', showSummary);
+  $('sp-back').addEventListener('click', showHome);
+  $('sp-search').addEventListener('input', function (e) { pickQuery = e.target.value; renderPicker(); });
   $('settings-btn').addEventListener('click', showSettings);
   $('settings-back').addEventListener('click', showHome);
   $('restore-input').addEventListener('change', onRestorePicked);
   $('rs-cancel').addEventListener('click', closeRestore);
   $('rs-confirm').addEventListener('click', confirmRestore);
   $('tab-home').addEventListener('click', showHome);
+  // Items reopens on the step you left. Tapping it again while you are on it goes back to All.
+  $('tab-items').addEventListener('click', function () {
+    if (currentView === 'list-view') { stage = 'all'; appsOpen = false; }
+    showList();
+  });
   $('tab-places').addEventListener('click', showPlaces);
   $('tab-summary').addEventListener('click', showSummary);
   $('fab').addEventListener('click', function () { showAdd(); });

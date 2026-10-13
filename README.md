@@ -5,13 +5,18 @@ and your items are saved on your own device. No accounts, no server.
 
 ## What it does so far
 
-A dark, easy-to-scan look. A floating bar at the bottom has three tabs (Home, Places, Summary)
+A dark, easy-to-scan look. A floating bar at the bottom has four tabs (Home, Items, Places, Summary)
 and a round **+** button to add an item from anywhere.
 
-**Home**
-- Total profit and money tied up in unsold items at the top, then profit for each app.
-- A card for each step (Unlisted, Listed, Sold, Packed) showing the first item in it and how many more there are. Tap a card to open that step, or tap its **Add** button to add an item straight into it.
-- "View all items" opens the full list.
+**Home** is built around jobs to do, search first.
+- The line at the top shows profit and money tied up; tap it to open Summary.
+- **What sold?** with a big search box. Tapping it opens **Mark as sold** with the keyboard already up: your Listed items, newest first, a filter by app, and a teal **Sold** button on each row.
+- **Newest listed** shows the last three listed items, each with its own **Sold** button, and **See all N** opens the Listed step.
+- A quiet row for Unlisted items that still need an app opens Unlisted.
+- **Waiting on you**: a purple banner "N parcels to ship" with **Ship all**, and a teal banner "N items to pack" with **Open**. Tap a banner to open that step. When there is nothing to pack or ship it becomes an "All caught up" card.
+- With no items yet, Home shows only **Add an item**.
+
+**Items** tab opens the step list below. It reopens on the step you left; tapping Items again while you are on it goes back to All.
 
 **Step list**
 - A step bar at the top: All > Unlisted > Listed > Sold > Packed > Shipped. "All" shows every item with a small tag for its step, in the same order as the bar, with shipped items (white **Shipped** tag) last. Tap a step to see only the items in it; **Shipped** (the last chip, soft white) holds the parcels you have sent; each step shows how many items it holds (a step with none is dimmed).
