@@ -263,7 +263,6 @@
   .ship-btn { min-height: 44px; min-width: 88px; justify-content: center; padding: 0 14px; border: 0; border-radius: 22px; background: var(--solid); color: #0B1220; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex: none; }
   .ship-btn:disabled { opacity: .35; }
   .ship-all { width: 100%; min-height: 52px; margin: 0 0 12px; border: 0; border-radius: 26px; background: #FF9EC0; color: #0B1220; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
-  .ship-btn.back-btn { background: var(--blue-bg); color: var(--blue-text); }
   .next { width: 44px; height: 44px; border: 0; border-radius: 22px; background: var(--line); color: var(--fg); display: flex; align-items: center; justify-content: center; flex: none; }
 
   /* Places */
@@ -843,7 +842,6 @@
     qr: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v1M14 20h1M18 18v3h3"/>',
     box: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
     layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
-    undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     sliders: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
@@ -1755,11 +1753,6 @@
       open.appendChild(text);
       open.addEventListener('click', function () { openStep(id); });
       c.appendChild(open);
-      if (id !== 'shipped') {
-        var addBtn = button('add-pill', 'Add', function () { showAdd(id); });
-        addBtn.setAttribute('aria-label', 'Add an item to ' + st.label);
-        c.appendChild(addBtn);
-      }
       steps.appendChild(c);
     });
   }
@@ -2257,22 +2250,6 @@
     });
   }
 
-  function restoreParcel(members) {
-    var saved = JSON.parse(JSON.stringify(members));
-    members.forEach(function (i) {
-      i.stage = 'listed';
-      delete i.sold; delete i.parcel; delete i.gathered; delete i.shipped;
-      if (i.slot && slotTaken(i.location, i.slot, i)) delete i.slot;
-    });
-    if (!save()) {
-      members.forEach(function (i, k) { for (var key in i) delete i[key]; Object.assign(i, saved[k]); });
-      alert('Could not save on this device. Is private browsing on?');
-      return;
-    }
-    refresh();
-    showToast(members.length > 1 ? 'Moved ' + members.length + ' items back to Listed' : 'Moved back to Listed', 'View', function () { stage = 'listed'; showList(); });
-  }
-
   function itemThumb(i, small) {
     var thumb = el('div', 'thumb' + (small ? ' sm' : ''));
     if (i.photo) {
@@ -2312,7 +2289,7 @@
     return box;
   }
 
-  // One card per sale. The button on the right changes with the step: Pack (Sold), Ship (Packed), Back to List (Shipped).
+  // One card per sale. The button on the right changes with the step: Pack (Sold), Ship (Packed). Shipped cards have no button.
   // A lone item shows its photo; a bundle shows a photo stack, the app, the profit, and an item list you can open or close.
   function parcelCard(members, mode) {
     var lead = members[0];
@@ -2370,12 +2347,6 @@
       action.appendChild(document.createTextNode('Ship'));
       action.appendChild(icon('arrow', 16));
       action.addEventListener('click', function () { shipParcel(members); });
-    } else if (mode === 'shipped') {
-      action = el('button', 'ship-btn back-btn');
-      action.type = 'button';
-      action.appendChild(icon('undo', 18));
-      action.appendChild(document.createTextNode('Back to List'));
-      action.addEventListener('click', function () { restoreParcel(members); });
     }
     if (action) head.appendChild(action);
     card.appendChild(head);
