@@ -2563,11 +2563,6 @@
     updateSummary();
   }
 
-  // Put the cursor in the name box (new items only) without scrolling the page.
-  function focusName() {
-    try { $('name').focus({ preventScroll: true }); } catch (e) { /* not needed on every browser */ }
-  }
-
   // Open the form. A new item goes in the given step (or "Unlisted" when none is given).
   function showAdd(stageId, preset) {
     addOrigin = currentView === 'add-view' ? addOrigin : currentView;
@@ -2591,7 +2586,6 @@
     renderPlatformChips();
     updateSoldFields();
     showView('add-view');
-    focusName();
   }
 
   // Open the form filled in with an existing item.
@@ -2683,13 +2677,12 @@
     var err = $('error');
     err.textContent = '';
     clearBad();
-    // Show the message, outline the field it is about and bring that field into view.
+    // Show the message, outline the field it is about and bring that field into view (no keyboard pops up).
     function fail(msg, fieldId) {
       err.textContent = msg;
       if (fieldId) {
         var f = $(fieldId);
         (f.closest('.vbox') || f).classList.add('bad');
-        try { f.focus({ preventScroll: true }); } catch (e) { /* not needed on every browser */ }
         f.scrollIntoView({ block: 'center' });
       } else {
         err.scrollIntoView({ block: 'nearest' });
@@ -2797,7 +2790,6 @@
     note.hidden = false;
     clearBad();
     window.scrollTo(0, 0);
-    focusName();
   }
 
   // ---------- start ----------
