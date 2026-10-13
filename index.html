@@ -331,6 +331,16 @@
   .actions .primary, .actions .secondary, .actions .danger { flex: 1; }
   .danger { background: var(--red); color: #2A0A08; border: 0; border-radius: 28px; font-size: 17px; font-weight: 700; min-height: 56px; }
   .hint { margin: 10px 0; }
+  /* Backup reminder: a dot on the settings button and a card on Home */
+  #settings-btn { position: relative; }
+  #settings-btn.has-dot::after { content: ''; position: absolute; top: 9px; right: 9px; width: 10px; height: 10px; border-radius: 5px; background: var(--blue); box-shadow: 0 0 0 2px var(--card); }
+  .nudge { display: flex; align-items: center; gap: 12px; }
+  .nudge .nt { flex: 1; min-width: 0; }
+  .nudge b { display: block; font-size: 16px; }
+  .nudge .add-pill { --fg: var(--blue); }
+  .backup-when { font-size: 28px; font-weight: 700; margin-top: 2px; }
+  .backup-card .primary, .backup-card .secondary { width: 100%; margin-top: 12px; }
+  .backup-card .secondary { background: var(--bg); }
   /* The field an error message is about */
   .vbox.bad { border-color: var(--red); }
   .big-name.bad { border-bottom-color: var(--red) !important; }
@@ -407,7 +417,7 @@
 <body>
 
 <main id="home-view" class="has-dock">
-  <header><h1>Stockroom</h1></header>
+  <header><h1 style="flex:1">Stockroom</h1><button class="round" id="settings-btn" type="button" aria-label="Settings"></button></header>
   <div id="home-summary"></div>
   <div class="section">
     <h2>Steps</h2>
@@ -508,6 +518,16 @@
   </form>
 </main>
 
+<main id="settings-view" class="has-dock" hidden>
+  <header>
+    <button class="round" id="settings-back" type="button" aria-label="Back to home"></button>
+    <h1>Settings</h1>
+  </header>
+  <div class="section-label" style="margin-top:12px">Backup</div>
+  <div id="backup-card"></div>
+  <input type="file" id="restore-input" accept=".json,application/json" hidden>
+</main>
+
 <main id="places-view" class="has-dock" hidden>
   <header><h1 style="flex:1">Places</h1></header>
   <div id="places-card"></div>
@@ -563,6 +583,20 @@
     <div class="actions">
       <button type="button" class="secondary" id="del-cancel">Cancel</button>
       <button type="button" class="danger" id="del-confirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet-wrap" id="rs-sheet" hidden>
+  <div class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="rs-title">
+    <h2 id="rs-title">Restore this backup?</h2>
+    <div class="sheet-name" id="rs-backup"></div>
+    <div class="meta" id="rs-now" style="margin-top:4px"></div>
+    <div class="meta" style="margin-top:12px">Restoring replaces everything on this phone with what is in the backup. This can't be undone, so back up first if you are not sure.</div>
+    <div class="error" id="rs-error" role="alert"></div>
+    <div class="actions">
+      <button type="button" class="secondary" id="rs-cancel">Cancel</button>
+      <button type="button" class="danger" id="rs-confirm">Restore</button>
     </div>
   </div>
 </div>
@@ -704,7 +738,7 @@
   var BAR = [{ id: 'all', label: 'All' }].concat(STAGES);
   var HOME_STEPS = ['import', 'list', 'sold', 'shipped'];
   var PLATFORMS = ['eBay', 'Poshmark', 'Mercari', 'Depop', 'Vinted', 'Facebook Marketplace', 'Etsy', 'Other'];
-  var VIEWS = ['home-view', 'list-view', 'add-view', 'places-view', 'place-view', 'summary-view', 'receipt-view'];
+  var VIEWS = ['home-view', 'list-view', 'add-view', 'places-view', 'place-view', 'summary-view', 'receipt-view', 'settings-view'];
   var KEY = 'stockroom.items.v1';
 
   var ICONS = {
@@ -732,6 +766,7 @@
     x: '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
     pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
     archive: '<path d="M3 5h18v4H3z"/><path d="M5 9v10h14V9"/><path d="M10 13h4"/>',
+    gear: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
     trash: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/>'
   };
   var STAGE_ICON = { import: 'inbox', list: 'tag', sold: 'sold', shipped: 'box' };
@@ -919,7 +954,7 @@
     currentView = id;
     VIEWS.forEach(function (v) { $(v).hidden = (v !== id); });
     $('dock').hidden = (id === 'add-view');
-    var active = (id === 'places-view' || id === 'place-view') ? 'places' : (id === 'summary-view' || id === 'receipt-view') ? 'summary' : 'home';
+    var active = id === 'settings-view' ? 'home' : (id === 'places-view' || id === 'place-view') ? 'places' : (id === 'summary-view' || id === 'receipt-view') ? 'summary' : 'home';
     ['home', 'places', 'summary'].forEach(function (t) {
       var b = $('tab-' + t);
       b.classList.toggle('on', t === active);
@@ -1411,6 +1446,15 @@
     var s = stats();
     var box = $('home-summary');
     box.replaceChildren();
+    if (backupDue()) {
+      var nudge = el('div', 'card nudge');
+      var nt = el('div', 'nt');
+      nt.appendChild(el('b', '', 'Time to back up'));
+      nt.appendChild(el('div', 'meta', lastBackup() ? 'Last backup ' + agoText(lastBackup()).toLowerCase() : 'You have not backed up yet'));
+      nudge.appendChild(nt);
+      nudge.appendChild(button('add-pill', 'Back up', doBackup));
+      box.appendChild(nudge);
+    }
     box.appendChild(bigCard(s));
 
     var card = el('div', 'card');
@@ -2176,6 +2220,8 @@
     else if (currentView === 'places-view') renderPlaces();
     else if (currentView === 'summary-view') renderSummary();
     else if (currentView === 'receipt-view') renderReceipt();
+    else if (currentView === 'settings-view') renderSettings();
+    syncBackupDot();
   }
 
   // ---------- places ----------
@@ -2792,9 +2838,171 @@
     window.scrollTo(0, 0);
   }
 
+  // ---------- backup and restore ----------
+
+  var BACKUP_KEY = 'stockroom.lastbackup.v1';
+  var BACKUP_DAYS = 7;       // remind after this many days
+  var restoring = null;      // backup file waiting for the Restore button
+
+  function lastBackup() {
+    try { var n = Number(localStorage.getItem(BACKUP_KEY)); return n > 0 ? n : 0; } catch (e) { return 0; }
+  }
+
+  // Whole calendar days between a time and today (so 11pm yesterday counts as "Yesterday").
+  function daysSince(t) {
+    var a = new Date(t), b = new Date();
+    return Math.round((new Date(b.getFullYear(), b.getMonth(), b.getDate()) - new Date(a.getFullYear(), a.getMonth(), a.getDate())) / 86400000);
+  }
+
+  function agoText(t) {
+    if (!t) return 'Never';
+    var d = daysSince(t);
+    if (d <= 0) return 'Today';
+    if (d === 1) return 'Yesterday';
+    if (d < 60) return d + ' days ago';
+    return Math.floor(d / 30) + ' months ago';
+  }
+
+  // Nothing to protect until there is at least one item.
+  function backupDue() {
+    if (!items.length) return false;
+    var t = lastBackup();
+    return !t || daysSince(t) >= BACKUP_DAYS;
+  }
+
+  function syncBackupDot() {
+    var b = $('settings-btn');
+    var due = backupDue();
+    b.classList.toggle('has-dot', due);
+    b.setAttribute('aria-label', due ? 'Settings, backup due' : 'Settings');
+  }
+
+  function dateText(t) {
+    return new Date(t).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  function renderSettings() {
+    var box = $('backup-card');
+    box.replaceChildren();
+    var card = el('div', 'card backup-card');
+    var t = lastBackup();
+    card.appendChild(el('div', 'card-label', 'Last backup'));
+    card.appendChild(el('div', 'backup-when ' + (backupDue() ? '' : t ? 'good' : ''), agoText(t)));
+    card.appendChild(el('div', 'meta', t ? dateText(t) + ' · ' + countText(items.length) + ' on this phone now'
+      : items.length ? 'Your ' + countText(items.length) + ' only exist on this phone.' : 'Nothing to back up yet.'));
+    card.appendChild(button('primary', 'Back up now', doBackup));
+    card.appendChild(button('secondary', 'Restore from a backup', function () { $('restore-input').click(); }));
+    var help = el('div', 'meta', 'A backup is one file with your items, photos and places. Save it to Files or Google Drive, or send it to yourself. To move to a new phone, restore it there.');
+    help.style.marginTop = '14px';
+    card.appendChild(help);
+    box.appendChild(card);
+  }
+
+  function showSettings() {
+    renderSettings();
+    showView('settings-view');
+  }
+
+  function buildBackup() {
+    return { app: 'stockroom', version: 1, savedAt: Date.now(), items: items, places: placeSlots, slotNames: slotNames, extraPlaces: extraPlaces };
+  }
+
+  // Share sheet when the phone has one (lets you pick Files or Drive), else a normal download.
+  function doBackup() {
+    var data = buildBackup();
+    var text = JSON.stringify(data);
+    var d = new Date(data.savedAt);
+    function two(n) { return (n < 10 ? '0' : '') + n; }
+    var name = 'stockroom-backup-' + d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate()) + '.json';
+    var file = null;
+    try { file = new File([text], name, { type: 'application/json' }); } catch (e) { /* download instead */ }
+
+    function done() {
+      try { localStorage.setItem(BACKUP_KEY, String(data.savedAt)); } catch (e) { /* the file is still saved */ }
+      refresh();
+      showToast('Backup saved. Keep the file somewhere safe, like Files or Google Drive.');
+    }
+    function download() {
+      var url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      done();
+    }
+    if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'Stockroom backup' }).then(done, function (err) {
+        if (err && err.name === 'AbortError') return; // closed the sheet: not backed up
+        download();
+      });
+    } else {
+      download();
+    }
+  }
+
+  function onRestorePicked(e) {
+    var file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onerror = function () { showToast('That file could not be read.'); };
+    reader.onload = function () {
+      var b = null;
+      try { b = JSON.parse(reader.result); } catch (err) { /* checked below */ }
+      var ok = b && b.app === 'stockroom' && Array.isArray(b.items) &&
+        b.items.every(function (x) { return x && typeof x === 'object' && !Array.isArray(x); });
+      if (!ok) { showToast('That is not a Stockroom backup file.'); return; }
+      restoring = b;
+      $('rs-backup').textContent = 'Backup: ' + countText(b.items.length) + (b.savedAt ? ', saved ' + dateText(b.savedAt) : '');
+      $('rs-now').textContent = 'On this phone now: ' + countText(items.length);
+      $('rs-error').textContent = '';
+      $('rs-sheet').hidden = false;
+      $('rs-cancel').focus();
+    };
+    reader.readAsText(file);
+  }
+
+  function closeRestore() {
+    restoring = null;
+    $('rs-sheet').hidden = true;
+  }
+
+  function confirmRestore() {
+    var b = restoring;
+    if (!b) return;
+    var writes = [
+      [KEY, JSON.stringify(b.items)],
+      [SLOTS_KEY, JSON.stringify(b.places && typeof b.places === 'object' ? b.places : {})],
+      [NAMES_KEY, JSON.stringify(b.slotNames && typeof b.slotNames === 'object' ? b.slotNames : {})],
+      [EXTRA_KEY, JSON.stringify(Array.isArray(b.extraPlaces) ? b.extraPlaces : [])]
+    ];
+    var keys = writes.map(function (w) { return w[0]; }).concat(BACKUP_KEY);
+    var before = {};
+    keys.forEach(function (k) { try { before[k] = localStorage.getItem(k); } catch (e) { before[k] = null; } });
+    try {
+      writes.forEach(function (w) { localStorage.setItem(w[0], w[1]); });
+      if (Number(b.savedAt) > 0) localStorage.setItem(BACKUP_KEY, String(Number(b.savedAt)));
+      else localStorage.removeItem(BACKUP_KEY);
+    } catch (err) {
+      // Put everything back the way it was.
+      keys.forEach(function (k) {
+        try { if (before[k] === null) localStorage.removeItem(k); else localStorage.setItem(k, before[k]); } catch (e2) { /* nothing more to do */ }
+      });
+      $('rs-error').textContent = 'Could not restore on this device. Nothing was changed.';
+      return;
+    }
+    try { sessionStorage.setItem('stockroom.restored', String(b.items.length)); } catch (e) { /* no message after reload */ }
+    location.reload();
+  }
+
   // ---------- start ----------
 
   function build() {
+    $('settings-btn').appendChild(icon('gear', 22));
+    $('settings-back').appendChild(icon('back', 22));
     $('list-back').appendChild(icon('back', 22));
     $('add-back').appendChild(icon('back', 22));
     $('place-back').appendChild(icon('back', 22));
@@ -2824,6 +3032,11 @@
 
   $('view-all').addEventListener('click', function () { stage = 'all'; showList(); });
   $('list-back').addEventListener('click', function () { if (stage === 'history') showSummary(); else showHome(); });
+  $('settings-btn').addEventListener('click', showSettings);
+  $('settings-back').addEventListener('click', showHome);
+  $('restore-input').addEventListener('change', onRestorePicked);
+  $('rs-cancel').addEventListener('click', closeRestore);
+  $('rs-confirm').addEventListener('click', confirmRestore);
   $('tab-home').addEventListener('click', showHome);
   $('tab-places').addEventListener('click', showPlaces);
   $('tab-summary').addEventListener('click', showSummary);
@@ -2925,6 +3138,14 @@
   $('apps-btn').addEventListener('click', function () { appsOpen = !appsOpen; renderFilters(); });
   renderFilters();
   showHome();
+  syncBackupDot();
+  try {
+    var restoredCount = sessionStorage.getItem('stockroom.restored');
+    if (restoredCount !== null) {
+      sessionStorage.removeItem('stockroom.restored');
+      showToast('Restored ' + countText(Number(restoredCount)) + ' from your backup.');
+    }
+  } catch (e) { /* no message */ }
 
   // Lets the app open instantly and work offline once it has been opened online.
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {

@@ -50,13 +50,19 @@ To use it like an app, open that link on your phone, then use "Add to Home Scree
 
 Items are stored in your browser on that phone. Clearing browser data or website
 history for the site will erase them, and a different phone starts empty.
-A backup option is planned.
+Use **Settings > Backup** (see below) to save a copy.
 
 Photos are shrunk before they are saved so many of them fit, but a lot of photos can still
 fill the space the browser gives the page. If saving ever fails, that is the likely reason.
 
 The page loads its font from Google Fonts in the background, so the page appears right away and the font swaps in a moment later. Without a connection it uses the phone's normal font and everything else still works.
 
+
+**Settings and backup**: the gear button at the top right of Home opens Settings, which for now holds only Backup.
+- **Back up now** makes one file (`stockroom-backup-YYYY-MM-DD.json`) with your items, photos, places, slots and slot names. On a phone it opens the share sheet so you can save it to Files or Google Drive, or send it to yourself; if the phone has no share sheet it downloads the file instead. If you close the share sheet without saving, it does not count as a backup.
+- **Restore from a backup** lets you pick a backup file. It shows how many items the backup has and how many are on the phone now, and replaces everything only after you tap Restore. If the phone cannot store the backup, nothing is changed. Use it to move to a new phone.
+- Settings shows how long ago the last backup was. When you have items and the last backup is 7 or more days old (or there is none), Home shows a "Time to back up" card with a **Back up** button and the gear button gets a blue dot. Both go away once you back up.
+- A backup file is a plain text file. It contains your photos, so keep it private.
 
 **Big numbers**: money shows with commas (e.g. $1,234,567.89). Summary always shows exact amounts; Home abbreviates very large ones ($12.3k, $4.5M, $1.2B) so nothing runs off the screen.
 
