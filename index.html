@@ -625,6 +625,10 @@
 
 <main id="places-view" class="has-dock" hidden>
   <header><h1 style="flex:1">Places</h1></header>
+  <div class="tiles" style="grid-template-columns:repeat(2,1fr);margin:0 0 12px">
+    <button type="button" class="quick" disabled id="ptile-qr"><span class="ti"></span>QR code<small>Coming soon</small></button>
+    <button type="button" class="quick" disabled id="ptile-bulk"><span class="ti"></span>Bulk upload<small>Coming soon</small></button>
+  </div>
   <div id="places-card"></div>
   <div id="places-list"></div>
   <button type="button" class="place-row add-place" id="new-place-btn"><span class="place-name">+ New place</span></button>
@@ -3707,7 +3711,7 @@
       b.appendChild(el('span', '', t[2]));
     });
     $('fab').appendChild(icon('plus', 32, 2.4));
-    [['tile-qr', 'qr'], ['tile-shot', 'phone'], ['tile-bulk', 'inbox']].forEach(function (t) {
+    [['tile-qr', 'qr'], ['tile-shot', 'phone'], ['tile-bulk', 'inbox'], ['ptile-qr', 'qr'], ['ptile-bulk', 'inbox']].forEach(function (t) {
       $(t[0]).querySelector('.ti').appendChild(icon(t[1], 24));
     });
     ['add-stage', 'add-place', 'add-slot'].forEach(function (id) {
