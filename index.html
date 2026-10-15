@@ -540,10 +540,8 @@
   </div>
   <form id="add-form" novalidate>
     <button type="button" class="link" id="past-toggle" style="padding-left:0;margin-top:8px"></button>
-    <div class="tiles" id="tiles">
-      <button type="button" class="quick" disabled id="tile-qr"><span class="ti"></span>QR code<small>Coming soon</small></button>
+    <div class="tiles" id="tiles" style="grid-template-columns:1fr">
       <button type="button" class="quick" disabled id="tile-shot"><span class="ti"></span>Screenshot<small>Coming soon</small></button>
-      <button type="button" class="quick" disabled id="tile-bulk"><span class="ti"></span>Bulk upload<small>Coming soon</small></button>
     </div>
 
     <div class="add-head">
@@ -3711,7 +3709,7 @@
       b.appendChild(el('span', '', t[2]));
     });
     $('fab').appendChild(icon('plus', 32, 2.4));
-    [['tile-qr', 'qr'], ['tile-shot', 'phone'], ['tile-bulk', 'inbox'], ['ptile-qr', 'qr'], ['ptile-bulk', 'inbox']].forEach(function (t) {
+    [['tile-shot', 'phone'], ['ptile-qr', 'qr'], ['ptile-bulk', 'inbox']].forEach(function (t) {
       $(t[0]).querySelector('.ti').appendChild(icon(t[1], 24));
     });
     ['add-stage', 'add-place', 'add-slot'].forEach(function (id) {
