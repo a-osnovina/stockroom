@@ -688,11 +688,12 @@
     <h2 id="rs-title">Restore this backup?</h2>
     <div class="sheet-name" id="rs-backup"></div>
     <div class="meta" id="rs-now" style="margin-top:4px"></div>
-    <div class="meta" style="margin-top:12px">Restoring replaces everything on this phone with what is in the backup. This can't be undone, so back up first if you are not sure.</div>
+    <div class="meta" style="margin-top:12px"><b>Add to what's here</b> keeps your current items and adds the ones in this file. <b>Replace everything</b> swaps what is on this phone for the backup, and can't be undone, so back up first if you are not sure.</div>
     <div class="error" id="rs-error" role="alert"></div>
+    <button type="button" class="primary" id="rs-merge" style="width:100%;margin-top:12px">Add to what's here</button>
     <div class="actions">
       <button type="button" class="secondary" id="rs-cancel">Cancel</button>
-      <button type="button" class="danger" id="rs-confirm">Restore</button>
+      <button type="button" class="danger" id="rs-confirm">Replace everything</button>
     </div>
   </div>
 </div>
@@ -3446,6 +3447,74 @@
     location.reload();
   }
 
+  // Adds the backup's items to what is already on this phone, leaving everything else as it is.
+  function mergeRestore() {
+    var b = restoring;
+    if (!b) return;
+    var have = {};
+    items.forEach(function (x) { have[x.id] = true; });
+    var fresh = b.items.filter(function (x) { return x && typeof x.id === 'string' && !have[x.id]; }).map(function (x) {
+      return JSON.parse(JSON.stringify(x));
+    });
+
+    // Places: keep the larger slot count when both have the same place.
+    var places = {};
+    Object.keys(placeSlots).forEach(function (k) { places[k] = placeSlots[k]; });
+    var incoming = b.places && typeof b.places === 'object' ? b.places : {};
+    Object.keys(incoming).forEach(function (k) {
+      var n = Number(incoming[k]);
+      if (!k || !Number.isInteger(n) || n < 1) return;
+      var ek = slotKey(k) || k;
+      places[ek] = Math.max(places[ek] || 0, n);
+    });
+
+    var names = {};
+    Object.keys(slotNames).forEach(function (k) { names[k] = slotNames[k]; });
+    var inNames = b.slotNames && typeof b.slotNames === 'object' ? b.slotNames : {};
+    Object.keys(inNames).forEach(function (k) { if (!(slotKey(k) && names[slotKey(k)]) && !names[k]) names[k] = inNames[k]; });
+
+    var extra = extraPlaces.slice();
+    (Array.isArray(b.extraPlaces) ? b.extraPlaces : []).forEach(function (p) {
+      if (typeof p === 'string' && p && !extra.some(function (e) { return e.toLowerCase() === p.toLowerCase(); })) extra.push(p);
+    });
+
+    // Match place spelling already in use, and drop a slot that is taken or does not exist.
+    var taken = {};
+    items.forEach(function (x) { if (!gone(x) && x.slot && x.location) taken[x.location.toLowerCase() + '|' + x.slot] = true; });
+    fresh.forEach(function (x) {
+      if (typeof x.location === 'string' && x.location) {
+        var same = Object.keys(places).concat(extra).concat(items.map(function (i) { return i.location; })).filter(function (l) { return l && l.toLowerCase() === x.location.toLowerCase(); });
+        if (same.length) x.location = same[0];
+      }
+      if (x.slot) {
+        var key = String(x.location || '').toLowerCase() + '|' + x.slot;
+        var pk = Object.keys(places).filter(function (k) { return k.toLowerCase() === String(x.location || '').toLowerCase(); })[0];
+        if (!x.location || !pk || x.slot > places[pk] || (!gone(x) && taken[key])) delete x.slot;
+        else if (!gone(x)) taken[key] = true;
+      }
+    });
+
+    var writes = [
+      [KEY, JSON.stringify(items.concat(fresh))],
+      [SLOTS_KEY, JSON.stringify(places)],
+      [NAMES_KEY, JSON.stringify(names)],
+      [EXTRA_KEY, JSON.stringify(extra)]
+    ];
+    var before = {};
+    writes.forEach(function (w) { try { before[w[0]] = localStorage.getItem(w[0]); } catch (e) { before[w[0]] = null; } });
+    try {
+      writes.forEach(function (w) { localStorage.setItem(w[0], w[1]); });
+    } catch (err) {
+      writes.forEach(function (w) {
+        try { if (before[w[0]] === null) localStorage.removeItem(w[0]); else localStorage.setItem(w[0], before[w[0]]); } catch (e2) { /* nothing more to do */ }
+      });
+      $('rs-error').textContent = 'Could not fresh these on this device. It may be out of space. Nothing was changed.';
+      return;
+    }
+    try { sessionStorage.setItem('stockroom.added', String(fresh.length)); } catch (e) { /* no message after reload */ }
+    location.reload();
+  }
+
   // ---------- start from zero ----------
 
   function openStartOver() {
@@ -3520,6 +3589,7 @@
   $('restore-input').addEventListener('change', onRestorePicked);
   $('rs-cancel').addEventListener('click', closeRestore);
   $('rs-confirm').addEventListener('click', confirmRestore);
+  $('rs-merge').addEventListener('click', mergeRestore);
   $('past-toggle').addEventListener('click', togglePast);
   $('add-date').addEventListener('input', function () { $('error').textContent = ''; clearBad(); });
   $('zero-cancel').addEventListener('click', closeStartOver);
@@ -3632,6 +3702,11 @@
     if (restoredCount !== null) {
       sessionStorage.removeItem('stockroom.restored');
       showToast('Restored ' + countText(Number(restoredCount)) + ' from your backup.');
+    }
+    var addedCount = sessionStorage.getItem('stockroom.added');
+    if (addedCount !== null) {
+      sessionStorage.removeItem('stockroom.added');
+      showToast('Added ' + countText(Number(addedCount)) + ' from your file.');
     }
     if (sessionStorage.getItem('stockroom.cleared') !== null) {
       sessionStorage.removeItem('stockroom.cleared');
