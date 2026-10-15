@@ -3508,7 +3508,7 @@
       writes.forEach(function (w) {
         try { if (before[w[0]] === null) localStorage.removeItem(w[0]); else localStorage.setItem(w[0], before[w[0]]); } catch (e2) { /* nothing more to do */ }
       });
-      $('rs-error').textContent = 'Could not fresh these on this device. It may be out of space. Nothing was changed.';
+      $('rs-error').textContent = 'Could not add these on this device. It may be out of space. Nothing was changed.';
       return;
     }
     try { sessionStorage.setItem('stockroom.added', String(fresh.length)); } catch (e) { /* no message after reload */ }
