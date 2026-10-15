@@ -685,6 +685,19 @@
   </div>
 </div>
 
+<div class="sheet-wrap" id="zero-sheet" hidden>
+  <div class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="zero-title">
+    <h2 id="zero-title">Start from zero?</h2>
+    <div class="sheet-name" id="zero-now"></div>
+    <div class="meta" style="margin-top:12px">This removes all your items, photos, places and backup history from this phone. This can't be undone, so back up first if you are not sure.</div>
+    <div class="error" id="zero-error" role="alert"></div>
+    <div class="actions">
+      <button type="button" class="secondary" id="zero-cancel">Cancel</button>
+      <button type="button" class="danger" id="zero-confirm">Remove everything</button>
+    </div>
+  </div>
+</div>
+
 <div class="sheet-wrap" id="es-sheet" hidden>
   <form class="sheet" id="es-form" role="dialog" aria-modal="true" aria-labelledby="es-title" novalidate>
     <h2 id="es-title">Edit sale</h2>
@@ -3268,6 +3281,15 @@
     help.style.marginTop = '14px';
     card.appendChild(help);
     box.appendChild(card);
+
+    // Start from zero: wipes everything on this phone (its own card, so it is not tapped by accident).
+    var zero = el('div', 'card backup-card');
+    zero.style.marginTop = '12px';
+    zero.appendChild(el('div', 'card-label', 'Start from zero'));
+    zero.appendChild(el('div', 'meta', 'Removes all items, photos, places and backup history from this phone so you can begin with an empty Stockroom. Back up first if you might want anything back.'));
+    zero.appendChild(button('danger', 'Start from zero', openStartOver));
+    zero.lastChild.style.cssText = 'width:100%;margin-top:12px';
+    box.appendChild(zero);
   }
 
   function showSettings() {
@@ -3370,6 +3392,37 @@
     location.reload();
   }
 
+  // ---------- start from zero ----------
+
+  function openStartOver() {
+    $('zero-now').textContent = 'On this phone now: ' + countText(items.length);
+    $('zero-error').textContent = '';
+    $('zero-sheet').hidden = false;
+    $('zero-cancel').focus();
+  }
+
+  function closeStartOver() {
+    $('zero-sheet').hidden = true;
+  }
+
+  function confirmStartOver() {
+    var keys = [KEY, SLOTS_KEY, NAMES_KEY, EXTRA_KEY, BACKUP_KEY];
+    var before = {};
+    keys.forEach(function (k) { try { before[k] = localStorage.getItem(k); } catch (e) { before[k] = null; } });
+    try {
+      keys.forEach(function (k) { localStorage.removeItem(k); });
+    } catch (err) {
+      // Put back whatever was already removed.
+      keys.forEach(function (k) {
+        try { if (before[k] !== null) localStorage.setItem(k, before[k]); } catch (e2) { /* nothing more to do */ }
+      });
+      $('zero-error').textContent = 'Could not clear this device. Nothing was changed.';
+      return;
+    }
+    try { sessionStorage.setItem('stockroom.cleared', '1'); } catch (e) { /* no message after reload */ }
+    location.reload();
+  }
+
   // ---------- start ----------
 
   function build() {
@@ -3413,6 +3466,8 @@
   $('restore-input').addEventListener('change', onRestorePicked);
   $('rs-cancel').addEventListener('click', closeRestore);
   $('rs-confirm').addEventListener('click', confirmRestore);
+  $('zero-cancel').addEventListener('click', closeStartOver);
+  $('zero-confirm').addEventListener('click', confirmStartOver);
   $('tab-home').addEventListener('click', showHome);
   $('tab-items').addEventListener('click', showItems);
   $('tab-places').addEventListener('click', showPlaces);
@@ -3521,6 +3576,10 @@
     if (restoredCount !== null) {
       sessionStorage.removeItem('stockroom.restored');
       showToast('Restored ' + countText(Number(restoredCount)) + ' from your backup.');
+    }
+    if (sessionStorage.getItem('stockroom.cleared') !== null) {
+      sessionStorage.removeItem('stockroom.cleared');
+      showToast('Everything was removed. You are starting from zero.');
     }
   } catch (e) { /* no message */ }
 
