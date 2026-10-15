@@ -352,6 +352,13 @@
   }
   .vbox:focus-within { border-color: var(--blue); }
   .vbox .pre { color: var(--muted); margin-right: 4px; }
+  .vbox input[type=date] {
+    background: none; border: 0; text-align: right; min-height: 40px; padding: 0; border-radius: 0; color: var(--blue-text);
+    font-size: 16px; font-family: inherit; font-weight: 500; width: 100%; color-scheme: dark;
+  }
+  /* Past sale mode: only the things a sale that already happened needs. */
+  #add-form.past .tiles, #add-form.past #stage-row, #add-form.past #place-row,
+  #add-form.past #new-place-row, #add-form.past #slot-group, #add-form.past #listed-group { display: none !important; }
   .vbox input[type=number], .vbox input[type=text] {
     background: none; text-align: right; min-height: 40px; padding: 0; border-radius: 0; color: var(--blue-text); font-weight: 500;
   }
@@ -532,6 +539,7 @@
     <h2 id="add-title">Add item</h2>
   </div>
   <form id="add-form" novalidate>
+    <button type="button" class="link" id="past-toggle" style="padding-left:0;margin-top:8px"></button>
     <div class="tiles" id="tiles">
       <button type="button" class="quick" disabled id="tile-qr"><span class="ti"></span>QR code<small>Coming soon</small></button>
       <button type="button" class="quick" disabled id="tile-shot"><span class="ti"></span>Screenshot<small>Coming soon</small></button>
@@ -554,11 +562,11 @@
         <label for="cost">What you paid</label>
         <div class="vbox"><span class="pre">$</span><input type="number" id="cost" placeholder="0.00" inputmode="decimal" step="0.01" min="0" enterkeyhint="done"></div>
       </div>
-      <div class="drow">
+      <div class="drow" id="stage-row">
         <label for="add-stage">Step</label>
         <div class="vbox sel"><select id="add-stage"></select></div>
       </div>
-      <div class="drow">
+      <div class="drow" id="place-row">
         <label for="add-place">Place</label>
         <div class="vbox sel"><select id="add-place"></select></div>
       </div>
@@ -582,6 +590,10 @@
         <div class="dgroup">
           <div class="label">Sold on</div>
           <div class="chips" id="add-sold-chips"></div>
+        </div>
+        <div class="drow">
+          <label for="add-date">Sold date</label>
+          <div class="vbox"><input type="date" id="add-date"></div>
         </div>
       </div>
     </div>
@@ -2969,9 +2981,37 @@
   }
 
   function updateStageText() {
-    $('add-title').textContent = add.editing ? 'Edit item' : 'Add item';
-    $('add-sub').textContent = stageLabel(add.stage);
+    $('add-title').textContent = add.editing ? 'Edit item' : add.past ? 'Add past sale' : 'Add item';
+    $('add-sub').textContent = add.past ? 'Already sold and shipped' : stageLabel(add.stage);
     $('add-stage').value = add.stage;
+    $('add-form').classList.toggle('past', !!add.past);
+    var t = $('past-toggle');
+    t.hidden = !!add.editing;
+    t.textContent = add.past ? 'Add a new item instead' : 'Log a past sale instead';
+  }
+
+  // Switch between a normal new item and a sale that already happened (sold and shipped).
+  function togglePast() {
+    if (!add || add.editing) return;
+    add.past = !add.past;
+    add.stage = add.past ? 'packed' : 'unlisted';
+    $('error').textContent = '';
+    clearBad();
+    updateStageText();
+    updateSoldFields();
+  }
+
+  // Dates are picked as a day. A chosen day that is not the day already stored is saved at noon on that day.
+  function dayString(t) {
+    var d = new Date(t);
+    function two(n) { return (n < 10 ? '0' : '') + n; }
+    return d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
+  }
+
+  function dateFromInput(value, fallback) {
+    if (value === dayString(fallback)) return fallback;
+    var p = value.split('-');
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]), 12).getTime();
   }
 
   // The same form is used to add a new item and to edit an existing one.
@@ -2996,7 +3036,11 @@
   function showAdd(stageId, preset) {
     addOrigin = currentView === 'add-view' ? addOrigin : currentView;
     var s = stageId || (currentView === 'list-view' && stage !== 'all' && stage !== 'shipped' ? stage : 'unlisted');
-    add = { stage: s, selected: [], loc: (preset && preset.loc) || '', slot: (preset && preset.slot) || null, newPlace: false, photo: null, soldOn: null };
+    var past = !!(preset && preset.past);
+    if (past) s = 'packed';
+    add = { stage: s, selected: [], loc: (preset && preset.loc) || '', slot: (preset && preset.slot) || null, newPlace: false, photo: null, soldOn: null, past: past };
+    $('add-date').max = dayString(Date.now());
+    $('add-date').value = dayString(Date.now());
     setFormMode(false);
     $('add-stage').disabled = false;
     $('add-price').readOnly = false;
@@ -3026,6 +3070,8 @@
     };
     setFormMode(true);
     updateStageText();
+    $('add-date').max = dayString(Date.now());
+    $('add-date').value = dayString((item.sold && item.sold.date) || Date.now());
     $('add-stage').disabled = !!item.parcel;
     $('add-price').readOnly = !!item.parcel;
     $('name').value = item.name;
@@ -3131,6 +3177,9 @@
     if (costText === '') cost = 0;
     if (sold && price === null) return fail('Enter what it sold for, e.g. 40.00.', 'add-price');
     if (sold && !add.soldOn) return fail('Pick the app it sold on.');
+    var soldDay = $('add-date').value;
+    if (sold && !soldDay) return fail('Pick the day it sold.', 'add-date');
+    if (sold && soldDay > dayString(Date.now())) return fail('The sold date can\'t be in the future.', 'add-date');
 
     var typed = $('new-place').value.trim();
     var loc = canonLocation(typed || add.loc);
@@ -3156,7 +3205,7 @@
       if (add.photo) it.photo = add.photo; else delete it.photo;
       if (sold) {
         var prev = it.sold || {};
-        it.sold = { price: price, platform: add.soldOn, fees: prev.fees || 0, shipping: prev.shipping || 0, date: prev.date || Date.now() };
+        it.sold = { price: price, platform: add.soldOn, fees: prev.fees || 0, shipping: prev.shipping || 0, date: dateFromInput(soldDay, prev.date || Date.now()) };
       } else {
         delete it.sold;
         delete it.parcel;
@@ -3180,7 +3229,12 @@
     };
     if (add.photo) item.photo = add.photo;
     if (slot) item.slot = slot;
-    if (sold) item.sold = { price: price, platform: add.soldOn, fees: 0, shipping: 0, date: Date.now() };
+    if (sold) item.sold = { price: price, platform: add.soldOn, fees: 0, shipping: 0, date: dateFromInput(soldDay, Date.now()) };
+    if (add.past) {
+      // A sale that already happened: it has left the shelf, so it counts as shipped and needs no packing.
+      item.shipped = true;
+      item.createdAt = Math.min(item.createdAt, item.sold.date);
+    }
     items.unshift(item);
     if (!save()) {
       items.shift();
@@ -3192,7 +3246,7 @@
 
   function saveAndLeave(e) {
     e.preventDefault();
-    var editing = !!add.editing, name = $('name').value.trim(), where = add.stage;
+    var editing = !!add.editing, name = $('name').value.trim(), where = add.past ? 'shipped' : add.stage;
     if (!submit()) return;
     leaveAdd();
     // Without this you could not tell it saved, or where it went (for example when you came from Home).
@@ -3208,7 +3262,7 @@
     $('cost').value = '';
     $('add-price').value = '';
     add.photo = null;
-    add.soldOn = null;
+    if (!add.past) add.soldOn = null; // past sales keep the app and day, handy when typing in a list
     // Show a place typed as new as a normal choice from now on.
     var typed = canonLocation($('new-place').value);
     if (typed) { add.loc = typed; $('new-place').value = ''; add.newPlace = false; $('new-place-row').hidden = true; }
@@ -3466,6 +3520,8 @@
   $('restore-input').addEventListener('change', onRestorePicked);
   $('rs-cancel').addEventListener('click', closeRestore);
   $('rs-confirm').addEventListener('click', confirmRestore);
+  $('past-toggle').addEventListener('click', togglePast);
+  $('add-date').addEventListener('input', function () { $('error').textContent = ''; clearBad(); });
   $('zero-cancel').addEventListener('click', closeStartOver);
   $('zero-confirm').addEventListener('click', confirmStartOver);
   $('tab-home').addEventListener('click', showHome);
