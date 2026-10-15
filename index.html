@@ -698,6 +698,23 @@
   </div>
 </div>
 
+<div class="sheet-wrap" id="adj-sheet" hidden>
+  <form class="sheet" id="adj-form" role="dialog" aria-modal="true" aria-labelledby="adj-title" novalidate>
+    <h2 id="adj-title">Edit total</h2>
+    <div class="chips" id="adj-chips" style="margin-top:8px"></div>
+    <div class="meta" id="adj-now" style="margin-top:12px"></div>
+    <label for="adj-input" style="margin-top:12px">It should show $</label>
+    <input type="number" id="adj-input" placeholder="0.00" inputmode="decimal" step="0.01" enterkeyhint="done">
+    <div class="meta" style="margin-top:8px">Your items stay as they are. The difference is saved as one edit you can remove later.</div>
+    <div class="error" id="adj-error" role="alert"></div>
+    <div class="actions">
+      <button type="button" class="secondary" id="adj-cancel">Cancel</button>
+      <button type="submit" class="primary" id="adj-save">Save</button>
+    </div>
+    <button type="button" class="link" id="adj-clear" hidden style="padding-left:0">Remove my edit</button>
+  </form>
+</div>
+
 <div class="sheet-wrap" id="zero-sheet" hidden>
   <div class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="zero-title">
     <h2 id="zero-title">Start from zero?</h2>
@@ -893,6 +910,8 @@
   var slotNames = loadNames();
   var EXTRA_KEY = 'stockroom.placelist.v1'; // places created without any item yet
   var extraPlaces = loadExtra();
+  var ADJ_KEY = 'stockroom.adjust.v1'; // { appName: dollars added to or taken off that app's total }
+  var adjust = loadAdjust();
   var items = load();
   var stage = 'all';       // which bar step is open
   var query = '';
@@ -1113,6 +1132,18 @@
         if (k && Number.isInteger(n) && n > 0) out[k] = n;
       });
     } catch (e) { /* start without slots */ }
+    return out;
+  }
+
+  function loadAdjust() {
+    var out = {};
+    try {
+      var o = JSON.parse(localStorage.getItem(ADJ_KEY) || '{}');
+      Object.keys(o || {}).forEach(function (k) {
+        var n = Number(o[k]);
+        if (k && isFinite(n) && Math.abs(n) >= 0.005) out[k] = Math.round(n * 100) / 100;
+      });
+    } catch (e) { /* no adjustments */ }
     return out;
   }
 
@@ -1534,6 +1565,11 @@
       }
       var app = i.sold.platform || 'Unknown app';
       byApp.set(app, (byApp.get(app) || 0) + p);
+    });
+    // A total you corrected by hand on an app (not tied to a month, so it only moves the app and overall totals).
+    Object.keys(adjust).forEach(function (a) {
+      total += adjust[a];
+      byApp.set(a, (byApp.get(a) || 0) + adjust[a]);
     });
     var tied = 0;
     items.forEach(function (i) {
@@ -2805,6 +2841,9 @@
       row.appendChild(bar);
       box.appendChild(row);
     });
+    var fix = button('secondary', 'Edit an app\'s total', function () { openAdjust(null); });
+    fix.style.cssText = 'width:100%;margin-top:12px';
+    box.appendChild(fix);
   }
 
   // ---------- receipt: everything sold on one app ----------
@@ -2829,7 +2868,8 @@
     $('receipt-title').textContent = every ? 'All apps' : app;
     var box = $('receipt');
     box.replaceChildren();
-    if (sales.length === 0) {
+    var adjTotal = every ? Object.keys(adjust).reduce(function (n, k) { return n + adjust[k]; }, 0) : (adjust[app] || 0);
+    if (sales.length === 0 && !adjTotal) {
       box.appendChild(el('div', 'empty', every ? 'Nothing shipped yet.' : 'Nothing shipped from ' + app + ' yet.'));
       return;
     }
@@ -2868,6 +2908,10 @@
     total('Items', String(sales.length));
     total('Paid', money(paid));
     total('Sold for', money(sold));
+    if (adjTotal) {
+      total('Edited by you', signedText(adjTotal));
+      profit += adjTotal;
+    }
     card.appendChild(el('div', 'receipt-rule'));
     total('Profit', profitText(profit), profit < 0 ? 'neg' : 'good', true);
     box.appendChild(card);
@@ -2880,6 +2924,96 @@
       if (p !== null) waiting += p;
     });
     if (waiting !== 0) box.appendChild(el('div', 'meta receipt-note', profitText(waiting) + ' more profit is sold or packed and not shipped yet.'));
+    if (!every) {
+      var ed = button('secondary', 'Edit total', function () { openAdjust(app); });
+      ed.style.cssText = 'width:100%;margin-top:12px';
+      box.appendChild(ed);
+    }
+  }
+
+  // ---------- edit an app's total ----------
+
+  var adjApp = null;
+
+  // What the items alone add up to for one app, shipped or not, before any hand edit.
+  function itemsProfit(app) {
+    var t = 0;
+    items.forEach(function (i) {
+      if (stageIndex(i.stage) < SOLD_AT) return;
+      var p = profitOf(i);
+      if (p === null) return;
+      if ((i.sold.platform || 'Unknown app') === app) t += p;
+    });
+    return t;
+  }
+
+  function adjustApps() {
+    var seen = {}, out = [];
+    items.forEach(function (i) {
+      if (stageIndex(i.stage) >= SOLD_AT && i.sold) {
+        var a = i.sold.platform || 'Unknown app';
+        if (!seen[a]) { seen[a] = 1; out.push(a); }
+      }
+    });
+    Object.keys(adjust).forEach(function (a) { if (!seen[a]) { seen[a] = 1; out.push(a); } });
+    return out.sort(byName);
+  }
+
+  function updateAdjustText() {
+    var shows = itemsProfit(adjApp) + (adjust[adjApp] || 0);
+    $('adj-now').textContent = 'Shows now: ' + profitText(shows) + ((adjust[adjApp] || 0) ? ' (includes ' + signedText(adjust[adjApp]) + ' you edited)' : '');
+    $('adj-clear').hidden = !adjust[adjApp];
+  }
+
+  function openAdjust(app) {
+    var apps = adjustApps();
+    if (!apps.length) { showToast('No sales yet, so there is no total to edit.'); return; }
+    adjApp = app && apps.indexOf(app) !== -1 ? app : apps[0];
+    renderPickChips($('adj-chips'), apps, adjApp, function (p) {
+      adjApp = p;
+      $('adj-input').value = '';
+      $('adj-error').textContent = '';
+      updateAdjustText();
+    });
+    $('adj-input').value = '';
+    $('adj-error').textContent = '';
+    updateAdjustText();
+    $('adj-sheet').hidden = false;
+    $('adj-input').focus();
+  }
+
+  function closeAdjust() { $('adj-sheet').hidden = true; }
+
+  function writeAdjust(next) {
+    var prev = adjust;
+    adjust = next;
+    try { localStorage.setItem(ADJ_KEY, JSON.stringify(adjust)); }
+    catch (e) { adjust = prev; $('adj-error').textContent = 'Could not save on this device. Nothing was changed.'; return false; }
+    return true;
+  }
+
+  function confirmAdjust(e) {
+    e.preventDefault();
+    var text = $('adj-input').value.trim();
+    var target = Number(text);
+    if (text === '' || !isFinite(target)) { $('adj-error').textContent = 'Enter the total this app should show, e.g. 32.00.'; return; }
+    var diff = Math.round((target - itemsProfit(adjApp)) * 100) / 100;
+    var next = {};
+    Object.keys(adjust).forEach(function (k) { next[k] = adjust[k]; });
+    if (Math.abs(diff) < 0.005) delete next[adjApp]; else next[adjApp] = diff;
+    if (!writeAdjust(next)) return;
+    closeAdjust();
+    refresh();
+    showToast(adjApp + ' now shows ' + profitText(itemsProfit(adjApp) + (adjust[adjApp] || 0)) + '.');
+  }
+
+  function clearAdjust() {
+    var next = {};
+    Object.keys(adjust).forEach(function (k) { if (k !== adjApp) next[k] = adjust[k]; });
+    if (!writeAdjust(next)) return;
+    closeAdjust();
+    refresh();
+    showToast('Edit removed. ' + adjApp + ' is back to what its items add up to.');
   }
 
   function showSummary() {
@@ -3353,7 +3487,7 @@
   }
 
   function buildBackup() {
-    return { app: 'stockroom', version: 1, savedAt: Date.now(), items: items, places: placeSlots, slotNames: slotNames, extraPlaces: extraPlaces };
+    return { app: 'stockroom', version: 1, savedAt: Date.now(), items: items, places: placeSlots, slotNames: slotNames, extraPlaces: extraPlaces, adjust: adjust };
   }
 
   // Share sheet when the phone has one (lets you pick Files or Drive), else a normal download.
@@ -3426,7 +3560,8 @@
       [KEY, JSON.stringify(b.items)],
       [SLOTS_KEY, JSON.stringify(b.places && typeof b.places === 'object' ? b.places : {})],
       [NAMES_KEY, JSON.stringify(b.slotNames && typeof b.slotNames === 'object' ? b.slotNames : {})],
-      [EXTRA_KEY, JSON.stringify(Array.isArray(b.extraPlaces) ? b.extraPlaces : [])]
+      [EXTRA_KEY, JSON.stringify(Array.isArray(b.extraPlaces) ? b.extraPlaces : [])],
+      [ADJ_KEY, JSON.stringify(b.adjust && typeof b.adjust === 'object' && !Array.isArray(b.adjust) ? b.adjust : {})]
     ];
     var keys = writes.map(function (w) { return w[0]; }).concat(BACKUP_KEY);
     var before = {};
@@ -3478,6 +3613,12 @@
       if (typeof p === 'string' && p && !extra.some(function (e) { return e.toLowerCase() === p.toLowerCase(); })) extra.push(p);
     });
 
+    // Edited totals: keep yours; take the file's only for apps you have not edited.
+    var mergedAdjust = {};
+    Object.keys(adjust).forEach(function (k) { mergedAdjust[k] = adjust[k]; });
+    var inAdj = b.adjust && typeof b.adjust === 'object' && !Array.isArray(b.adjust) ? b.adjust : {};
+    Object.keys(inAdj).forEach(function (k) { if (!(k in mergedAdjust) && isFinite(Number(inAdj[k]))) mergedAdjust[k] = Number(inAdj[k]); });
+
     // Match place spelling already in use, and drop a slot that is taken or does not exist.
     var taken = {};
     items.forEach(function (x) { if (!gone(x) && x.slot && x.location) taken[x.location.toLowerCase() + '|' + x.slot] = true; });
@@ -3498,7 +3639,8 @@
       [KEY, JSON.stringify(items.concat(fresh))],
       [SLOTS_KEY, JSON.stringify(places)],
       [NAMES_KEY, JSON.stringify(names)],
-      [EXTRA_KEY, JSON.stringify(extra)]
+      [EXTRA_KEY, JSON.stringify(extra)],
+      [ADJ_KEY, JSON.stringify(mergedAdjust)]
     ];
     var before = {};
     writes.forEach(function (w) { try { before[w[0]] = localStorage.getItem(w[0]); } catch (e) { before[w[0]] = null; } });
@@ -3529,7 +3671,7 @@
   }
 
   function confirmStartOver() {
-    var keys = [KEY, SLOTS_KEY, NAMES_KEY, EXTRA_KEY, BACKUP_KEY];
+    var keys = [KEY, SLOTS_KEY, NAMES_KEY, EXTRA_KEY, ADJ_KEY, BACKUP_KEY];
     var before = {};
     keys.forEach(function (k) { try { before[k] = localStorage.getItem(k); } catch (e) { before[k] = null; } });
     try {
@@ -3590,6 +3732,10 @@
   $('rs-cancel').addEventListener('click', closeRestore);
   $('rs-confirm').addEventListener('click', confirmRestore);
   $('rs-merge').addEventListener('click', mergeRestore);
+  $('adj-form').addEventListener('submit', confirmAdjust);
+  $('adj-cancel').addEventListener('click', closeAdjust);
+  $('adj-clear').addEventListener('click', clearAdjust);
+  $('adj-input').addEventListener('input', function () { $('adj-error').textContent = ''; });
   $('past-toggle').addEventListener('click', togglePast);
   $('add-date').addEventListener('input', function () { $('error').textContent = ''; clearBad(); });
   $('zero-cancel').addEventListener('click', closeStartOver);
